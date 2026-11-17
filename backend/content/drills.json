@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Design flash-sale inventory",
+    "strong": "Hot-row contention, atomic decrement, queueing/oversell policy, idempotency, rate limiting, reconciliation"
+  },
+  {
+    "name": "Design order history for 100M orders",
+    "strong": "Time/customer access patterns, partitioning, indexes, retention, archival, keyset pagination"
+  },
+  {
+    "name": "Design a multi-tenant SaaS database",
+    "strong": "Tenant key, isolation boundary, row-level security, noisy-neighbour risk, tenant migrations"
+  },
+  {
+    "name": "Design a read-heavy catalogue",
+    "strong": "Cache-aside, CDN, replicas, invalidation, stale-data tolerance, search index if needed"
+  },
+  {
+    "name": "Recover from an accidental DELETE",
+    "strong": "Stop further damage, preserve evidence, restore backup to a separate instance, replay WAL to target time, validate, cut over"
+  },
+  {
+    "name": "Handle DB CPU at 95%",
+    "strong": "Identify query load and waits, top query fingerprints, plans, connection count, locks, cache hit ratio, safe mitigations"
+  }
+]

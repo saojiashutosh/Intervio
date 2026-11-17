@@ -1,0 +1,355 @@
+{
+  "sources": [
+    {
+      "key": "amazon-sde2",
+      "title": "SDE II Interview Prep",
+      "url": "https://www.amazon.jobs/content/en/how-we-hire/sde-ii-interview-prep",
+      "publisher": "Amazon",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Interview loop format (four 55-minute interviews), coding without pseudo-code, edge cases, system design criteria, Leadership Principles and STAR."
+    },
+    {
+      "key": "so-survey-2025",
+      "title": "Stack Overflow Developer Survey 2025: Technology",
+      "url": "https://survey.stackoverflow.co/2025/technology/",
+      "publisher": "Stack Overflow",
+      "kind": "survey",
+      "checked": "read",
+      "used_for": "Usage among professional developers: PostgreSQL 58.2%, MySQL 39.6%, Redis 30.7%, Docker 73.8%, JavaScript 68.8%, Python 54.8%, TypeScript 48.8%."
+    },
+    {
+      "key": "sre-book",
+      "title": "Site Reliability Engineering (book), table of contents",
+      "url": "https://sre.google/sre-book/table-of-contents/",
+      "publisher": "Google",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "What SRE covers: risk, SLOs, toil, monitoring, alerting, on-call, incident management, postmortems, overload, cascading failures, data integrity."
+    },
+    {
+      "key": "mdn-learn",
+      "title": "Learn web development (curriculum)",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development",
+      "publisher": "MDN / Mozilla",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Frontend curriculum modules: HTML, CSS layout, JavaScript, frameworks, accessibility, version control, async JS, performance, testing, server-side basics."
+    },
+    {
+      "key": "pg-docs",
+      "title": "PostgreSQL documentation",
+      "url": "https://www.postgresql.org/docs/current/",
+      "publisher": "PostgreSQL Global Development Group",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Technical accuracy of the database lessons (indexes, EXPLAIN, MVCC, locking, replication, partitioning). Individual pages linked on each concept."
+    },
+    {
+      "key": "django-docs",
+      "title": "Django documentation (5.2)",
+      "url": "https://docs.djangoproject.com/en/5.2/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Technical accuracy of the Django sections (transactions, select_for_update, indexes, constraints, multi-db, caching)."
+    },
+    {
+      "key": "drf-docs",
+      "title": "Django REST framework: API guide",
+      "url": "https://www.django-rest-framework.org/api-guide/serializers/",
+      "publisher": "Django REST framework",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Technical accuracy of the DRF lesson: serializers, viewsets, permissions, pagination styles (PageNumber, LimitOffset, Cursor), throttling."
+    },
+    {
+      "key": "celery-docs",
+      "title": "Celery user guide: Tasks",
+      "url": "https://docs.celeryq.dev/en/stable/userguide/tasks.html",
+      "publisher": "Celery",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Technical accuracy of the Celery lesson: retries (autoretry_for, retry_backoff), acks_late, periodic tasks, Django integration."
+    },
+    {
+      "key": "ddia",
+      "title": "Designing Data-Intensive Applications",
+      "url": "https://dataintensive.net/",
+      "publisher": "Martin Kleppmann (O'Reilly)",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Reference book on trade-offs of storage and processing systems; basis for the replication, partitioning, consistency and stream/batch topics."
+    },
+    {
+      "key": "tih-levels",
+      "title": "Engineering levels",
+      "url": "https://techinterviewhandbook.org/engineering-levels",
+      "publisher": "Tech Interview Handbook",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "Level bands used here: 0-2 yrs task-level, 2-5 yrs features/small projects, 5+ yrs large features and architecture; notes levels vary by company."
+    },
+    {
+      "key": "hello-levels",
+      "title": "The System Design Interview: What is expected at each level",
+      "url": "https://www.hellointerview.com/blog/the-system-design-interview-what-is-expected-at-each-level",
+      "publisher": "Hello Interview",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Mid-level: breadth, limited depth, candidate drives requirements/APIs/schemas. Senior: go deep in ~2 places, flag limits of own design. Staff+: lead the interview."
+    },
+    {
+      "key": "roadmap-backend",
+      "title": "Backend Developer Roadmap (overview)",
+      "url": "https://roadmap.sh/backend",
+      "publisher": "roadmap.sh",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Overview text only (interactive graph was not readable): languages, relational DBs, APIs, authentication, scalability, Git, projects."
+    },
+    {
+      "key": "roadmap-frontend",
+      "title": "Frontend Developer Roadmap (overview)",
+      "url": "https://roadmap.sh/frontend",
+      "publisher": "roadmap.sh",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Skills list: HTML/CSS/JS/TypeScript, accessibility, Git, responsive design, REST APIs, testing, devtools, frameworks, web performance and Core Web Vitals."
+    },
+    {
+      "key": "roadmap-devops",
+      "title": "DevOps Roadmap (overview)",
+      "url": "https://roadmap.sh/devops",
+      "publisher": "roadmap.sh",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Overview text only: scripting, cloud, containers, CI/CD, configuration management, infrastructure as code, monitoring and observability."
+    },
+    {
+      "key": "de-zoomcamp",
+      "title": "Data Engineering Zoomcamp (curriculum)",
+      "url": "https://github.com/DataTalksClub/data-engineering-zoomcamp",
+      "publisher": "DataTalks.Club",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Modules: Docker/Terraform, workflow orchestration, ingestion, warehousing (partitioning/clustering), analytics engineering (dbt), batch (Spark), streaming (Kafka)."
+    },
+    {
+      "key": "ml-interviews-book",
+      "title": "Machine Learning Interviews",
+      "url": "https://huyenchip.com/ml-interviews-book/",
+      "publisher": "Chip Huyen",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "What ML interviews test: math, CS, ML workflows and algorithms, ML systems design (asked by almost every company), behavioral. Level detail was not in the excerpt."
+    },
+    {
+      "key": "lemon-django",
+      "title": "Django interview questions and answers",
+      "url": "https://lemon.io/interview-questions/django",
+      "publisher": "Lemon.io",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Explicit Middle (3-5 yrs) and Senior (5-8 yrs) Django topic lists: ORM, migrations, DRF, security, deployment; N+1, caching, Celery, replication, zero-downtime migrations. First 100k of 128k characters read."
+    },
+    {
+      "key": "hackajob-backend",
+      "title": "Backend Developer Interview Questions & Preparation Guide",
+      "url": "https://hackajob.com/talent/technical-assessment/backend-developer-interview-questions-preparation-guide-for-2025",
+      "publisher": "hackajob",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Juniors judged on fundamentals; mid-level on database optimisation and API design; seniors on consistency, failure modes and scale."
+    },
+    {
+      "key": "join-junior-backend",
+      "title": "Junior Backend Engineer interview questions",
+      "url": "https://join.com/en/job-guides/backend-engineer-junior/interview-questions",
+      "publisher": "JOIN",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Junior bar: what an index is and its trade-offs; protecting against SQL injection."
+    },
+    {
+      "key": "golinuxcloud-django",
+      "title": "Django interview questions (experienced)",
+      "url": "https://www.golinuxcloud.com/django-interview-questions-experienced/",
+      "publisher": "GoLinuxCloud",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "ORM, query optimisation with select_related/prefetch_related, migrations."
+    },
+    {
+      "key": "adhdecode-django",
+      "title": "Django interview questions for senior engineers",
+      "url": "https://adhdecode-articles-1.pages.dev/articles/django/django-interview-questions-senior-engineer/",
+      "publisher": "adhdecode",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Senior focus: N+1, transactions, permissions, testing; transaction.on_commit before enqueueing Celery tasks."
+    },
+    {
+      "key": "job-django-madfish",
+      "title": "Senior Backend Developer (Python, Django) with DevOps (AWS)",
+      "url": "https://careers.tezos.com/companies/madfish/jobs/78664208-senior-backend-developer-python-django-with-devops-experience-aws-orangeuni",
+      "publisher": "Madfish (job posting)",
+      "kind": "job-post",
+      "checked": "snippet",
+      "used_for": "Django + Docker/docker-compose + CI/CD + AWS (S3, RDS, SQS, CloudFront); Celery 4.x/5.x."
+    },
+    {
+      "key": "job-django-joindevops",
+      "title": "Senior Software Engineer, Backend (Python, Django, DRF, PostgreSQL, Redis, Celery, Docker)",
+      "url": "https://jobs.joindevops.com/jobs/467486373-senior-software-engineer-backend",
+      "publisher": "joindevops (job posting)",
+      "kind": "job-post",
+      "checked": "snippet",
+      "used_for": "Employers look for schema design, indexing, migrations and query optimisation with PostgreSQL."
+    },
+    {
+      "key": "job-junior-cuculus",
+      "title": "Junior Python Developer",
+      "url": "https://startupjobs.htgf.de/companies/cuculus/jobs/91451201-junior-python-developer",
+      "publisher": "Cuculus (job posting)",
+      "kind": "job-post",
+      "checked": "snippet",
+      "used_for": "Junior roles often ask only for a basic understanding of Redis/Celery."
+    },
+    {
+      "key": "fullstack-postings-2026",
+      "title": "I reviewed full-stack job postings for 2026",
+      "url": "https://dev.to/francistrdev/i-reviewed-full-stack-job-postings-for-2026-here-is-what-they-are-looking-for-49ie",
+      "publisher": "DEV Community",
+      "kind": "job-post",
+      "checked": "snippet",
+      "used_for": "Full-stack postings: React most named, TypeScript rising, Node/REST/SQL, Docker + CI/CD + cloud deployment as standard expectations."
+    },
+    {
+      "key": "greatfrontend-career",
+      "title": "Frontend Developer Career Path: From Junior to Senior in 2026",
+      "url": "https://greatfrontend.com/blog/frontend-developer-career-path",
+      "publisher": "GreatFrontEnd",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Junior: fundamentals/machine coding/DSA; mid: independence, tests by default; senior: judgment, system-level testing, performance, accessibility. Page returned HTTP 429 when I tried to read it."
+    },
+    {
+      "key": "scaler-frontend",
+      "title": "Frontend Developer Skills: Junior to Senior Guide",
+      "url": "https://www.scaler.com/blog/frontend-developer-skills/",
+      "publisher": "Scaler",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Skills by level for frontend developers."
+    },
+    {
+      "key": "datadriven-de-jd",
+      "title": "Data Engineer Job Description: What It Really Means (2026)",
+      "url": "https://datadriven.io/data-engineer-job-description",
+      "publisher": "DataDriven",
+      "kind": "job-post",
+      "checked": "snippet",
+      "used_for": "Analysis of ~6,877 postings: data pipelines 74%, SQL 71%, Python 71%, AWS 44%, data quality 43%, data modeling 38%."
+    },
+    {
+      "key": "dev-de-skills",
+      "title": "Data Engineering skills hiring managers test",
+      "url": "https://dev.to/gowthampotureddi/data-engineering-skills-10-technical-5-soft-skills-hiring-managers-test-7g4",
+      "publisher": "DEV Community",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Junior core: SQL (joins, windows, CTEs), Python/pandas, one orchestrator, one warehouse, Git/CI, data quality."
+    },
+    {
+      "key": "proxify-devops",
+      "title": "What skills matter most for DevOps engineers?",
+      "url": "https://proxify.io/knowledge-base/skills/what-skills-matter-most-for-devops-engineers",
+      "publisher": "Proxify",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Linux and networking as the base layer for all DevOps skills."
+    },
+    {
+      "key": "devops-sre-skills",
+      "title": "Top nine skills for SREs to master",
+      "url": "https://devops.com/top-nine-skills-for-sres-to-master",
+      "publisher": "DevOps.com",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "SRE skills incl. incident management, SLOs and error budgets."
+    },
+    {
+      "key": "tryexponent-ml",
+      "title": "Complete Guide to Machine Learning Engineering Interviews",
+      "url": "https://www.tryexponent.com/blog/machine-learning-interview-guide",
+      "publisher": "Exponent",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "ML interview structure; ML system design more common from mid-level, the norm at senior."
+    },
+    {
+      "key": "ikickstart-mle",
+      "title": "Machine Learning Engineer Interview Guide for Experienced Professionals in 2026",
+      "url": "https://interviewkickstart.com/blogs/articles/machine-learning-engineer-interview-guide-for-experienced",
+      "publisher": "Interview Kickstart",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Experienced ML interviews expect production judgment: monitoring, drift, rollback, trade-offs."
+    },
+    {
+      "key": "formation-sde",
+      "title": "How to prepare for a software engineer interview",
+      "url": "https://formation.dev/blog/how-to-prepare-for-a-software-engineer-interview",
+      "publisher": "Formation",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "General SDE prep: data structures and algorithms, system design, behavioral."
+    },
+    {
+      "key": "designgurus-books",
+      "title": "Top-rated books for system design interview prep (2026)",
+      "url": "https://www.designgurus.io/answers/detail/top-rated-books-for-system-design-interview-prep-2026",
+      "publisher": "DesignGurus",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "DDIA is the most recommended book for system design preparation; practice matters more than another book."
+    }
+  ],
+  "levels": [
+    {
+      "band": "0-2",
+      "label": "0-2 years",
+      "title": "Entry / junior",
+      "focus": "Well-defined tasks under guidance. Interviews lean on fundamentals and a coding exercise; design rounds are light or absent.",
+      "sources": [
+        "tih-levels",
+        "hackajob-backend"
+      ]
+    },
+    {
+      "band": "2-5",
+      "label": "2-5 years",
+      "title": "Mid-level",
+      "focus": "Own features and small projects with more independence. Expect performance tuning, API and schema design, tests by default. In system design you drive requirements, APIs and schemas; breadth matters more than depth.",
+      "sources": [
+        "tih-levels",
+        "hello-levels",
+        "hackajob-backend"
+      ]
+    },
+    {
+      "band": "5+",
+      "label": "5+ years",
+      "title": "Senior",
+      "focus": "Large features, architectural decisions, mentoring. Fundamentals are assumed; go deep in about two places, flag limits of your own design, discuss failure modes and trade-offs unprompted.",
+      "sources": [
+        "tih-levels",
+        "hello-levels",
+        "hackajob-backend"
+      ]
+    }
+  ],
+  "level_note": "Band boundaries vary by company. Tech Interview Handbook uses 0-2 / 2-5 / 5+ years; Lemon.io labels Django 'Middle' 3-5 and 'Senior' 5-8 years.",
+  "basis_note": "Priorities and hour estimates are my own judgment, not a published standard; the sources show where each topic appears in interviews and job posts."
+}

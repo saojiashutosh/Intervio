@@ -1,0 +1,894 @@
+[
+  {
+    "slug": "sde",
+    "title": "SDE / generalist software engineer",
+    "blurb": "Big-company style loop: coding, system design, behavioral. Mostly language-agnostic.",
+    "sources": [
+      "tih-levels",
+      "amazon-sde2",
+      "hello-levels"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Data structures & algorithms",
+        "detail": "Arrays, strings, hash maps, trees, graphs, recursion, sorting/searching; state time and space complexity.",
+        "sources": [
+          "amazon-sde2",
+          "formation-sde"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Correct, tested code",
+        "detail": "Write syntactically correct code (pseudo-code is not accepted at Amazon), handle edge cases and invalid input.",
+        "sources": [
+          "amazon-sde2"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Fundamentals",
+        "topic": "Basic database knowledge",
+        "detail": "What an index is and its trade-offs; keys and constraints.",
+        "sources": [
+          "join-junior-backend"
+        ],
+        "app": "indexing"
+      },
+      {
+        "band": "0-2",
+        "area": "Behavioral",
+        "topic": "STAR stories",
+        "detail": "Prepare specific past experiences with metrics, including a failure and what you learned.",
+        "sources": [
+          "amazon-sde2"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Coding",
+        "topic": "Medium-level problem solving at pace",
+        "detail": "Pattern recognition, correctness, complexity, clean code under a time limit.",
+        "sources": [
+          "amazon-sde2",
+          "formation-sde"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "Breadth of components",
+        "detail": "Know what an API gateway, cache, queue and database do and why; drive requirements, APIs, schemas and the high-level design.",
+        "sources": [
+          "hello-levels"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Data",
+        "topic": "Schema design, indexing, query tuning",
+        "detail": "Mid-level focus is database optimisation and design.",
+        "sources": [
+          "hackajob-backend"
+        ],
+        "app": "indexing"
+      },
+      {
+        "band": "2-5",
+        "area": "Behavioral",
+        "topic": "Ownership and trade-offs",
+        "detail": "Examples of decisions you owned, risks taken and what you would change.",
+        "sources": [
+          "amazon-sde2",
+          "hackajob-backend"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "System design",
+        "topic": "Depth in two places",
+        "detail": "Move from generic statements to experience-based detail; recognise what makes the system hard and flag limits of your own design.",
+        "sources": [
+          "hello-levels"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Distributed data",
+        "topic": "Replication, partitioning, transactions, consistency",
+        "detail": "Understand the trade-offs behind storage and processing systems; DDIA is the most recommended reference.",
+        "sources": [
+          "ddia",
+          "designgurus-books"
+        ],
+        "app": "replication"
+      },
+      {
+        "band": "5+",
+        "area": "Leadership",
+        "topic": "Technical leadership and mentoring",
+        "detail": "Lead complex projects, make architectural decisions, mentor others.",
+        "sources": [
+          "tih-levels",
+          "amazon-sde2"
+        ],
+        "app": null
+      }
+    ]
+  },
+  {
+    "slug": "backend",
+    "title": "Backend engineer (Django / Python)",
+    "blurb": "APIs, databases, async work and deployment. Topic lists below follow Lemon.io's Middle and Senior Django breakdown plus real job postings.",
+    "sources": [
+      "lemon-django",
+      "job-django-madfish",
+      "so-survey-2025"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Foundations",
+        "topic": "Python + Django basics",
+        "detail": "Models, views, URLs, ORM CRUD and QuerySets; REST/CRUD API fundamentals.",
+        "sources": [
+          "hackajob-backend",
+          "roadmap-backend"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Database",
+        "topic": "SQL fundamentals",
+        "detail": "Joins, what an index is and its trade-offs, guarding against SQL injection.",
+        "sources": [
+          "join-junior-backend",
+          "hackajob-backend"
+        ],
+        "app": "keys"
+      },
+      {
+        "band": "0-2",
+        "area": "Platform",
+        "topic": "Git and Docker basics",
+        "detail": "Docker is used by ~74% of professional developers; junior roles often ask only for basic Redis/Celery awareness.",
+        "sources": [
+          "so-survey-2025",
+          "job-junior-cuculus",
+          "roadmap-backend"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "ORM",
+        "topic": "ORM fluency",
+        "detail": "Filtering and lookups, aggregate/annotate, F and Q objects, ordering/slicing, raw SQL when needed.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "django-orm"
+      },
+      {
+        "band": "2-5",
+        "area": "ORM",
+        "topic": "Migrations",
+        "detail": "makemigrations/migrate/rollback, showmigrations, resolving migration merge conflicts in a team.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "django-orm"
+      },
+      {
+        "band": "2-5",
+        "area": "API",
+        "topic": "Django REST Framework",
+        "detail": "Serializers, viewsets, routers, filtering and pagination; authentication and permissions.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "drf-api"
+      },
+      {
+        "band": "2-5",
+        "area": "Security",
+        "topic": "Web security basics",
+        "detail": "CSRF, SQL injection, XSS, clickjacking, password hashing, HTTPS settings.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "web-security"
+      },
+      {
+        "band": "2-5",
+        "area": "Performance",
+        "topic": "N+1 and query optimisation",
+        "detail": "select_related vs prefetch_related, assertNumQueries in tests.",
+        "sources": [
+          "hackajob-backend",
+          "golinuxcloud-django"
+        ],
+        "app": "django-orm"
+      },
+      {
+        "band": "2-5",
+        "area": "Database",
+        "topic": "Indexing and EXPLAIN",
+        "detail": "Database optimisation is the mid-level focus.",
+        "sources": [
+          "hackajob-backend"
+        ],
+        "app": "indexing"
+      },
+      {
+        "band": "2-5",
+        "area": "Deployment",
+        "topic": "Deployment basics",
+        "detail": "Gunicorn, Nginx, static files, DEBUG/ALLOWED_HOSTS, environment variables, CI basics; Docker and docker-compose.",
+        "sources": [
+          "lemon-django",
+          "job-django-madfish"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Performance",
+        "topic": "Performance at scale",
+        "detail": "N+1, indexing, values()/exists()/iterator(), django-debug-toolbar, pg_stat_statements, long-running query tuning.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "explain"
+      },
+      {
+        "band": "5+",
+        "area": "Concurrency",
+        "topic": "Transactions and row locks",
+        "detail": "transaction.atomic with select_for_update(); on_commit before enqueueing Celery tasks.",
+        "sources": [
+          "lemon-django",
+          "adhdecode-django",
+          "django-docs"
+        ],
+        "app": "locks-mvcc"
+      },
+      {
+        "band": "5+",
+        "area": "Caching",
+        "topic": "Caching and invalidation",
+        "detail": "View/fragment/per-user caching, invalidation, Redis or Memcached in production.",
+        "sources": [
+          "lemon-django"
+        ],
+        "app": "consistency"
+      },
+      {
+        "band": "5+",
+        "area": "Async",
+        "topic": "Celery and background work",
+        "detail": "Celery setup, Beat, retries with backoff, timeouts, Channels for WebSockets.",
+        "sources": [
+          "lemon-django",
+          "adhdecode-django"
+        ],
+        "app": "celery-async"
+      },
+      {
+        "band": "5+",
+        "area": "Architecture",
+        "topic": "Replication, routers, consistency",
+        "detail": "Read/write routers, failover, eventual consistency, SAGA/CQRS/event sourcing.",
+        "sources": [
+          "lemon-django",
+          "ddia"
+        ],
+        "app": "replication"
+      },
+      {
+        "band": "5+",
+        "area": "Operations",
+        "topic": "Zero-downtime migrations and CI/CD",
+        "detail": "CREATE INDEX CONCURRENTLY, Docker, Terraform, CI/CD, rollback plans; Sentry/APM/structured logging.",
+        "sources": [
+          "lemon-django",
+          "job-django-madfish"
+        ],
+        "app": "indexing"
+      },
+      {
+        "band": "5+",
+        "area": "Platform",
+        "topic": "Cloud services",
+        "detail": "AWS S3, RDS, SQS/SNS, CloudFront are the recurring services in senior Django postings.",
+        "sources": [
+          "job-django-madfish",
+          "job-django-joindevops"
+        ],
+        "app": null
+      }
+    ]
+  },
+  {
+    "slug": "fullstack",
+    "title": "Full-stack engineer",
+    "blurb": "Frontend and backend plus deployment. Evidence here is mostly job-posting analyses, so treat it as directional.",
+    "sources": [
+      "fullstack-postings-2026",
+      "mdn-learn"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Frontend",
+        "topic": "HTML, CSS, JavaScript, React",
+        "detail": "Build components well; core web fundamentals first.",
+        "sources": [
+          "mdn-learn",
+          "fullstack-postings-2026",
+          "greatfrontend-career"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Backend",
+        "topic": "REST APIs and SQL",
+        "detail": "Node.js (or Django) APIs backed by a relational database.",
+        "sources": [
+          "fullstack-postings-2026",
+          "roadmap-backend"
+        ],
+        "app": "keys"
+      },
+      {
+        "band": "0-2",
+        "area": "Tooling",
+        "topic": "Git and basic deployment",
+        "detail": "Version control and publishing a working app.",
+        "sources": [
+          "mdn-learn",
+          "fullstack-postings-2026"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Frontend",
+        "topic": "TypeScript and testing",
+        "detail": "TypeScript appears in more full-stack postings than JavaScript in one analysis; mid-level developers write tests by default.",
+        "sources": [
+          "fullstack-postings-2026",
+          "greatfrontend-career"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Backend",
+        "topic": "API and schema design",
+        "detail": "Design endpoints and data models; index for your queries.",
+        "sources": [
+          "hackajob-backend"
+        ],
+        "app": "indexing"
+      },
+      {
+        "band": "2-5",
+        "area": "Delivery",
+        "topic": "Docker, CI/CD, cloud deployment",
+        "detail": "Described as standard expectations for full-stack roles rather than a separate specialism.",
+        "sources": [
+          "fullstack-postings-2026"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Quality",
+        "topic": "Performance, accessibility, system-level testing",
+        "detail": "A slow product is usually a senior-level gap; accessibility appears mainly in senior scopes.",
+        "sources": [
+          "greatfrontend-career",
+          "mdn-learn"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Architecture",
+        "topic": "End-to-end design and mentoring",
+        "detail": "Own architecture across client, API and data layers; mentor others.",
+        "sources": [
+          "tih-levels",
+          "hello-levels"
+        ],
+        "app": "replication"
+      }
+    ]
+  },
+  {
+    "slug": "frontend",
+    "title": "Frontend engineer",
+    "blurb": "Interfaces, browsers, performance and accessibility.",
+    "sources": [
+      "mdn-learn",
+      "roadmap-frontend",
+      "greatfrontend-career"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Core web",
+        "topic": "HTML, CSS layout, JavaScript, DOM",
+        "detail": "Flexbox/grid, responsive design, events, fetch and JSON, debugging.",
+        "sources": [
+          "mdn-learn",
+          "roadmap-frontend"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Frameworks",
+        "topic": "A framework (React)",
+        "detail": "Components, state and events; accessibility in components.",
+        "sources": [
+          "mdn-learn",
+          "roadmap-frontend"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Interview",
+        "topic": "Fundamentals, machine coding, DSA",
+        "detail": "Juniors are typically tested on these rather than system design.",
+        "sources": [
+          "greatfrontend-career",
+          "scaler-frontend"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Quality",
+        "topic": "Accessibility and Git basics",
+        "detail": "WAI-ARIA basics, semantic HTML, version control.",
+        "sources": [
+          "mdn-learn",
+          "roadmap-frontend"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Language",
+        "topic": "TypeScript and async JavaScript",
+        "detail": "Promises, workers, typed code.",
+        "sources": [
+          "roadmap-frontend",
+          "mdn-learn"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Quality",
+        "topic": "Testing",
+        "detail": "Unit tests for logic, integration tests for component interaction.",
+        "sources": [
+          "mdn-learn",
+          "greatfrontend-career"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Performance",
+        "topic": "Web performance and Core Web Vitals",
+        "detail": "Measuring and improving load and interaction performance.",
+        "sources": [
+          "roadmap-frontend",
+          "mdn-learn"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Design",
+        "topic": "Breadth in system design",
+        "detail": "Drive requirements, APIs and the high-level design in front-end design rounds.",
+        "sources": [
+          "hello-levels"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Quality",
+        "topic": "System-level testing and accessibility",
+        "detail": "Think about testing and accessibility across the whole product.",
+        "sources": [
+          "greatfrontend-career"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Performance",
+        "topic": "Performance ownership",
+        "detail": "If the team ships a slow product, that is usually a senior-level gap.",
+        "sources": [
+          "greatfrontend-career"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Leadership",
+        "topic": "Architecture and mentoring",
+        "detail": "Technical direction for the front-end and growing other engineers.",
+        "sources": [
+          "tih-levels"
+        ],
+        "app": null
+      }
+    ]
+  },
+  {
+    "slug": "data",
+    "title": "Data engineer",
+    "blurb": "Pipelines, warehouses and modelling. Skill frequencies come from a 2026 posting analysis (snippet only).",
+    "sources": [
+      "de-zoomcamp",
+      "datadriven-de-jd",
+      "dev-de-skills"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "SQL",
+        "topic": "SQL: joins, aggregations, window functions, CTEs",
+        "detail": "SQL appears in ~71% of postings in the analysis.",
+        "sources": [
+          "dev-de-skills",
+          "datadriven-de-jd"
+        ],
+        "app": "keys"
+      },
+      {
+        "band": "0-2",
+        "area": "Python",
+        "topic": "Python scripting, pandas, API ingestion",
+        "detail": "Python also ~71% of postings.",
+        "sources": [
+          "dev-de-skills",
+          "datadriven-de-jd"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Pipelines",
+        "topic": "One orchestrator and one warehouse",
+        "detail": "e.g. Airflow/Dagster/Prefect and Snowflake/BigQuery/Redshift; data pipelines named in ~74% of postings.",
+        "sources": [
+          "dev-de-skills",
+          "datadriven-de-jd",
+          "de-zoomcamp"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Quality",
+        "topic": "Data quality basics, Git, Docker",
+        "detail": "Containers and PostgreSQL in Docker are the first Zoomcamp module.",
+        "sources": [
+          "dev-de-skills",
+          "de-zoomcamp"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Processing",
+        "topic": "Batch processing with Spark",
+        "detail": "DataFrames, SQL, join and group-by internals.",
+        "sources": [
+          "de-zoomcamp"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Modelling",
+        "topic": "Analytics engineering and data modelling",
+        "detail": "dbt, testing, documentation, deployment; modelling in ~38% of postings.",
+        "sources": [
+          "de-zoomcamp",
+          "datadriven-de-jd"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Warehouse",
+        "topic": "Warehouse design",
+        "detail": "Partitioning and clustering for cost and speed.",
+        "sources": [
+          "de-zoomcamp",
+          "pg-docs"
+        ],
+        "app": "sharding"
+      },
+      {
+        "band": "2-5",
+        "area": "Streaming",
+        "topic": "Streaming with Kafka",
+        "detail": "Kafka, stream processing, schema management.",
+        "sources": [
+          "de-zoomcamp"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Architecture",
+        "topic": "Design a data platform",
+        "detail": "Star schema, data vault, slowly changing dimensions; build-vs-buy decisions; mentor others.",
+        "sources": [
+          "dev-de-skills",
+          "datadriven-de-jd"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Distributed systems",
+        "topic": "Replication, partitioning, batch vs stream",
+        "detail": "Trade-offs of the underlying systems.",
+        "sources": [
+          "ddia"
+        ],
+        "app": "replication"
+      }
+    ]
+  },
+  {
+    "slug": "devops",
+    "title": "DevOps / SRE",
+    "blurb": "Delivery pipelines, infrastructure, reliability. The Google SRE book is the strongest primary source here.",
+    "sources": [
+      "sre-book",
+      "roadmap-devops"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Foundations",
+        "topic": "Linux and networking",
+        "detail": "DNS, TCP/IP; the base layer for every other DevOps skill.",
+        "sources": [
+          "proxify-devops",
+          "devops-sre-skills"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Automation",
+        "topic": "Scripting and Git",
+        "detail": "Python or shell scripting; version control.",
+        "sources": [
+          "roadmap-devops"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Delivery",
+        "topic": "Containers and CI/CD",
+        "detail": "Docker (used by ~74% of professional developers), build and deploy pipelines.",
+        "sources": [
+          "roadmap-devops",
+          "so-survey-2025"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Cloud",
+        "topic": "Cloud basics",
+        "detail": "Core services of one cloud provider.",
+        "sources": [
+          "roadmap-devops"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Infrastructure",
+        "topic": "Infrastructure as code",
+        "detail": "Terraform/Ansible style provisioning and configuration management.",
+        "sources": [
+          "roadmap-devops"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Reliability",
+        "topic": "SLOs and monitoring",
+        "detail": "Service level objectives, monitoring distributed systems, practical alerting.",
+        "sources": [
+          "sre-book",
+          "devops-sre-skills"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Operations",
+        "topic": "Release engineering and on-call",
+        "detail": "Safe frequent deploys, rollbacks, being on-call, effective troubleshooting.",
+        "sources": [
+          "sre-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Observability",
+        "topic": "Metrics, logs, traces",
+        "detail": "Monitoring, alerting and observability.",
+        "sources": [
+          "roadmap-devops",
+          "sre-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Incidents",
+        "topic": "Incident management and postmortems",
+        "detail": "Emergency response, managing incidents, blameless postmortem culture.",
+        "sources": [
+          "sre-book",
+          "devops-sre-skills"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Reliability",
+        "topic": "Eliminating toil, risk, overload",
+        "detail": "Embracing risk, handling overload, addressing cascading failures.",
+        "sources": [
+          "sre-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Systems",
+        "topic": "Consensus and data integrity",
+        "detail": "Managing critical state with distributed consensus; data integrity.",
+        "sources": [
+          "sre-book",
+          "ddia"
+        ],
+        "app": "replication"
+      }
+    ]
+  },
+  {
+    "slug": "ml",
+    "title": "Machine learning engineer",
+    "blurb": "ML fundamentals, system design and production. Level detail rests on prep guides (snippet only), not an official rubric.",
+    "sources": [
+      "ml-interviews-book",
+      "tryexponent-ml",
+      "ikickstart-mle"
+    ],
+    "topics": [
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Python data structures and algorithms",
+        "detail": "Standard coding round.",
+        "sources": [
+          "tryexponent-ml",
+          "ml-interviews-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Math",
+        "topic": "Linear algebra, calculus, probability and statistics",
+        "detail": "The math section of the ML interviews book.",
+        "sources": [
+          "ml-interviews-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "ML",
+        "topic": "Workflows and fundamentals",
+        "detail": "Sampling, training data, objective functions, metrics, loss functions, regularisation, evaluation.",
+        "sources": [
+          "ml-interviews-book",
+          "tryexponent-ml"
+        ],
+        "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "MLOps",
+        "topic": "MLOps basics",
+        "detail": "Monitoring and drift awareness are mentioned even for junior roles in one guide.",
+        "sources": [
+          "ikickstart-mle"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "ML systems",
+        "topic": "ML system design",
+        "detail": "Becomes common from mid-level; almost every company asks at least one.",
+        "sources": [
+          "tryexponent-ml",
+          "ml-interviews-book"
+        ],
+        "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Data",
+        "topic": "Data pipelines and serving",
+        "detail": "End-to-end reasoning from data to deployed model.",
+        "sources": [
+          "ml-interviews-book",
+          "de-zoomcamp"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "ML systems",
+        "topic": "ML system design is the norm",
+        "detail": "Trade-offs and production judgment.",
+        "sources": [
+          "tryexponent-ml",
+          "ikickstart-mle"
+        ],
+        "app": null
+      },
+      {
+        "band": "5+",
+        "area": "Production",
+        "topic": "Monitoring, drift, rollback",
+        "detail": "Model monitoring, feature stores, CI/CD and rollback plans.",
+        "sources": [
+          "ikickstart-mle"
+        ],
+        "app": null
+      }
+    ]
+  }
+]

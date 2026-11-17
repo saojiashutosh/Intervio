@@ -1,0 +1,1740 @@
+[
+  {
+    "id": "er-modelling",
+    "n": 1,
+    "level": 1,
+    "week": "Week 1",
+    "title": "Entity–Relationship (ER) Modelling",
+    "tagline": "Draw the business before you write a single CREATE TABLE.",
+    "explain": [
+      "An ER model is a drawing of your data before you build any tables: which things you store (entities), what you know about each (attributes), and how they connect (relationships). You do it first because changing a table layout after millions of rows exist is slow and risky, while changing a drawing is free.",
+      "## The three building blocks",
+      "- Entity: a thing you keep records about, such as Customer, Order, Product. It becomes a table.\n- Attribute: a fact about an entity, such as an order's created_at or a product's price. It becomes a column.\n- Relationship: how two entities relate, such as a customer places orders. It becomes a foreign key, or a separate table.",
+      "Try it: click each part to see what it turns into.",
+      "@viz:er-anatomy",
+      "## Cardinality: how many on each side",
+      "Ask two questions for every pair of entities. 'How many B can one A have?' and 'How many A can one B have?' The answers give the type of relationship, and the type decides the table layout.",
+      "- One-to-many (1:N): one customer has many orders, each order has one customer. Put the foreign key on the many side: orders.customer_id. This is the most common case by far.\n- Many-to-many (M:N): a student takes many courses and a course has many students. A column cannot hold this cleanly, so you add a junction (join) table with two foreign keys: enrollment(student_id, course_id).\n- One-to-one (1:1): a user has one profile. Put a unique foreign key on one side. Use it to split rarely used or sensitive columns out of a hot table.",
+      "On a real ER diagram these counts are drawn as symbols at the ends of the line (crow's-foot notation). Pick a symbol for each end and read the sentence it makes.",
+      "@viz:er-notation",
+      "> Shop. A customer places many orders (1:N). An order contains many products and a product appears in many orders (M:N), so you need order_items(order_id, product_id, quantity, unit_price). Notice that quantity and unit_price describe the pairing, not the order or the product alone. Any fact about the relationship itself lives in the junction table.",
+      "A common slip is putting the foreign key on the wrong table. Test yourself:",
+      "@viz:fk-side",
+      "## Rules that keep the model honest",
+      "- Every table gets a primary key that never changes. Prefer a surrogate id over a natural value such as email, because natural values change.\n- Store a fact in exactly one place. If you copy it elsewhere, you must keep both copies in sync by hand (see Normalization).\n- Decide optional vs required up front. A nullable column means 'this fact may be unknown', and every query touching it must handle NULL.\n- Name things for the business, not for the screen. A table called Order survives a redesign. A table called CheckoutPageData does not.",
+      "## Putting it together: design a schema",
+      "Here is the whole process on one small example. Step through it and notice where each rule above is used.",
+      "@viz:er-design",
+      "## From drawing to Django",
+      "In Django each entity is a Model class, ForeignKey is the 1:N link, ManyToManyField creates the junction table for you, and OneToOneField is the 1:1 link. When the junction table carries its own facts (quantity, price), declare it yourself and pass it with through=, as in the code below.",
+      "The question interviewers ask is almost always the same: here is a product (a ride-hailing app, a library, an e-commerce site), design the tables. Walk them through your steps: list entities, list relationships with cardinality, name the keys, then say where you would add indexes and what you would store redundantly for speed and why."
+    ],
+    "keyPoints": [
+      "Entities → tables, attributes → columns, relationships → FKs / junction tables.",
+      "1–1, 1–N, N–M. N–M is always resolved with a junction table.",
+      "Mark optionality (nullable FK) and uniqueness rules on the diagram.",
+      "The ERD is a living document: commit it next to the schema."
+    ],
+    "sql": [
+      {
+        "title": "Junction table resolving N–M",
+        "code": "CREATE TABLE product_categories (\n  product_id  BIGINT NOT NULL REFERENCES products(id)   ON DELETE CASCADE,\n  category_id BIGINT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,\n  PRIMARY KEY (product_id, category_id)\n);"
+      }
+    ],
+    "django": {
+      "title": "ManyToMany with an explicit through model",
+      "code": "class Product(models.Model):\n    sku = models.CharField(max_length=64, unique=True)\n    categories = models.ManyToManyField(\"Category\", through=\"ProductCategory\")\n\nclass ProductCategory(models.Model):\n    product = models.ForeignKey(Product, on_delete=models.CASCADE)\n    category = models.ForeignKey(\"Category\", on_delete=models.CASCADE)\n    sort_order = models.PositiveIntegerField(default=0)   # extra column = why through=\n\n    class Meta:\n        constraints = [\n            models.UniqueConstraint(fields=[\"product\", \"category\"], name=\"uq_product_category\")\n        ]",
+      "note": "A plain ManyToManyField creates the junction table for you. Use through= the moment the relationship itself carries data."
+    },
+    "exercise": "Draw an ERD for customers, addresses, products, categories, carts, orders, order items, payments and shipments. Mark optional relationships and uniqueness rules.",
+    "pitfalls": [
+      "Designing tables from UI screens instead of business facts.",
+      "Putting product_1, product_2, product_3 columns on orders (repeating group).",
+      "Forgetting that one-to-one is usually just a FK with a UNIQUE constraint."
+    ],
+    "interview": [
+      {
+        "q": "How do you model a many-to-many relationship?",
+        "a": "With a junction table holding two FKs, ideally with a composite PK (or a surrogate PK + UNIQUE on the pair). If the relationship has attributes (quantity, sort_order), it becomes a first-class entity — in Django, a through model."
+      },
+      {
+        "q": "How would you model one-to-one in SQL?",
+        "a": "A FK on the dependent table that is also UNIQUE (or is the PK). Django: OneToOneField."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Data definition (tables, columns)",
+        "url": "https://www.postgresql.org/docs/current/ddl.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Making queries / model relationships",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/examples/many_to_many/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Models",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/models/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Mid priority. Schema design is a mid-level expectation.",
+    "sources": [
+      "hackajob-backend",
+      "pg-docs",
+      "django-docs"
+    ],
+    "viz": "er"
+  },
+  {
+    "id": "keys",
+    "n": 2,
+    "level": 1,
+    "week": "Weeks 1–2",
+    "title": "Primary and Foreign Keys",
+    "tagline": "Identity and referential integrity — the spine of every schema.",
+    "explain": [
+      "A key is how the database identifies a row, and a foreign key is how one table safely points to another. Almost every bug involving 'orphan data' or 'duplicate users' is a key that was missing or wrong.",
+      "## The kinds of key",
+      "- Candidate key: any column or set of columns that is unique and never NULL for every row. A table can have several candidates.\n- Primary key (PK): the one candidate you choose as the official identity. Exactly one per table, never NULL, never reused. It is automatically indexed.\n- Unique key: a column that must be unique but is not the PK, such as email. It may allow NULL.\n- Foreign key (FK): a column whose value must exist as a key in another table. It is the database enforcing 'this order belongs to a real customer'.\n- Composite key: a key made of more than one column, common in junction tables, such as (student_id, course_id).",
+      "## Surrogate vs natural keys",
+      "A natural key is a real-world value such as email or passport number. A surrogate key is an id invented by the database (an auto-increment integer or a UUID) that means nothing outside the table. Surrogate keys are the default choice because real-world values change (people change email, countries change codes), and when a PK changes every foreign key pointing to it must change too. Keep natural values as UNIQUE columns instead.",
+      "- Auto-increment integer: small, fast, ordered inserts, easy to read. Downside: guessable (/orders/101 invites /orders/102) and awkward to generate across several databases.\n- UUID: can be generated anywhere without coordination, hard to guess. Downside: 16 bytes, and random UUIDs scatter inserts across the index, which slows writes on very large tables. Time-ordered UUIDs reduce that cost.",
+      "## What a foreign key actually does",
+      "A foreign key makes the database reject two kinds of mistakes. You cannot insert an order for a customer that does not exist. And you cannot delete a customer who still has orders, unless you chose a rule for what happens. That rule is the ON DELETE action:",
+      "- RESTRICT or NO ACTION: refuse the delete. Safest default for important data.\n- CASCADE: delete the child rows too. Right for data that has no meaning alone, such as order lines when an order is deleted. Dangerous for anything you want to keep.\n- SET NULL: keep the child and blank the link. The FK column must allow NULL.",
+      "> You delete user 7. With CASCADE every order of user 7 disappears, and with it your revenue history. With RESTRICT the delete fails and forces you to decide. This is why Django's on_delete argument is mandatory: the framework makes you choose.",
+      "## Following keys: joins",
+      "The reason foreign keys exist is that you can follow them. A JOIN combines rows from two tables where the key values match. The join type decides what happens to rows that find no match.",
+      "@viz:joins",
+      "## Indexing and foreign keys",
+      "A primary key gets an index automatically. A foreign key in PostgreSQL does not. Joins and deletes on the parent table search the child by FK, so an unindexed FK on a big table turns a parent delete into a full scan of the child. Django adds an index to ForeignKey columns for you, but if you design tables by hand, add it.",
+      "Interview angle: expect 'PK vs unique key', 'why surrogate keys', 'what does ON DELETE CASCADE do and when is it dangerous', and 'is a foreign key indexed automatically'."
+    ],
+    "keyPoints": [
+      "PK = UNIQUE + NOT NULL, one per table; implemented with a unique index.",
+      "FK enforces integrity; PostgreSQL does NOT auto-index the referencing column — add one.",
+      "Natural vs surrogate: business values change, surrogate IDs do not.",
+      "ON DELETE is a business decision, not a default."
+    ],
+    "sql": [
+      {
+        "title": "Identity PK + FK + test an invalid reference",
+        "code": "CREATE TABLE customers (\n  id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  email TEXT NOT NULL UNIQUE\n);\nCREATE TABLE orders (\n  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT\n);\nCREATE INDEX idx_orders_customer ON orders(customer_id);  -- FK columns are not indexed for you\n\nINSERT INTO orders (customer_id) VALUES (999999);\n-- ERROR: insert or update on table \"orders\" violates foreign key constraint"
+      }
+    ],
+    "django": {
+      "title": "ForeignKey, on_delete and db_index",
+      "code": "class Order(models.Model):\n    customer = models.ForeignKey(\n        \"Customer\",\n        on_delete=models.PROTECT,      # RESTRICT: can't delete a customer who has orders\n        related_name=\"orders\",\n    )\n    # Django DOES create an index for ForeignKey by default (db_index=True),\n    # unlike raw PostgreSQL.",
+      "note": "Django emulates on_delete in Python (the ORM collects and deletes related rows itself); the FK constraint it creates in PostgreSQL has no ON DELETE action. Raw SQL deletes therefore bypass CASCADE. Worth mentioning in interviews."
+    },
+    "exercise": "Create product_categories with a composite primary key. Insert a row that references a missing product and read the error message carefully.",
+    "pitfalls": [
+      "Using email as a PK, then needing to change an email.",
+      "Not indexing FK columns → slow joins and slow parent deletes (the DB must scan the child table).",
+      "Blanket ON DELETE CASCADE that silently wipes financial history."
+    ],
+    "interview": [
+      {
+        "q": "Difference between a primary key and a unique constraint?",
+        "a": "Both enforce uniqueness. A PK is the table’s chosen row identifier and is NOT NULL; a table has one PK but may have many UNIQUE constraints (which allow NULLs). PostgreSQL implements both with unique indexes."
+      },
+      {
+        "q": "When would you use a composite key?",
+        "a": "For identity that is naturally a pair, e.g. (order_id, product_id) in order_items. Alternative: surrogate PK + UNIQUE(order_id, product_id) — easier to reference from other tables and friendlier to ORMs (Django has no composite PK for years; 5.2 added CompositePrimaryKey)."
+      },
+      {
+        "q": "Does PostgreSQL index a foreign key column automatically?",
+        "a": "No — it indexes the referenced PK/unique side only. Index the referencing column yourself (Django does by default)."
+      }
+    ],
+    "hours": 4,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Constraints: primary and foreign keys",
+        "url": "https://www.postgresql.org/docs/current/ddl-constraints.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "ForeignKey and on_delete",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/fields/#foreignkey",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. Keys, indexes and SQL injection are named as the junior database bar.",
+    "sources": [
+      "join-junior-backend",
+      "hackajob-backend",
+      "pg-docs"
+    ],
+    "viz": "fk"
+  },
+  {
+    "id": "normalization",
+    "n": 3,
+    "level": 1,
+    "week": "Week 2",
+    "title": "Normalization (1NF, 2NF, 3NF)",
+    "tagline": "Every fact stored once, in the table it belongs to.",
+    "explain": [
+      "Normalization is the discipline of storing each fact in exactly one place. It exists to prevent three bugs, called anomalies, that appear when the same fact is copied into many rows.",
+      "## The three anomalies",
+      "> A single table orders(order_id, customer_name, customer_city, product, price) repeats the customer's name and city on every order.\nUpdate anomaly: the customer moves, you update 3 of their 5 rows and the other 2 now disagree.\nInsert anomaly: you cannot record a new customer until they place an order.\nDelete anomaly: delete their only order and you also lose the customer's details.",
+      "## The normal forms, in plain language",
+      "Each form is a stricter rule. A table in 3NF is also in 2NF and 1NF. For work and for interviews, 3NF is the target.",
+      "- 1NF: each cell holds one value, and there are no repeating groups. A column phones = '555-1, 555-2' breaks it. Fix: one row per phone in a separate table.\n- 2NF: applies when the key has more than one column. Every non-key column must depend on the whole key, not just part of it. In order_items(order_id, product_id, product_name, qty), product_name depends only on product_id, so it belongs in products.\n- 3NF: non-key columns must depend on the key and nothing else. In employees(id, dept_id, dept_name), dept_name depends on dept_id, not on the employee, so it belongs in departments.\n- BCNF: a slightly stricter 3NF. Mention it if asked, but 3NF is almost always enough.\n- 4NF: a table must not hold two independent lists about the same thing. If an employee has skills and languages that have nothing to do with each other, storing them together forces every skill to be paired with every language (2 skills x 2 languages = 4 rows, and adding one skill means adding a row per language). Fix: employee_skills and employee_languages.\n- 5NF: if a table can be split into smaller tables and joined back to give exactly the same rows, split it. It matters for three-way relationships such as rep, company and product, where the rows are fully determined by three pairwise facts. It is only valid when that business rule is really true.",
+      "A memory line interviewers like: every non-key attribute must depend on 'the key, the whole key, and nothing but the key'.",
+      "How far to go: 1NF to 3NF are the working standard and what interviews expect. BCNF is usually reached with 3NF. 4NF and 5NF are rare. Know what they mean and when to look for them (independent lists in one table, or a three-way relationship), but you will seldom design for them. Open the animation and use the second tab to see each form break and then get fixed.",
+      "## How to normalize a table, step by step",
+      "- Write down the key and list every column.\n- For each column ask: which key part determines this value? If only part of it, move it out (2NF).\n- For each column ask: does this value actually depend on another non-key column? If so, move that pair out (3NF).\n- Replace the moved-out columns with a foreign key to the new table.",
+      "Watch one flat table get split, one rule at a time:",
+      "@viz:decompose",
+      "## The cost of normalizing",
+      "Normalized data needs joins to put the picture back together. That is cheap when columns are indexed and tables are moderate, and costly when a hot query joins six huge tables. That trade-off is the entire reason Denormalization exists. The rule used in practice: normalize first, measure, then denormalize deliberately where a measured query needs it.",
+      "In Django this is simply: one model per fact, and ForeignKey instead of copied CharFields. If you catch yourself writing customer_name on an Order model, ask whether it should be a ForeignKey to Customer."
+    ],
+    "keyPoints": [
+      "1NF atomic · 2NF no partial dependency · 3NF no transitive dependency.",
+      "Normalize to remove update / insert / delete anomalies.",
+      "Normalize by default, denormalize with measured evidence.",
+      "\"Why does this table exist?\" should have a one-sentence answer."
+    ],
+    "sql": [
+      {
+        "title": "Flat → normalized",
+        "code": "-- Bad: one flat sheet\n-- order_id | customer_name | customer_city | product_1 | product_2\n\n-- Better\ncustomers(id, name, email)\naddresses(id, customer_id → customers, city, ...)\norders(id, customer_id → customers, created_at)\nproducts(id, sku, name, price)\norder_items(order_id → orders, product_id → products, quantity, unit_price)"
+      }
+    ],
+    "django": {
+      "title": "Normalized models, no repeated groups",
+      "code": "class OrderItem(models.Model):\n    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name=\"items\")\n    product = models.ForeignKey(Product, on_delete=models.PROTECT)\n    quantity = models.PositiveIntegerField()\n    unit_price = models.DecimalField(max_digits=12, decimal_places=2)  # deliberate snapshot"
+    },
+    "exercise": "Normalize a flat sales table step by step (1NF → 2NF → 3NF). For each decomposition, explain which insert/update/delete anomaly disappeared.",
+    "pitfalls": [
+      "Believing normalization is \"always better\" — it is a starting point.",
+      "Stopping at 1NF and leaving transitive dependencies (zip → city).",
+      "Confusing the need for a snapshot (unit_price) with a normalization violation."
+    ],
+    "interview": [
+      {
+        "q": "Explain 1NF, 2NF and 3NF with an example.",
+        "a": "Take orders(order_id, product_id, product_name, customer_name, customer_city). Atomic cells = 1NF. product_name depends only on product_id (part of key) → partial dependency, move to products (2NF). customer_city depends on customer_name, not on the key → transitive, move to customers (3NF)."
+      },
+      {
+        "q": "What anomalies does normalization prevent?",
+        "a": "Update (inconsistent copies), insert (cannot store a fact without an unrelated one) and delete (losing a fact when deleting an unrelated one)."
+      }
+    ],
+    "hours": 5,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Database normalization",
+        "url": "https://en.wikipedia.org/wiki/Database_normalization",
+        "kind": "Overview"
+      },
+      {
+        "title": "Models",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/models/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. Normalization/design is a recurring SQL-round topic.",
+    "sources": [
+      "hackajob-backend",
+      "pg-docs"
+    ],
+    "viz": "normalize"
+  },
+  {
+    "id": "denormalization",
+    "n": 4,
+    "level": 1,
+    "week": "Week 3",
+    "title": "Denormalization",
+    "tagline": "Duplicate on purpose, and pay the consistency bill knowingly.",
+    "explain": [
+      "Denormalization means deliberately storing a fact in more than one place to make reads faster or simpler. It is a trade, not a mistake: you pay in write complexity and risk of inconsistency, and you get faster reads. Do it only after normalizing and measuring.",
+      "## When it is the right move",
+      "- A hot read query joins many tables and shows up in your slow query log, and indexes alone did not fix it.\n- The data is rarely updated but often read, such as a product's category name on a listing page.\n- You need history: an invoice must keep the price the customer paid, even if the product price changes later.\n- Reporting or search needs flat, pre-computed rows.",
+      "## Common techniques",
+      "- Copy a column: store customer_name on the order. Fast to read, but you must decide what happens when the source changes.\n- Snapshot a value: store unit_price on the order line at purchase time. This is not a duplicate you must sync. It is a historical fact, and it is the one denormalization that is nearly always correct.\n- Derived counters: store comment_count on a post so lists do not run COUNT(*) for every row. Update it in the same transaction as the comment insert.\n- Summary tables and materialized views: pre-computed aggregates, refreshed on a schedule or by trigger.\n- Caching in Redis is a form of denormalization with an expiry, covered under Consistency.",
+      "## The price you pay",
+      "Every copy needs an owner and an update rule. If you duplicate a value and never say who keeps it correct, you get the update anomaly from Normalization. Typical safeguards:",
+      "- Update both copies in one transaction.\n- Use a database trigger or a Django signal, accepting that signals can be skipped by bulk operations.\n- Rebuild the copy from the source on a schedule, and accept that it can be stale for a short time.\n- Add a check job that compares the two and reports drift.",
+      "> A post list shows 'comments: 42'. Option A: COUNT(*) per row on every page view, which is correct but slow at scale. Option B: a comment_count column, updated with F('comment_count') + 1 inside the same transaction as the insert. Option B is fast, and it is correct as long as every code path that adds or removes comments goes through the same function.",
+      "In Django, use F() expressions for counters so the increment happens in the database and not in Python, which avoids lost updates when two requests increment at once.",
+      "The interview answer: 'I normalize to 3NF by default. I denormalize only for a measured read bottleneck or to keep historical facts, and I always name who keeps the copy consistent.'"
+    ],
+    "keyPoints": [
+      "Snapshot values that must not change retroactively (price, tax, address).",
+      "Summary tables / materialized views trade freshness for read speed.",
+      "Define refresh strategy, late-arriving data handling, and reconciliation.",
+      "Measure first; denormalize second."
+    ],
+    "sql": [
+      {
+        "title": "Materialized view for daily sales",
+        "code": "CREATE MATERIALIZED VIEW daily_sales AS\nSELECT date_trunc('day', created_at) AS day,\n       count(*)                      AS orders,\n       sum(total_amount)             AS revenue\nFROM orders\nWHERE status = 'paid'\nGROUP BY 1;\n\nCREATE UNIQUE INDEX ON daily_sales(day);          -- required for CONCURRENTLY\nREFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales;"
+      }
+    ],
+    "django": {
+      "title": "Price snapshot on write",
+      "code": "def add_item(order, product, qty):\n    return OrderItem.objects.create(\n        order=order, product=product, quantity=qty,\n        unit_price=product.price,   # snapshot — NOT a join to products.price later\n    )",
+      "note": "Django has no first-class materialized views; create them with migrations.RunSQL and read them through an unmanaged model (managed = False)."
+    },
+    "exercise": "Design a daily_sales_summary table. State how it is refreshed, how late-arriving updates are handled, and how totals are reconciled against orders.",
+    "pitfalls": [
+      "Denormalizing before measuring.",
+      "Counters kept in two places with no reconciliation job.",
+      "Computing historical invoices from the current catalogue price."
+    ],
+    "interview": [
+      {
+        "q": "When is denormalization justified?",
+        "a": "When measured read cost or an access pattern warrants it AND the team can manage consistency, update paths, reconciliation and ownership."
+      },
+      {
+        "q": "How do you keep historical order totals correct?",
+        "a": "Snapshot unit price, discounts, tax and currency on order_items. Never derive past invoices from the current product price."
+      }
+    ],
+    "hours": 3,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Materialized views",
+        "url": "https://www.postgresql.org/docs/current/rules-materializedviews.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "REFRESH MATERIALIZED VIEW",
+        "url": "https://www.postgresql.org/docs/current/sql-refreshmaterializedview.html",
+        "kind": "PostgreSQL docs"
+      }
+    ],
+    "basis": "Mid priority. Trade-off reasoning is a mid/senior signal.",
+    "sources": [
+      "hackajob-backend",
+      "ddia"
+    ],
+    "viz": "denorm"
+  },
+  {
+    "id": "data-types",
+    "n": 5,
+    "level": 1,
+    "week": "Week 3",
+    "title": "Data Types",
+    "tagline": "Pick types by meaning, range, precision and operations.",
+    "explain": [
+      "Choosing a column type decides correctness, storage size, and which indexes work. Most type bugs are silent: they do not crash, they quietly store the wrong thing.",
+      "## Numbers",
+      "- INTEGER, BIGINT: whole numbers. Use BIGINT for ids that may pass about 2 billion. An INT primary key that overflows stops all inserts.\n- NUMERIC(p, s) or DECIMAL: exact decimals. Use this for money.\n- FLOAT, DOUBLE: binary approximations. Never use for money. 0.1 + 0.2 is not exactly 0.3 in binary floating point, and the errors accumulate over thousands of rows.\n- Store money as NUMERIC, or as integer minor units (cents) plus a currency code.",
+      "## Text",
+      "- VARCHAR(n) vs TEXT: in PostgreSQL they perform the same, and the limit is just a rule. Use VARCHAR(n) when the limit is a real business rule, otherwise TEXT.\n- Compare with the right collation: case-insensitive comparison of emails needs lower() or a case-insensitive type, otherwise Bob@x.com and bob@x.com are two users.\n- Do not put structured data in a text blob. Use proper columns or JSONB.",
+      "## Dates and time",
+      "- DATE: a calendar day. TIME: a clock time. TIMESTAMP WITHOUT TIME ZONE: a clock reading with no zone. TIMESTAMPTZ: an exact instant.\n- Rule of thumb: store instants as TIMESTAMPTZ (UTC) and convert to the user's zone only when displaying. In Django set USE_TZ = True so datetimes are timezone-aware.\n- Storing local times without a zone is how you get meetings that appear an hour early after a daylight-saving change.",
+      "## Booleans, enums, UUID, JSON",
+      "- BOOLEAN: true, false, or NULL. That third state surprises people (see below).\n- Enum or a CHECK constraint on a small set of values, with Django's TextChoices on the model side.\n- UUID: native type, not a 36-character string.\n- JSONB (PostgreSQL): flexible semi-structured data that you can index. Good for optional attributes. Bad as a replacement for real columns you filter and join on every day.",
+      "## NULL is not a value",
+      "NULL means 'unknown'. Any comparison with NULL is itself unknown, not true: NULL = NULL is not true, and WHERE col != 'x' silently drops rows where col is NULL. Use IS NULL and IS NOT NULL, and COALESCE(col, default) to supply a fallback. Prefer NOT NULL with a default whenever 'unknown' is not a real state, because every nullable column is one more case in every query.",
+      "> A discount column is NULL for 'no discount'. SELECT AVG(discount) ignores NULL rows and reports 10 percent, when across all orders the average is 2 percent. If 'no discount' means 0, store 0.",
+      "Interview favourites: float vs decimal for money, TIMESTAMP vs TIMESTAMPTZ, and what NULL does inside a WHERE clause or a NOT IN list."
+    ],
+    "keyPoints": [
+      "Money → NUMERIC(12,2) (or integer minor units). Never float.",
+      "Instants → timestamptz (stores UTC, converts on display).",
+      "JSONB + GIN for flexible attributes; columns for anything you query constantly.",
+      "NULL is not a value: it propagates through comparisons (three-valued logic)."
+    ],
+    "sql": [
+      {
+        "title": "Types chosen on purpose",
+        "code": "CREATE TABLE products (\n  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  sku        TEXT UNIQUE NOT NULL,\n  price      NUMERIC(12,2) NOT NULL CHECK (price >= 0),\n  discount   NUMERIC(5,2)  CHECK (discount BETWEEN 0 AND 100),\n  active     BOOLEAN NOT NULL DEFAULT TRUE,\n  attributes JSONB   NOT NULL DEFAULT '{}',\n  created_at TIMESTAMPTZ NOT NULL DEFAULT now()\n);\n\nSELECT NULL = NULL;               -- NULL, not true\nSELECT COALESCE(discount, 0) FROM products;"
+      }
+    ],
+    "django": {
+      "title": "Field choices map to column types",
+      "code": "class Product(models.Model):\n    sku = models.CharField(max_length=64, unique=True)          # varchar(64)\n    price = models.DecimalField(max_digits=12, decimal_places=2) # numeric(12,2)\n    attributes = models.JSONField(default=dict)                  # jsonb\n    created_at = models.DateTimeField(auto_now_add=True)         # timestamptz when USE_TZ=True",
+      "note": "Never use FloatField for money. Keep USE_TZ = True so DateTimeField is timestamptz."
+    },
+    "exercise": "Choose types for price, discount %, stock quantity, order status, product attributes, birth date and created timestamp. Explain every choice in one sentence.",
+    "pitfalls": [
+      "FLOAT for money (0.1 + 0.2 ≠ 0.3).",
+      "timestamp without time zone for \"when did it happen\".",
+      "Storing everything in a JSONB blob and losing constraints and statistics."
+    ],
+    "interview": [
+      {
+        "q": "Why not store money as float?",
+        "a": "Binary floating point cannot represent most decimal fractions exactly; errors accumulate. Use NUMERIC or integer minor units (paise/cents)."
+      },
+      {
+        "q": "timestamp vs timestamptz in PostgreSQL?",
+        "a": "timestamptz stores an absolute instant (normalized to UTC) and renders in the session time zone; timestamp stores a wall-clock reading with no zone and is usually wrong for events."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Data types",
+        "url": "https://www.postgresql.org/docs/current/datatype.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "JSON types",
+        "url": "https://www.postgresql.org/docs/current/datatype-json.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Model field reference",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/fields/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Mid priority. Foundation for correct schemas.",
+    "sources": [
+      "pg-docs",
+      "django-docs"
+    ],
+    "viz": "types"
+  },
+  {
+    "id": "constraints",
+    "n": 6,
+    "level": 1,
+    "week": "Week 2",
+    "title": "Constraints",
+    "tagline": "Make invalid states unrepresentable at the database boundary.",
+    "explain": [
+      "A constraint is a rule the database itself enforces on every write, no matter which app, script, or person writes. Application validation can be bypassed by a bug, a second service, a bulk script, or a person in the SQL shell. Constraints cannot, so they are your last line of defence for data correctness.",
+      "## The constraint types",
+      "- NOT NULL: this column must have a value.\n- UNIQUE: no two rows may share this value (or combination of values). Backed by an index.\n- PRIMARY KEY: NOT NULL plus UNIQUE, and the row's identity.\n- FOREIGN KEY: the value must exist in another table (see Keys).\n- CHECK: an arbitrary condition on the row, such as price >= 0 or end_date > start_date.\n- DEFAULT: not a restriction, but supplies a value when none is given.\n- EXCLUDE (PostgreSQL): no two rows may overlap, which is how you prevent double-booking a room for overlapping time ranges.",
+      "## Why enforce in the database as well as in code",
+      "- Many writers: web app, admin, workers, imports, migrations. One rule in one place covers them all.\n- Concurrency: two requests can both pass an app-level 'does this email exist?' check at the same moment, then both insert. Only a UNIQUE constraint closes that race.\n- Trust: queries can assume the data is valid, so they need fewer defensive checks.",
+      "> Two users sign up with the same email in the same second. Both requests run User.objects.filter(email=...).exists(), both see False, both insert. Without a UNIQUE constraint you now have two accounts. With it, the second insert fails with an IntegrityError, which you catch and report as 'email already used'.",
+      "## Handling violations",
+      "A constraint failure raises an error you should expect and handle, not a bug to hide. In Django, catch django.db.IntegrityError around the write. Inside a transaction, a failed statement aborts the whole transaction in PostgreSQL, so wrap the risky write in its own atomic() block so the outer work can continue.",
+      "## Constraints in Django",
+      "Put them in Meta.constraints with CheckConstraint and UniqueConstraint, rather than relying on field options alone. UniqueConstraint supports conditions, so 'one active subscription per user' is expressed as unique on user where status = 'active'. Constraints are created by migrations, so adding one to a table with bad existing rows fails until you clean the data first.",
+      "Interview angle: 'why a constraint if you already validate in the serializer?' The answer is race conditions and multiple writers."
+    ],
+    "keyPoints": [
+      "App validation = UX. DB constraints = truth.",
+      "CHECK (available_qty >= 0) is what finally prevents overselling.",
+      "UNIQUE(provider, provider_txn_id) gives payment idempotency for free.",
+      "Write positive AND negative constraint tests."
+    ],
+    "sql": [
+      {
+        "title": "Constraints that earn their keep",
+        "code": "ALTER TABLE inventory\n  ADD CONSTRAINT qty_non_negative CHECK (available_qty >= 0);\n\nALTER TABLE payments\n  ADD CONSTRAINT uq_provider_txn UNIQUE (provider, provider_txn_id);\n\n-- Detect duplicates BEFORE adding a UNIQUE constraint\nSELECT email, count(*) FROM customers GROUP BY email HAVING count(*) > 1;"
+      }
+    ],
+    "django": {
+      "title": "Meta.constraints",
+      "code": "class Inventory(models.Model):\n    product = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True)\n    available_qty = models.IntegerField()\n\n    class Meta:\n        constraints = [\n            models.CheckConstraint(\n                condition=models.Q(available_qty__gte=0),   # 'check=' before Django 5.1\n                name=\"inventory_qty_non_negative\",\n            )\n        ]",
+      "note": "Catch django.db.IntegrityError in the service layer and map it to a 409 / 422 response."
+    },
+    "exercise": "Add constraints for non-negative price, unique email, positive order quantity, allowed status values, and one payment reference per provider transaction. Write a failing insert for each.",
+    "pitfalls": [
+      "Relying only on serializers/forms.",
+      "Adding a UNIQUE constraint to a table that already has duplicates (the migration fails).",
+      "Using a PostgreSQL ENUM for statuses that will change often."
+    ],
+    "interview": [
+      {
+        "q": "Why have DB constraints if the app already validates?",
+        "a": "Apps race, get bypassed by scripts, and multiple services write to the same DB. Constraints are the only check that is atomic with the write."
+      }
+    ],
+    "hours": 4,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Constraints",
+        "url": "https://www.postgresql.org/docs/current/ddl-constraints.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Model constraints",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/constraints/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. Integrity at the database boundary underpins transactions and idempotency.",
+    "sources": [
+      "pg-docs",
+      "django-docs",
+      "lemon-django"
+    ],
+    "viz": "constraints"
+  },
+  {
+    "id": "sql-vs-nosql",
+    "n": 7,
+    "level": 1,
+    "week": "Week 3",
+    "title": "SQL vs NoSQL",
+    "tagline": "Choose by access pattern and consistency need, not by hype.",
+    "explain": [
+      "'SQL or NoSQL?' is not a contest. Each is a set of trade-offs, and good engineers choose by looking at the data and the access pattern. The default for most business applications is a relational database, and you move away from it when a specific need justifies it.",
+      "## What relational (SQL) gives you",
+      "- A fixed schema that rejects bad data, plus constraints and foreign keys.\n- Joins: combine any tables in ways you did not plan in advance.\n- ACID transactions across many rows and tables.\n- A mature query language, tooling, and decades of operational knowledge.\nThe cost: scaling writes beyond one machine is hard (see Sharding), and schema changes on huge tables need care.",
+      "## The NoSQL families",
+      "- Key-value (Redis, DynamoDB): get or set by key, extremely fast, no rich queries. Fits caches, sessions, counters, rate limiting.\n- Document (MongoDB): nested JSON-like documents, flexible schema. Fits data read as a whole unit, such as a product page with varied attributes.\n- Wide-column (Cassandra): huge write volume spread over many machines, queried by a known key. Fits time series, event logs, messaging.\n- Graph (Neo4j): relationships are the data. Fits social graphs, recommendations, fraud rings.\n- Search (Elasticsearch, OpenSearch): full-text search and ranking. Usually a secondary copy beside the main database, not the source of truth.",
+      "## How to choose: ask these questions",
+      "- What are the access patterns? If you must answer unplanned questions with filters and joins, choose relational. If you only ever fetch by a known key, a key-value or document store is enough.\n- How strict must consistency be? Money and inventory need transactions. A like counter can be slightly wrong.\n- How big and how fast? One well-tuned PostgreSQL server handles far more than most teams assume, typically millions of rows with ease. Reach for distribution when you have measured a limit, not before.\n- What does the team already run and understand? Operating an extra database has a real cost.",
+      "> Social app. Users, posts, follows: relational, because of constraints and joins. Feed cache per user: Redis. Full-text post search: Elasticsearch fed from the main database. Message firehose with billions of writes: Cassandra. A realistic system uses several stores, each for what it does best. This is called polyglot persistence.",
+      "## Myths worth correcting",
+      "- 'NoSQL is faster.' It is faster at the specific patterns it was designed for, and usually slower or impossible for others.\n- 'NoSQL has no schema.' The schema moves into your application code, where it is harder to enforce.\n- 'SQL does not scale.' It scales vertically very far, and with read replicas and careful design much further. PostgreSQL also has JSONB, so it can store flexible documents too.",
+      "Interview answer shape: state the access pattern and consistency need first, name the default (relational), then justify any exception with one concrete reason."
+    ],
+    "keyPoints": [
+      "Orders / payments → relational (ACID, constraints).",
+      "Sessions, cache, rate limits → key-value (Redis).",
+      "Flexible documents → document store (or JSONB first!).",
+      "Relationship traversal → graph. Clickstream → wide-column / columnar."
+    ],
+    "sql": [
+      {
+        "title": "JSONB covers many \"I need a document store\" cases",
+        "code": "SELECT id, name FROM products\nWHERE attributes @> '{\"color\": \"red\"}';\n\nCREATE INDEX idx_products_attrs ON products USING GIN (attributes);"
+      }
+    ],
+    "django": {
+      "title": "Redis alongside PostgreSQL",
+      "code": "# settings.py\nCACHES = {\"default\": {\"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n                      \"LOCATION\": \"redis://127.0.0.1:6379/1\"}}\n\n# usage\nproduct = cache.get_or_set(f\"product:{pk}\", lambda: load_product(pk), timeout=300)"
+    },
+    "exercise": "For orders, sessions, product catalogue, clickstream and a social graph: choose a store and defend it. Include consistency and query requirements.",
+    "pitfalls": [
+      "\"NoSQL is faster\" — only for the access pattern it was designed around.",
+      "Choosing a store for resume reasons.",
+      "Forgetting operational cost: a new datastore means new backups, monitoring and expertise."
+    ],
+    "interview": [
+      {
+        "q": "SQL or NoSQL for an e-commerce system?",
+        "a": "PostgreSQL as source of truth for orders, payments and inventory (transactions + constraints). Redis for cache/sessions/rate limiting. Add search (OpenSearch) or a document store only for a concrete need such as full-text relevance."
+      }
+    ],
+    "hours": 2,
+    "priority": 3,
+    "references": [
+      {
+        "title": "JSON types",
+        "url": "https://www.postgresql.org/docs/current/datatype-json.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Django cache framework",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/cache/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Redis documentation",
+        "url": "https://redis.io/docs/latest/",
+        "kind": "Redis docs"
+      }
+    ],
+    "basis": "Nice to have at 0-5 yrs. Redis is used by ~31% of professional developers and PostgreSQL by ~58%.",
+    "sources": [
+      "so-survey-2025",
+      "lemon-django"
+    ],
+    "viz": "sqlnosql"
+  },
+  {
+    "id": "explain",
+    "n": 8,
+    "level": 2,
+    "week": "Week 4",
+    "title": "Query Execution Plans (EXPLAIN)",
+    "tagline": "Stop guessing why a query is slow — read the plan.",
+    "explain": [
+      "When a query is slow, guessing is useless. EXPLAIN shows the plan the database chose: how it will find the rows, in what order, and with what cost. EXPLAIN ANALYZE also runs the query and reports what really happened, including real timings. Reading plans is the core skill of query tuning.",
+      "## How to read a plan",
+      "A plan is a tree. The database runs it from the innermost, most indented node outward: leaves first. Each node reports an estimated cost, an estimated row count, and (with ANALYZE) actual time and actual rows.",
+      "- Seq Scan: read every row of the table. Fine for small tables or when you need most rows. A problem when you want few rows from a big table.\n- Index Scan: walk an index to find matching rows, then fetch each row from the table.\n- Index Only Scan: answer entirely from the index, without touching the table. Fastest, needs a covering index.\n- Bitmap Heap Scan: collect many index matches first, then read the table pages in order. Common for medium selectivity.\n- Nested Loop, Hash Join, Merge Join: the three ways to join. Nested loop suits a few outer rows with an indexed inner lookup. Hash join builds a hash table of one side and suits large unsorted inputs. Merge join suits inputs already sorted on the join key.\n- Sort, Aggregate, Limit: the operations done after the rows are found.",
+      "## What to look for",
+      "- Estimated rows vs actual rows. If the planner guessed 10 and the truth is 100,000, it chose a bad plan from bad statistics. Run ANALYZE to refresh statistics.\n- A Seq Scan on a big table with a selective filter: you probably need an index on the filtered column.\n- A Sort that spills to disk: not enough memory, or you could use an index that already returns rows in order.\n- Many loops on an inner node: a nested loop doing thousands of lookups. Total time is time per loop multiplied by loops.\n- Rows removed by filter that is far larger than rows returned: you are reading much and keeping little.",
+      "> Query: SELECT * FROM orders WHERE customer_id = 42. Plan A: Seq Scan on orders, Filter customer_id = 42, Rows Removed by Filter 999,990, 480 ms. After CREATE INDEX on orders(customer_id): Index Scan using orders_customer_id_idx, 0.05 ms. The same query, because the planner can now jump straight to the matching rows.",
+      "## Things that surprise people",
+      "- The planner may correctly ignore your index when the query returns a large part of the table, because reading the whole table sequentially is cheaper than thousands of random index lookups.\n- Wrapping an indexed column in a function, such as WHERE lower(email) = 'x', stops a plain index from being used. Create an index on the expression instead.\n- EXPLAIN ANALYZE really executes the query. For INSERT, UPDATE and DELETE, wrap it in a transaction and roll back.\n- Cost numbers are in arbitrary units, useful only for comparing plans, not as milliseconds.",
+      "In Django, queryset.explain() prints the plan of the query it would run, and with PostgreSQL it accepts analyze=True. Use it together with django-debug-toolbar to see the SQL your ORM code really produces."
+    ],
+    "keyPoints": [
+      "EXPLAIN = estimate. EXPLAIN ANALYZE = runs it (wrap writes in BEGIN … ROLLBACK).",
+      "Estimated vs actual rows → statistics health (run ANALYZE).",
+      "Cost ≠ time. Compare buffers and actual time.",
+      "Change ONE thing, re-measure."
+    ],
+    "sql": [
+      {
+        "title": "The standard diagnostic query",
+        "code": "EXPLAIN (ANALYZE, BUFFERS)\nSELECT id, name\nFROM products\nWHERE category_id = 12 AND active = TRUE\nORDER BY created_at DESC\nLIMIT 20;\n\n-- Safe way to analyze a write\nBEGIN;\nEXPLAIN (ANALYZE) UPDATE inventory SET available_qty = available_qty - 1 WHERE product_id = 42;\nROLLBACK;"
+      }
+    ],
+    "django": {
+      "title": "queryset.explain()",
+      "code": "qs = Product.objects.filter(category_id=12, active=True).order_by(\"-created_at\")[:20]\nprint(qs.explain(analyze=True, buffers=True))   # PostgreSQL options pass through\n\n# See the SQL Django generated\nprint(qs.query)",
+      "note": "Also use django-debug-toolbar in dev and pg_stat_statements in prod to find the queries worth explaining."
+    },
+    "exercise": "Capture a plan before and after adding an index on a 100k-row table. Explain the node types, estimated vs actual rows, buffers, and whether the change really helped.",
+    "viz": "plan",
+    "pitfalls": [
+      "Running EXPLAIN ANALYZE on a DELETE/UPDATE without a transaction.",
+      "Trusting cost numbers across different queries.",
+      "Benchmarking once on a cold cache and drawing conclusions."
+    ],
+    "interview": [
+      {
+        "q": "What does EXPLAIN ANALYZE do?",
+        "a": "Executes the statement and reports actual runtime and row counts next to the estimates. It is not a harmless estimate — for writes use a transaction and roll back."
+      },
+      {
+        "q": "How do you investigate a slow production query?",
+        "a": "Find the fingerprint and frequency (pg_stat_statements), inspect plan, actual rows, buffers, waits and locks, check statistics and parameter distribution, reproduce safely, change one thing, measure, and monitor."
+      }
+    ],
+    "hours": 6,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Using EXPLAIN",
+        "url": "https://www.postgresql.org/docs/current/using-explain.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "EXPLAIN command",
+        "url": "https://www.postgresql.org/docs/current/sql-explain.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "pg_stat_statements",
+        "url": "https://www.postgresql.org/docs/current/pgstatstatements.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "QuerySet.explain()",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/querysets/#explain",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. pg_stat_statements and query tuning appear in senior Django lists; database optimisation is the mid-level focus.",
+    "sources": [
+      "lemon-django",
+      "hackajob-backend",
+      "pg-docs"
+    ]
+  },
+  {
+    "id": "indexing",
+    "n": 9,
+    "level": 2,
+    "week": "Week 5",
+    "title": "Indexing",
+    "tagline": "Trade storage and write cost for fast lookups and orderings.",
+    "explain": [
+      "An index is a separate, sorted structure that lets the database find rows without reading the whole table, like the index at the back of a book. It makes reads faster and writes slower, so you create indexes for the queries you actually run, not for every column.",
+      "## How a B-tree index works",
+      "The default index type is a B-tree: a balanced tree of sorted keys. To find a value, the database starts at the root and follows a handful of pointers down to the right leaf, in about log N steps. A table of 10 million rows needs roughly 3 or 4 page reads to locate a key, instead of reading every row. Because the keys are sorted, it also supports range queries (between, greater than), ordering, and prefix matches.",
+      "## Index types you should know",
+      "- B-tree: equality, ranges, ORDER BY. The default and the right answer most of the time.\n- Hash: equality only. Rarely better than B-tree.\n- GIN: for values that contain many items, such as JSONB, arrays, and full-text search.\n- GiST and SP-GiST: geometric data, ranges, nearest-neighbour.\n- BRIN: tiny index for very large tables whose values are naturally ordered, such as an append-only timestamp.\n- Partial index: indexes only the rows matching a condition, such as WHERE status = 'pending'. Small and fast.\n- Expression index: indexes a computed value, such as lower(email).",
+      "## Composite indexes and the leftmost rule",
+      "An index on (a, b, c) is sorted by a, then by b within a, then by c within b. It can serve queries filtering on a; on a and b; on a, b and c. It cannot efficiently serve a query filtering only on b or c. So column order matters: put equality columns first, then the range or sort column last.",
+      "> Query: WHERE customer_id = 42 AND status = 'paid' ORDER BY created_at DESC. A good index: (customer_id, status, created_at). The two equalities narrow the search, and the rows come out already sorted by created_at, so no sort step is needed.",
+      "Pick a query and see which index entries the database can reach directly:",
+      "@viz:composite-index",
+      "## Covering indexes",
+      "If the index contains every column the query needs, the database never touches the table (an index-only scan). In PostgreSQL you can add extra payload columns with INCLUDE. This is the fastest read path but makes the index bigger.",
+      "## The cost of indexes",
+      "- Every INSERT, UPDATE of an indexed column, and DELETE must also update every index on the table. Ten indexes on a hot table means ten extra writes per row.\n- Indexes use disk and memory.\n- Low-selectivity columns are poor candidates. An index on a boolean that splits the table 50/50 rarely helps, while a partial index on the rare value often does.",
+      "## A practical checklist",
+      "- Find the slow query first (slow query log, pg_stat_statements), then EXPLAIN it, then add the index, then EXPLAIN again to confirm it is used.\n- Index foreign keys that you join or delete through.\n- Drop indexes that are never used (pg_stat_user_indexes shows usage).\n- In production create indexes with CREATE INDEX CONCURRENTLY so writes are not blocked. In Django, use AddIndexConcurrently.",
+      "Interview staples: how a B-tree works, the leftmost-prefix rule, when an index is ignored, covering index, and why more indexes slow writes."
+    ],
+    "keyPoints": [
+      "B-tree: =, <, >, BETWEEN, ORDER BY. Composite order = equality → range → sort.",
+      "Partial / expression / covering indexes shrink and sharpen.",
+      "Planner may ignore an index: low selectivity, tiny table, stale stats, function on column.",
+      "Too many indexes slow every write."
+    ],
+    "sql": [
+      {
+        "title": "Index for \"active products in a category, newest first\"",
+        "code": "CREATE INDEX CONCURRENTLY idx_products_cat_created\n  ON products (category_id, created_at DESC)\n  WHERE active = TRUE;\n\n-- Case-insensitive search needs an expression index\nCREATE INDEX idx_products_lower_name ON products (lower(name));\nSELECT * FROM products WHERE lower(name) = 'iphone 15';\n\n-- Covering index → possible index-only scan\nCREATE INDEX idx_products_sku_inc ON products (sku) INCLUDE (name, price);"
+      }
+    ],
+    "django": {
+      "title": "Meta.indexes and concurrent creation",
+      "code": "from django.contrib.postgres.indexes import GinIndex\nfrom django.db.models.functions import Lower\n\nclass Product(models.Model):\n    ...\n    class Meta:\n        indexes = [\n            models.Index(fields=[\"category\", \"-created_at\"],\n                         condition=models.Q(active=True),\n                         name=\"idx_prod_cat_created\"),\n            models.Index(Lower(\"name\"), name=\"idx_prod_lower_name\"),\n            GinIndex(fields=[\"attributes\"], name=\"idx_prod_attrs_gin\"),\n        ]\n\n# On a live table: create without blocking writes\n# migrations.AddIndexConcurrently(...)  with  atomic = False  on the migration",
+      "note": "AddIndexConcurrently lives in django.contrib.postgres.operations."
+    },
+    "exercise": "Propose and validate with EXPLAIN ANALYZE: SKU lookup, category + newest, price range, JSONB attributes, case-insensitive name search. Record which indexes you rejected and why.",
+    "viz": "index",
+    "pitfalls": [
+      "Index on a low-cardinality boolean alone.",
+      "Wrong composite order (range column before equality column).",
+      "Wrapping the indexed column in a function without an expression index.",
+      "Creating an index non-concurrently on a busy production table."
+    ],
+    "interview": [
+      {
+        "q": "Why might PostgreSQL ignore an index?",
+        "a": "Low selectivity, small table, stale stats, expression or type mismatch, a function on the column, too many rows fetched, or a seq scan estimated cheaper."
+      },
+      {
+        "q": "Why does composite index column order matter?",
+        "a": "A B-tree is sorted by the first column, then the second… so it supports leading-prefix predicates and matching sort orders. Put equality columns first, then range/ORDER BY columns."
+      },
+      {
+        "q": "What is a covering index?",
+        "a": "An index containing every column a query needs (via INCLUDE), allowing an index-only scan when the visibility map says pages are all-visible."
+      },
+      {
+        "q": "Why can too many indexes hurt?",
+        "a": "Every insert/update/delete must maintain each index; they consume disk and cache and increase vacuum work."
+      }
+    ],
+    "hours": 7,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Indexes",
+        "url": "https://www.postgresql.org/docs/current/indexes.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Multicolumn indexes",
+        "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Partial indexes",
+        "url": "https://www.postgresql.org/docs/current/indexes-partial.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Model indexes",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/indexes/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "PostgreSQL-specific indexes",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/contrib/postgres/indexes/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. Indexing appears at junior (basics), mid (optimisation) and senior (zero-downtime index creation) levels.",
+    "sources": [
+      "join-junior-backend",
+      "hackajob-backend",
+      "lemon-django",
+      "job-django-joindevops",
+      "pg-docs"
+    ]
+  },
+  {
+    "id": "acid",
+    "n": 10,
+    "level": 3,
+    "week": "Week 6",
+    "title": "ACID Properties",
+    "tagline": "All-or-nothing, rule-preserving, isolated, durable.",
+    "explain": [
+      "ACID is the promise a transactional database makes about a group of statements that must succeed or fail together. A transaction is that group. The classic example is a bank transfer: subtract from A and add to B must either both happen or neither happen.",
+      "## The four properties",
+      "- Atomicity: all or nothing. If any step fails, every step is undone (rolled back). You never see half a transfer.\n- Consistency: a transaction takes the database from one valid state to another valid state. Constraints, foreign keys and your own rules hold after it commits. Note that the database enforces the rules you declared; it cannot guess business rules you never wrote down.\n- Isolation: transactions running at the same time do not see each other's half-finished work. How strictly is a setting (see Isolation Levels).\n- Durability: once the database says committed, the data survives a crash or power loss.",
+      "## How the database delivers it",
+      "- Write-ahead log (WAL): before changing data files, the database appends the change to a sequential log and flushes it to disk. On commit it flushes the log. After a crash it replays the log to restore every committed change and discards uncommitted ones. This is how atomicity and durability work together.\n- Locks or MVCC: provide isolation (see the next concepts).",
+      "Follow one committed change through a crash, then one that never committed:",
+      "@viz:wal",
+      "> BEGIN; UPDATE accounts SET balance = balance - 100 WHERE id = 1; UPDATE accounts SET balance = balance + 100 WHERE id = 2; COMMIT. If the server dies after the first update and before COMMIT, on restart the first update is rolled back. Money is never lost or created.",
+      "## Transactions in Django",
+      "By default, Django runs in autocommit mode: each statement commits on its own. To group statements use transaction.atomic(), as a decorator or a context manager. If an exception leaves the block, everything inside is rolled back. Nested atomic() blocks become savepoints, so an inner failure can roll back just the inner part. Setting ATOMIC_REQUESTS = True wraps every request in a transaction, which is simple but holds a transaction open for the whole request, so keep requests short.",
+      "## Common mistakes",
+      "- Doing slow work inside a transaction, such as calling an external API or sending an email. The transaction holds locks the whole time. Do slow work after commit.\n- Assuming a rollback undoes side effects outside the database, such as an email already sent or a message already queued. Use transaction.on_commit() for those.\n- Catching an exception inside atomic() and carrying on. After a database error inside a PostgreSQL transaction, the transaction is unusable until you roll back, so put the risky statement in its own atomic() block.\n- Believing ACID means 'safe from concurrency problems'. Isolation level and locking decide that.",
+      "Interview angle: define all four with one example each, explain WAL in two sentences, and know that 'consistency' in ACID is not the same word as consistency in the CAP theorem or in replication."
+    ],
+    "keyPoints": [
+      "Transaction = BEGIN … COMMIT/ROLLBACK; SAVEPOINT for partial rollback.",
+      "Check affected-row counts: an UPDATE that touched 0 rows is a business failure.",
+      "Idempotency keys make retries safe.",
+      "External side effects are outside ACID — design for unknown outcomes."
+    ],
+    "sql": [
+      {
+        "title": "Atomic order creation",
+        "code": "BEGIN;\nUPDATE inventory\n   SET available_qty = available_qty - 1\n WHERE product_id = 42 AND available_qty >= 1;     -- check rows affected = 1\nINSERT INTO orders (customer_id, status, total_amount) VALUES (7, 'pending', 499.00);\nINSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (currval(pg_get_serial_sequence('orders','id')), 42, 1, 499.00);\nCOMMIT;   -- or ROLLBACK on any failure"
+      },
+      {
+        "title": "Idempotency key table",
+        "code": "CREATE TABLE idempotency_keys (\n  key         TEXT PRIMARY KEY,\n  request_hash TEXT NOT NULL,\n  order_id    BIGINT REFERENCES orders(id),\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()\n);\n-- INSERT ... ON CONFLICT (key) DO NOTHING; if 0 rows inserted, return the stored result."
+      }
+    ],
+    "django": {
+      "title": "transaction.atomic and on_commit",
+      "code": "from django.db import transaction\nfrom django.db.models import F\n\n@transaction.atomic\ndef place_order(customer_id, product_id, qty, idem_key):\n    updated = Inventory.objects.filter(\n        product_id=product_id, available_qty__gte=qty\n    ).update(available_qty=F(\"available_qty\") - qty)\n    if updated == 0:\n        raise OutOfStock()\n\n    order = Order.objects.create(customer_id=customer_id, status=\"pending\")\n    OrderItem.objects.create(order=order, product_id=product_id, quantity=qty,\n                             unit_price=Product.objects.get(pk=product_id).price)\n\n    # side effects only AFTER the commit succeeds\n    transaction.on_commit(lambda: send_confirmation_email.delay(order.id))\n    return order",
+      "note": "ATOMIC_REQUESTS=True wraps whole views, but explicit atomic blocks in a service layer are clearer. Nested atomic() creates savepoints."
+    },
+    "exercise": "Implement order creation, force an exception after the stock reservation and verify inventory is restored. Then explain what ACID does and does not guarantee about an external payment provider.",
+    "pitfalls": [
+      "Calling an external API (payment, email) inside a long transaction.",
+      "Swallowing exceptions inside atomic() so it commits half-done work.",
+      "Ignoring affected-row counts."
+    ],
+    "interview": [
+      {
+        "q": "Explain ACID with an order example.",
+        "a": "Atomic: stock decrement + order + items commit together or not at all. Consistent: CHECK(qty>=0) and FKs hold after commit. Isolated: two buyers of the last unit cannot both succeed. Durable: once COMMIT returns, WAL guarantees the order survives a crash."
+      },
+      {
+        "q": "How do you handle a payment provider timeout?",
+        "a": "Treat the outcome as unknown. Use the provider’s idempotency key/reference, persist payment state (pending/unknown), reconcile via webhook or status query, and never blindly charge again."
+      },
+      {
+        "q": "What is idempotency in an API?",
+        "a": "Repeating the same request with the same key returns the original outcome instead of repeating side effects. Store key, request identity and result transactionally."
+      }
+    ],
+    "hours": 6,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Transactions tutorial",
+        "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Database transactions",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/transactions/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. transaction.atomic and on_commit are standard senior Django topics.",
+    "sources": [
+      "lemon-django",
+      "adhdecode-django",
+      "django-docs"
+    ],
+    "viz": "atomic"
+  },
+  {
+    "id": "isolation",
+    "n": 11,
+    "level": 3,
+    "week": "Week 7",
+    "title": "Isolation Levels",
+    "tagline": "Which concurrent effects can your transaction observe?",
+    "explain": [
+      "Isolation answers a question: when two transactions run at the same time, what is each one allowed to see of the other? Perfect isolation is slow, so databases offer levels, and each level allows some specific anomalies in exchange for speed.",
+      "## The anomalies, defined",
+      "- Dirty read: you read a change another transaction has not committed yet. If it rolls back, you acted on data that never existed.\n- Non-repeatable read: you read a row twice in one transaction and get different values, because another transaction committed a change between your reads.\n- Phantom read: you run the same query twice and the second returns extra or missing rows, because another transaction inserted or deleted matching rows.\n- Lost update: two transactions read a value, both compute a new one, and the second write overwrites the first.\n- Write skew: two transactions each read an overlapping set, each updates a different row based on what it read, and together they break a rule neither broke alone (two doctors both go off call because each saw the other still on call).",
+      "## The four SQL levels",
+      "- Read Uncommitted: dirty reads possible. PostgreSQL does not implement it, it behaves as Read Committed.\n- Read Committed: no dirty reads. Each statement sees data committed before that statement began. The PostgreSQL default.\n- Repeatable Read: the transaction sees one snapshot taken at its first statement. In PostgreSQL this also prevents phantoms, and a conflicting concurrent update makes one transaction fail with a serialization error that you must retry. MySQL InnoDB's default is this level.\n- Serializable: the result is as if transactions ran one after another. PostgreSQL detects dangerous patterns and aborts one transaction, so your code must retry on failure.",
+      "> Two sessions at Read Committed. Session A: SELECT balance returns 100. Session B: UPDATE balance to 50 and COMMIT. Session A: SELECT balance again returns 50. That is a non-repeatable read, and it is allowed at this level. At Repeatable Read, A would still see 100 for its whole transaction.",
+      "## Choosing a level",
+      "Stay on the default (Read Committed) and fix specific problems with explicit locking (SELECT FOR UPDATE, see the next concept) or constraints. Go higher when a whole transaction needs a consistent view, such as a report that must add up. At Repeatable Read and Serializable, write the retry loop, because failures are normal behaviour at those levels, not exceptional.",
+      "## In Django",
+      "Django does not change the isolation level per query by default. You can set it for a connection in DATABASES OPTIONS (for PostgreSQL, isolation_level using psycopg's constants). For most Django work, you combine Read Committed with select_for_update() and constraints.",
+      "Interview staples: name the three anomalies, what the PostgreSQL default is, why Repeatable Read can throw a serialization error, and the difference between a dirty read and a non-repeatable read."
+    ],
+    "keyPoints": [
+      "Dirty read: impossible in PostgreSQL.",
+      "Non-repeatable read: possible in READ COMMITTED.",
+      "Phantoms: prevented by PostgreSQL’s REPEATABLE READ (snapshot isolation).",
+      "Write skew: needs SERIALIZABLE (or explicit locks).",
+      "Serializable ⇒ write a retry loop."
+    ],
+    "sql": [
+      {
+        "title": "Two psql sessions: non-repeatable read",
+        "code": "-- Session A                                  -- Session B\nBEGIN;  -- READ COMMITTED\nSELECT available_qty FROM inventory\n WHERE product_id = 42;           -- 10\n                                                   UPDATE inventory SET available_qty = 7\n                                                    WHERE product_id = 42;  -- autocommit\nSELECT available_qty FROM inventory\n WHERE product_id = 42;           -- 7  (changed!)\nCOMMIT;\n\n-- Repeat with: BEGIN ISOLATION LEVEL REPEATABLE READ;  -> second read still returns 10"
+      }
+    ],
+    "django": {
+      "title": "Setting isolation level and retrying 40001",
+      "code": "# settings.py (psycopg 3)\nimport psycopg\nDATABASES[\"default\"][\"OPTIONS\"] = {\"isolation_level\": psycopg.IsolationLevel.SERIALIZABLE}\n\n# service layer\nfrom django.db import transaction, OperationalError\nimport psycopg.errors as pe\n\ndef with_retry(fn, attempts=3):\n    for i in range(attempts):\n        try:\n            with transaction.atomic():\n                return fn()\n        except OperationalError as e:\n            if isinstance(e.__cause__, pe.SerializationFailure) and i < attempts - 1:\n                continue\n            raise",
+      "note": "Django’s default is READ COMMITTED. Prefer raising isolation only for the specific transactions that need it, and retry."
+    },
+    "exercise": "Demonstrate a non-repeatable read under READ COMMITTED. Then enforce a SERIALIZABLE business rule such as \"only one active reservation per user\" and handle the retry error.",
+    "viz": "isolation",
+    "pitfalls": [
+      "Assuming REPEATABLE READ prevents write skew (it does not).",
+      "Using SERIALIZABLE without a retry loop.",
+      "Long transactions holding old snapshots (blocks vacuum)."
+    ],
+    "interview": [
+      {
+        "q": "READ COMMITTED vs REPEATABLE READ vs SERIALIZABLE in PostgreSQL?",
+        "a": "RC: new snapshot per statement. RR: stable snapshot for the whole transaction, prevents non-repeatable reads and phantoms. SERIALIZABLE (SSI): detects dangerous dependency cycles and aborts one transaction, which the app must retry."
+      },
+      {
+        "q": "Is a dirty read possible in PostgreSQL?",
+        "a": "No. READ UNCOMMITTED is accepted but behaves like READ COMMITTED."
+      }
+    ],
+    "hours": 6,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Transaction isolation",
+        "url": "https://www.postgresql.org/docs/current/transaction-iso.html",
+        "kind": "PostgreSQL docs"
+      }
+    ],
+    "basis": "Core. Seniors are expected to reason about consistency; isolation level is a recurring decision area.",
+    "sources": [
+      "hackajob-backend",
+      "pg-docs",
+      "ddia"
+    ]
+  },
+  {
+    "id": "locks-mvcc",
+    "n": 12,
+    "level": 3,
+    "week": "Week 7",
+    "title": "Concurrency Control: Locks and MVCC",
+    "tagline": "Readers never block writers — but writers still conflict.",
+    "explain": [
+      "Concurrency control is how a database lets many transactions run at once without corrupting each other. There are two main tools: locks, which make others wait, and MVCC, which gives each transaction its own consistent view of the data so readers rarely wait at all.",
+      "## MVCC: multi-version concurrency control",
+      "When a row is updated, PostgreSQL does not overwrite it. It writes a new version of the row and marks the old version as superseded. Each transaction sees the versions that were valid at its snapshot. The consequence is the best-known rule of PostgreSQL: readers do not block writers, and writers do not block readers. Old versions that no transaction can see any more are cleaned up later by VACUUM. A transaction left open for hours stops that cleanup and bloats the table, which is why long idle transactions are a production problem.",
+      "@viz:mvcc",
+      "## Locks: where waiting is needed",
+      "MVCC does not stop two writers changing the same row. For that there are row locks. When a transaction updates or deletes a row, it holds a lock on that row until it commits or rolls back, and the second writer waits.",
+      "- Row-level locks: UPDATE, DELETE and SELECT ... FOR UPDATE lock the specific rows.\n- Table-level locks: DDL such as ALTER TABLE takes stronger locks. Some schema changes block all reads and writes on the table while they run, which is why migrations on big tables need planning.\n- Advisory locks: locks you name yourself, for application-level mutual exclusion, such as 'only one worker may run this job'.",
+      "## Pessimistic vs optimistic locking",
+      "- Pessimistic: assume conflict will happen, so lock first. SELECT ... FOR UPDATE reads a row and locks it so nobody else can change it until you finish. Right when conflicts are frequent and the cost of a failure is high, such as stock for a limited item.\n- Optimistic: assume conflict is rare, do not lock, and check at write time that nothing changed. You keep a version column and write UPDATE ... SET qty = ..., version = version + 1 WHERE id = 1 AND version = 7. If zero rows were updated, someone else got there first, and you retry. Right when conflicts are rare and holding locks would hurt throughput.",
+      "> Last item in stock. Two buyers both read stock = 1, both decide it is available, both subtract one: you sold two items you had one of (a lost update). Fix with pessimistic locking: inside a transaction, SELECT ... FOR UPDATE the product row. The second buyer waits, then re-reads stock = 0 and is told it is sold out. Or fix atomically: UPDATE products SET stock = stock - 1 WHERE id = 1 AND stock > 0, and check how many rows changed.",
+      "## Deadlocks",
+      "A deadlock is a cycle: transaction A holds row 1 and wants row 2, while B holds row 2 and wants row 1. Neither can proceed. The database detects the cycle and aborts one transaction with an error. Prevention: always lock rows in the same order, keep transactions short, and be ready to retry the aborted one.",
+      "@viz:deadlock",
+      "## In Django",
+      "- select_for_update() adds FOR UPDATE and must run inside transaction.atomic(). Options: nowait=True fails immediately instead of waiting, skip_locked=True skips rows already locked (ideal for job queues), of=('self',) to lock only the main table in a join.\n- F() expressions make the arithmetic happen in the database: Product.objects.filter(pk=1, stock__gt=0).update(stock=F('stock') - 1).\n- For optimistic locking add a version field and filter on it in update().",
+      "Interview staples: how MVCC lets readers and writers coexist, FOR UPDATE vs optimistic versioning, what a deadlock is and how you prevent it, and what SKIP LOCKED is for."
+    ],
+    "keyPoints": [
+      "Atomic conditional UPDATE is often enough; FOR UPDATE when you must read-then-decide.",
+      "Lock rows in a consistent order (e.g. ORDER BY product_id).",
+      "Keep transactions short; never wait on user input or HTTP inside one.",
+      "Hot rows (flash sale) serialize on their row lock — design around it."
+    ],
+    "sql": [
+      {
+        "title": "Prevent overselling the last unit",
+        "code": "-- Option 1: atomic conditional update (preferred)\nUPDATE inventory\n   SET available_qty = available_qty - 1\n WHERE product_id = 42 AND available_qty > 0;     -- rowcount = 1 → success, 0 → sold out\n\n-- Option 2: pessimistic lock\nBEGIN;\nSELECT available_qty FROM inventory WHERE product_id = 42 FOR UPDATE;\n-- app checks qty, then:\nUPDATE inventory SET available_qty = available_qty - 1 WHERE product_id = 42;\nCOMMIT;\n\n-- Work queue pattern\nSELECT id FROM jobs WHERE status='new' ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 10;"
+      }
+    ],
+    "django": {
+      "title": "select_for_update and F() expressions",
+      "code": "with transaction.atomic():\n    inv = (Inventory.objects\n           .select_for_update()               # only valid inside atomic()\n           .get(product_id=42))\n    if inv.available_qty < 1:\n        raise OutOfStock()\n    inv.available_qty = F(\"available_qty\") - 1\n    inv.save(update_fields=[\"available_qty\"])\n\n# lock multiple rows in a stable order to avoid deadlocks\nlist(Inventory.objects.select_for_update().filter(product_id__in=ids).order_by(\"product_id\"))\n\n# queue consumers\nJob.objects.select_for_update(skip_locked=True).filter(status=\"new\")[:10]",
+      "note": "Also available: nowait=True, of=(\"self\",), no_key=True. Test with threads or pytest-xdist against a real PostgreSQL — SQLite will not reproduce these races."
+    },
+    "exercise": "Run two concurrent reservations for the final unit and show only one succeeds. Then create a deadlock deliberately (two sessions, opposite lock order) and read the error.",
+    "viz": "lock",
+    "pitfalls": [
+      "Read-modify-write in Python without a lock or atomic UPDATE (lost update).",
+      "select_for_update outside transaction.atomic() (raises TransactionManagementError).",
+      "Locking rows in random order → deadlocks."
+    ],
+    "interview": [
+      {
+        "q": "Explain MVCC.",
+        "a": "Readers use snapshots, writers create new row versions. It reduces reader-writer blocking but produces dead tuples needing vacuum, and does not eliminate write-write conflicts."
+      },
+      {
+        "q": "What is a deadlock and how do you prevent it?",
+        "a": "A cycle of transactions each waiting for a lock another holds. Keep transactions short, access few rows, acquire locks in a consistent order, and retry the victim."
+      },
+      {
+        "q": "How do you prevent overselling inventory?",
+        "a": "A conditional atomic UPDATE (qty >= n) or SELECT FOR UPDATE inside a transaction, check affected rows, back it with CHECK(qty >= 0), and prove it with a concurrent test."
+      }
+    ],
+    "hours": 7,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Concurrency control (MVCC)",
+        "url": "https://www.postgresql.org/docs/current/mvcc.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Explicit locking",
+        "url": "https://www.postgresql.org/docs/current/explicit-locking.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "select_for_update()",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/querysets/#select-for-update",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Core. select_for_update with atomic is a named senior/lead Django exercise.",
+    "sources": [
+      "lemon-django",
+      "adhdecode-django",
+      "pg-docs",
+      "django-docs"
+    ]
+  },
+  {
+    "id": "replication",
+    "n": 13,
+    "level": 4,
+    "week": "Week 8",
+    "title": "Replication",
+    "tagline": "Copies for availability and read scale — not a backup.",
+    "explain": [
+      "Replication means keeping copies of the same database on several machines. You do it for three reasons: availability (another copy takes over if one dies), read scaling (spread read queries across copies), and safety (a copy survives losing a machine or a data centre). It does not make writes faster.",
+      "## The usual setup: primary and replicas",
+      "One machine, the primary, accepts all writes. It records every change in its write-ahead log (WAL) and streams that log to one or more replicas, which replay it. Replicas serve read-only queries. If the primary fails, you promote a replica to be the new primary. This is called failover.",
+      "## Synchronous vs asynchronous",
+      "- Asynchronous: the primary commits and replies to the client right away, and ships the change to replicas afterwards. Fast, but if the primary dies before a change reaches any replica, that committed change is lost after failover. This is the common default.\n- Synchronous: the primary waits for at least one replica to confirm before replying. No lost commits, but every write pays the network round trip, and if the replica is down, writes stall unless you configure fallback.\n- A middle path is to require confirmation from one of several replicas.",
+      "## Replication lag and the trouble it causes",
+      "With asynchronous replication, a replica is always slightly behind the primary. Usually milliseconds, but under heavy write load or a slow network it can reach seconds or minutes. The classic symptom is read-your-own-writes failure:",
+      "> A user changes their profile name. The write goes to the primary. The page reloads and the read goes to a replica that has not received the change yet, so the user sees the old name and thinks the save failed. Fixes: read from the primary for a short time after a user writes; route 'important' reads to the primary; or record the WAL position of the write and only read from a replica that has reached it.",
+      "## Failover: where it goes wrong",
+      "- Promoting a lagging replica loses the unreplicated changes.\n- Split brain: the old primary comes back and believes it is still the primary, so two machines accept writes and the data diverges. Real systems use a consensus or fencing mechanism so only one primary exists at a time.\n- Applications must reconnect to the new primary. A connection pool or proxy that tracks the primary helps.",
+      "## Other topologies",
+      "- Multi-primary (multi-master): several machines accept writes. It needs conflict resolution, because two people can change the same row in two places. Powerful but complicated.\n- Logical replication: replicates row changes by table rather than the raw log, useful for upgrades and for feeding other systems.\n- Cascading replicas: a replica feeds other replicas to reduce load on the primary.",
+      "## In Django",
+      "Declare more than one entry in DATABASES (for example default and replica) and add a database router with db_for_read and db_for_write so reads go to the replica and writes to the primary. Remember that inside a transaction you usually want the primary, and that anything that must see a just-written row should read from the primary.",
+      "Interview staples: sync vs async trade-off, what replication lag is and how it shows up, what failover and split brain are, and why replicas help reads but not writes."
+    ],
+    "keyPoints": [
+      "Replication ≠ backup. PITR = base backup + archived WAL.",
+      "Async: faster, may lose last commits. Sync: safer, couples availability.",
+      "Route reads by consistency need, not by default.",
+      "Failover risks: split-brain, lag, promotion of a stale replica."
+    ],
+    "sql": [
+      {
+        "title": "Observing lag",
+        "code": "-- On the primary\nSELECT client_addr, state, sync_state, replay_lag FROM pg_stat_replication;\n\n-- On the replica\nSELECT now() - pg_last_xact_replay_timestamp() AS replication_delay;\n\n-- Durability knob\nSHOW synchronous_commit;   -- on | remote_write | remote_apply | local | off"
+      }
+    ],
+    "django": {
+      "title": "Database router for read replicas",
+      "code": "# settings.py\nDATABASES = {\"default\": {...primary...}, \"replica\": {...replica...}}\nDATABASE_ROUTERS = [\"core.routers.PrimaryReplicaRouter\"]\n\n# core/routers.py\nclass PrimaryReplicaRouter:\n    def db_for_read(self, model, **hints):\n        return \"replica\"          # refine: sticky to primary after a write\n    def db_for_write(self, model, **hints):\n        return \"default\"\n    def allow_relation(self, a, b, **hints):\n        return True\n    def allow_migrate(self, db, app_label, model_name=None, **hints):\n        return db == \"default\"\n\n# critical read-after-write\nOrder.objects.using(\"default\").get(pk=order_id)",
+      "note": "Real systems add \"sticky primary for N seconds after a write\" per session, or compare LSNs. Django does not do this for you."
+    },
+    "exercise": "Define RPO/RTO for a store. Decide which endpoints may use a replica, and how the API handles replication lag right after checkout.",
+    "viz": "replication",
+    "pitfalls": [
+      "Treating a replica as a backup.",
+      "Reading order status from a replica immediately after creating it.",
+      "Never testing a restore."
+    ],
+    "interview": [
+      {
+        "q": "Replication vs backup?",
+        "a": "Replication improves availability and read scale but copies deletes and corruption. Backups and WAL/PITR enable recovery to an earlier moment."
+      },
+      {
+        "q": "Synchronous vs asynchronous replication?",
+        "a": "Sync waits for configured standby acknowledgement: less acknowledged-write loss, more latency and coupling. Async is faster but can lag and lose recent commits on failover."
+      },
+      {
+        "q": "What are RPO and RTO?",
+        "a": "RPO = tolerable data-loss window; RTO = tolerable recovery time. Backup frequency, WAL archiving, replication mode and failover automation determine them."
+      },
+      {
+        "q": "Recover from an accidental DELETE?",
+        "a": "Stop further damage, preserve evidence, restore a backup to a separate instance, replay WAL to just before the delete, validate, then extract/cut over."
+      }
+    ],
+    "hours": 5,
+    "priority": 2,
+    "references": [
+      {
+        "title": "High availability and replication",
+        "url": "https://www.postgresql.org/docs/current/high-availability.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Continuous archiving and PITR",
+        "url": "https://www.postgresql.org/docs/current/continuous-archiving.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Multiple databases and routers",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Mid priority at 0-5 yrs, core at 5+: read/write routers, failover and eventual consistency are senior Django topics.",
+    "sources": [
+      "lemon-django",
+      "hello-levels",
+      "ddia",
+      "pg-docs"
+    ]
+  },
+  {
+    "id": "sharding",
+    "n": 14,
+    "level": 4,
+    "week": "Week 9",
+    "title": "Sharding",
+    "tagline": "Split rows across nodes — the last resort, not the first.",
+    "explain": [
+      "Sharding splits one large dataset across several database servers, so each server holds only a part, called a shard. Replication copies the same data to many machines; sharding divides different data between machines. You shard when a single primary can no longer handle the write volume or the data size, even after you have optimized queries, added indexes, and added replicas.",
+      "## Try these first",
+      "Sharding adds permanent complexity. Before it: add indexes, fix slow queries, add caching, scale the machine up (vertical scaling), add read replicas, archive old data, and consider partitioning a big table inside one database. Many systems never need sharding.",
+      "## Partitioning vs sharding",
+      "Partitioning splits one table into pieces, but they live in the same database server. It helps queries and maintenance (drop an old month instantly). Sharding spreads the pieces across several servers, which is what actually raises the ceiling on writes and storage.",
+      "## The shard key",
+      "Every row is routed to a shard using a shard key, such as user_id. Choosing the key is the most important decision, and it is hard to change later.",
+      "- Range sharding: shard 1 holds ids 1 to 1 million, shard 2 the next million. Simple, and range queries are easy, but new data piles onto the newest shard, creating a hotspot.\n- Hash sharding: shard = hash(key) mod N. Spreads load evenly, but range queries must ask every shard, and changing N moves most of the data.\n- Directory (lookup) sharding: a table maps each key to its shard. Flexible, but the lookup becomes a dependency and a possible bottleneck.\n- Consistent hashing: keys and servers sit on a ring, so adding a server moves only a small share of keys. Used in distributed caches and many datastores.",
+      "> Shard by user_id, so all of one user's rows live together. 'Show my orders' touches one shard. But 'total sales today across all users' must ask every shard and merge the results. Shard by country instead and a country with most of your users becomes a hotspot. A good key has high cardinality, spreads load evenly, and matches your most common query.",
+      "Hash-mod routing has a hidden cost: changing the number of servers reshuffles almost every key. Consistent hashing fixes that. Add a server and compare.",
+      "@viz:hashring",
+      "## What you give up",
+      "- Joins and transactions across shards are hard or impossible. Either keep related data on the same shard or accept eventual consistency and design around it.\n- Unique constraints and auto-increment ids are only unique per shard. You need globally unique ids, such as UUIDs or snowflake-style ids.\n- Resharding (changing the number of shards) is a heavy operation. Plan for it with many small logical shards mapped onto few physical servers.\n- Operations multiply: backups, migrations, and monitoring per shard.",
+      "## In Django",
+      "Django can talk to several databases and route with a database router, so you can implement shard routing, but it gives you no built-in sharding and no cross-shard joins. Most teams use managed sharded databases or a tool such as Citus for PostgreSQL rather than hand-rolling it.",
+      "Interview staples: shard vs replica vs partition, how to choose a shard key, hotspots, and how to handle cross-shard queries. In system design answers, always say you would scale vertically, add replicas and caching first, and shard only when the numbers demand it."
+    ],
+    "keyPoints": [
+      "Order of escalation: index → pool → vertical → partition → replicas → shard.",
+      "Shard key: high cardinality, even, aligned with queries.",
+      "Cross-shard queries/transactions are the cost you pay.",
+      "Plan rebalancing before day one."
+    ],
+    "sql": [
+      {
+        "title": "Native partitioning (same database)",
+        "code": "CREATE TABLE orders (\n  id BIGINT GENERATED ALWAYS AS IDENTITY,\n  customer_id BIGINT NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL,\n  total_amount NUMERIC(12,2) NOT NULL,\n  PRIMARY KEY (id, created_at)\n) PARTITION BY RANGE (created_at);\n\nCREATE TABLE orders_2026_11 PARTITION OF orders\n  FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');"
+      }
+    ],
+    "django": {
+      "title": "Routing by shard key (conceptual)",
+      "code": "SHARDS = [\"shard0\", \"shard1\", \"shard2\", \"shard3\"]\n\ndef shard_for(customer_id: int) -> str:\n    return SHARDS[customer_id % len(SHARDS)]    # naive; use consistent hashing in practice\n\nclass ShardRouter:\n    def db_for_read(self, model, **hints):\n        inst = hints.get(\"instance\")\n        return shard_for(inst.customer_id) if inst else \"default\"\n    db_for_write = db_for_read\n\nOrder.objects.using(shard_for(cid)).filter(customer_id=cid)",
+      "note": "Django has no built-in sharding. For partitioning use RunSQL or django-postgres-extra; for real sharding consider Citus."
+    },
+    "exercise": "Design a shard strategy for 100 million orders. Compare customer_id, tenant_id and time-based partitioning; explain hotspots, cross-shard reporting and rebalancing.",
+    "viz": "sharding",
+    "pitfalls": [
+      "Sharding before measuring.",
+      "Hashing with modulo then adding a shard (reshuffles ~everything).",
+      "Time-based shard key → all writes hit the newest shard."
+    ],
+    "interview": [
+      {
+        "q": "Partitioning vs sharding?",
+        "a": "Partitioning divides a table within one database/cluster. Sharding distributes data across independent database nodes and adds routing and coordination complexity."
+      },
+      {
+        "q": "How do you choose a shard key?",
+        "a": "Query locality, cardinality, even distribution, tenant/customer boundaries, growth, hotspot risk and the cost of cross-shard operations."
+      },
+      {
+        "q": "When should you shard?",
+        "a": "Only after measuring and exhausting indexing, query redesign, pooling, vertical scale, partitioning and replicas — and after quantifying the operational cost."
+      }
+    ],
+    "hours": 4,
+    "priority": 3,
+    "references": [
+      {
+        "title": "Table partitioning",
+        "url": "https://www.postgresql.org/docs/current/ddl-partitioning.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Multiple databases and routers",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Nice to have at 0-5 yrs; deeper at 5+ (shard-key reasoning is a senior system-design topic).",
+    "sources": [
+      "hello-levels",
+      "ddia",
+      "pg-docs"
+    ]
+  },
+  {
+    "id": "consistency",
+    "n": 15,
+    "level": 4,
+    "week": "Week 9",
+    "title": "Consistency Models",
+    "tagline": "State the guarantee each feature actually needs.",
+    "explain": [
+      "Consistency models describe what a reader is guaranteed to see when data is stored on more than one machine, or both in a database and in a cache. Strong guarantees are easier to reason about and cost latency and availability. Weak guarantees are fast and available and push complexity onto you.",
+      "## The main models",
+      "- Strong (linearizable) consistency: once a write completes, every later read, anywhere, sees it. Behaves like a single copy. Needs coordination between machines, so it is slower and can become unavailable during network failures.\n- Eventual consistency: if no new writes arrive, all copies converge to the same value eventually. Reads in the meantime may return older data. Fast and highly available.\n- Read-your-writes: you always see your own writes, even if others do not yet.\n- Monotonic reads: you never see data go backwards in time between two reads.\n- Causal consistency: if one event causes another (a reply to a post), everyone sees them in that order.",
+      "## The CAP theorem and PACELC",
+      "CAP says that during a network partition (some machines cannot talk to others), a distributed system must choose between consistency (refuse or delay some requests to stay correct) and availability (keep answering, possibly with stale data). It does not say you only get two of three in normal operation. PACELC extends it: even without a partition, there is a trade-off between latency and consistency. Strong consistency costs round trips.",
+      "> A bank balance must not be stale: choose consistency, accept that some requests fail during a partition. A video view counter or a social feed can be a few seconds stale: choose availability and eventual consistency.",
+      "## Consistency in everyday backends: the cache",
+      "The most common place you meet this is a cache in front of a database. The cache and the database are two copies, and you must keep them in step.",
+      "- Cache-aside: read from cache, on a miss read the database and fill the cache. On a write, update the database and delete the cache entry. Deleting is safer than updating the cache.\n- Write-through: write to the cache and the database together. Simple, but writes pay both costs.\n- Write-behind: write to the cache and flush to the database later. Fast, but you can lose data on a crash.\n- TTL (time to live): every entry expires after some time, which bounds how stale it can be. Always set one.",
+      "@viz:cache-aside",
+      "## The stale-cache race",
+      "Even cache-aside can go wrong. Reader A misses the cache and reads the old value from the database. Meanwhile writer B updates the database and deletes the cache entry. Then A writes its old value into the cache. The cache now holds stale data until the TTL expires. This is why TTLs matter, and why for critical data you read from the database. Another danger is a cache stampede: a popular key expires and hundreds of requests hit the database at once. Mitigate with a lock around the rebuild, jittered TTLs, or refreshing before expiry.",
+      "## In Django",
+      "Use the cache framework with Redis: cache.get, cache.set with a timeout, and cache.delete on writes. Delete cached entries in transaction.on_commit() so you never invalidate before the database change is visible. For data you can regenerate, a short TTL is often the simplest correct answer.",
+      "Interview staples: strong vs eventual consistency with an example of each, CAP stated correctly, cache-aside with its race condition, and stampede mitigation."
+    ],
+    "keyPoints": [
+      "Per-feature consistency table: price, stock, order status, feed, counters.",
+      "Read-your-writes: after a write, route that user to the primary / bypass cache.",
+      "Monotonic reads: never show a user older data than they already saw.",
+      "Invalidate cache in transaction.on_commit."
+    ],
+    "sql": [
+      {
+        "title": "Waiting for a replica to catch up (LSN based)",
+        "code": "-- primary, after commit\nSELECT pg_current_wal_lsn();            -- 0/3000148\n\n-- replica: has it replayed that point yet?\nSELECT pg_last_wal_replay_lsn() >= '0/3000148'::pg_lsn AS caught_up;"
+      }
+    ],
+    "django": {
+      "title": "Invalidate after commit",
+      "code": "def update_price(product_id, new_price):\n    with transaction.atomic():\n        Product.objects.filter(pk=product_id).update(price=new_price)\n        # delete cache only once the new price is visible to other connections\n        transaction.on_commit(lambda: cache.delete(f\"product:{product_id}\"))",
+      "note": "Invalidating inside the transaction before commit lets another request re-cache the OLD value — a classic stale-cache bug."
+    },
+    "exercise": "Classify product price, inventory, order status, recommendation feed and analytics counters. Define stale-read tolerance and recovery behaviour for each.",
+    "viz": "cache",
+    "pitfalls": [
+      "Invalidating the cache before the transaction commits.",
+      "Calling everything \"eventually consistent\" without a staleness bound.",
+      "Cache stampede on a hot key after expiry."
+    ],
+    "interview": [
+      {
+        "q": "What is eventual consistency?",
+        "a": "Replicas or derived views converge after propagation; clients may briefly see stale data. Define the acceptable staleness and user-visible behaviour."
+      },
+      {
+        "q": "What is replication lag and why does it matter?",
+        "a": "A replica may not yet contain a recent commit. Read-after-write flows should use the primary or wait/route based on the consistency needed."
+      },
+      {
+        "q": "How would you cache product data safely?",
+        "a": "Cache-aside with TTL, invalidate on write after commit, version keys or short TTL for correctness, stampede protection (lock / single-flight), and fall back to the DB if Redis is down."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Hot standby (reads on replicas)",
+        "url": "https://www.postgresql.org/docs/current/hot-standby.html",
+        "kind": "PostgreSQL docs"
+      },
+      {
+        "title": "Actions after commit (on_commit)",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/transactions/#performing-actions-after-commit",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Cache framework",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/cache/",
+        "kind": "Django docs"
+      }
+    ],
+    "basis": "Mid priority at 0-5 yrs, core at 5+: caching, invalidation and eventual consistency.",
+    "sources": [
+      "lemon-django",
+      "ddia",
+      "hackajob-backend"
+    ]
+  },
+  {
+    "id": "django-orm",
+    "n": 16,
+    "level": 5,
+    "week": "Week 10",
+    "title": "Django ORM in Depth",
+    "tagline": "Lazy querysets, N+1, F/Q, annotate, and safe migrations: what Django interviews probe first.",
+    "explain": [
+      "The ORM lets you write database queries as Python. It is convenient, and it hides the SQL, which is where most Django performance bugs come from. The goal of this lesson is to always know what SQL your code produces and how many queries it runs.",
+      "## QuerySets are lazy",
+      "A QuerySet is lazy: building it runs no SQL. The query executes when you iterate it, call list(), len() or bool() on it, or call .get(), .count() or .exists(). The results are cached on that QuerySet object, so iterating it twice hits the database once. But chaining another .filter() creates a new QuerySet and a new query.",
+      "> orders = Order.objects.filter(status='paid')   # no query yet\nfor o in orders: ...                              # one query runs here\nlen(orders)                                       # uses the cache, no new query\norders.count()                                    # runs a new SELECT COUNT(*)\nIf you only need to know whether any row exists, use .exists(), which stops at the first match. len(qs) loads every row into memory just to count them.",
+      "## The N+1 problem",
+      "The classic production bug: one query fetches a list, then one extra query runs per row whenever you touch a related object in a loop. Templates and serializers do this silently. With 100 orders, printing order.customer.name in a loop runs 101 queries.",
+      "- select_related() follows foreign keys and one-to-one links with a SQL JOIN, in a single query. Use it for 'the one related object'.\n- prefetch_related() runs one extra query per relation and joins in Python. Use it for reverse foreign keys and many-to-many, where a JOIN would multiply rows.\n- Prefetch() lets you filter or order the prefetched rows, or store them under a custom attribute.",
+      "> Order.objects.select_related('customer').prefetch_related('items__product')\nThis is 3 queries in total (orders joined with customers, then items, then products), no matter how many orders there are.",
+      "## Push work into the database",
+      "- F() expressions: refer to a column inside the query. update(stock=F('stock') - 1) is one atomic UPDATE with no read-modify-write race.\n- Q() objects: build OR and NOT conditions, as in Q(status='paid') | Q(total__gt=1000).\n- annotate() with Count, Sum or Avg: a per-row aggregate, which is a GROUP BY. aggregate() returns a single summary dictionary for the whole set.\n- values() and values_list(): fetch only the columns you need, as dictionaries or tuples, skipping model object creation.\n- only() and defer(): load a model but skip heavy columns.\n- update(), bulk_create() and bulk_update() are single statements, but they skip save() overrides and signals.",
+      "## Migrations",
+      "A migration is a Python file that records a schema change. makemigrations writes it from your model changes and migrate applies it. Treat migrations as production code. Never edit one that has already been applied anywhere. On a big table, adding a column with a default, or an index without CONCURRENTLY, can lock the table, so add the column as nullable, backfill in batches, then add the constraint. Use RunPython with a reverse function for data changes, and keep schema and data migrations separate.",
+      "## See under the hood",
+      "str(qs.query) shows the SQL, qs.explain() shows the plan, django-debug-toolbar shows the query count per page, and assertNumQueries in a test locks the count in so a regression fails the build. When the ORM cannot express a query, use raw() or a cursor with parameters (%s placeholders, never f-strings)."
+    ],
+    "keyPoints": [
+      "QuerySets are lazy and cached; .exists() and .count() beat len(qs) when you do not need the rows.",
+      "N+1 = 1 + N queries. select_related = JOIN (single-valued relations); prefetch_related = extra query (multi-valued).",
+      "F() updates atomically in the database; Q() builds OR/NOT; annotate() = GROUP BY per row; aggregate() = one result.",
+      "update() and bulk_*() skip save() and signals.",
+      "Measure, do not guess: qs.query, qs.explain(), assertNumQueries."
+    ],
+    "sql": [
+      {
+        "title": "N+1 versus JOIN versus prefetch",
+        "code": "-- The loop `for o in orders: o.customer.name` issues (N+1):\nSELECT id, customer_id FROM orders LIMIT 20;\nSELECT name FROM customers WHERE id = 1;     -- ...repeated once per order\n\n-- select_related(\"customer\")  ->  1 query\nSELECT o.id, o.customer_id, c.id, c.full_name\nFROM orders o JOIN customers c ON c.id = o.customer_id\nLIMIT 20;\n\n-- prefetch_related(\"items\")  ->  2 queries\nSELECT id, customer_id FROM orders LIMIT 20;\nSELECT order_id, product_id, quantity FROM order_items WHERE order_id IN (1, 2, 3, 4, 5);"
+      },
+      {
+        "title": "annotate() is a GROUP BY",
+        "code": "-- Order.objects.annotate(n_items=Count(\"items\"), total=Sum(F(\"items__quantity\") * F(\"items__unit_price\")))\n-- produces roughly:\nSELECT o.id, COUNT(i.product_id) AS n_items, SUM(i.quantity * i.unit_price) AS total\nFROM orders o\nLEFT JOIN order_items i ON i.order_id = o.id\nGROUP BY o.id;"
+      },
+      {
+        "title": "F() is one atomic UPDATE",
+        "code": "-- Inventory.objects.filter(product_id=42, available_qty__gte=1).update(available_qty=F(\"available_qty\") - 1)\nUPDATE inventory\n   SET available_qty = available_qty - 1\n WHERE product_id = 42 AND available_qty >= 1;     -- rows affected = 1 or 0, no read-modify-write race"
+      }
+    ],
+    "django": {
+      "title": "Fix N+1, prove it, push work to the database, migrate safely",
+      "code": "from django.db import migrations, models\nfrom django.db.models import F, Q, Count, Sum, Prefetch\nfrom django.contrib.postgres.operations import AddIndexConcurrently\n\n# 1) N+1 and the fix\nfor o in Order.objects.all()[:20]:\n    print(o.customer.full_name)                 # 1 + 20 queries\n\norders = (Order.objects\n          .select_related(\"customer\")                                                      # JOIN\n          .prefetch_related(Prefetch(\"items\", queryset=OrderItem.objects.select_related(\"product\")))\n          [:20])                                                                           # 2 queries total\n\n# 2) make N+1 a failing test, not a production incident\nclass OrderListTests(TestCase):\n    def test_query_count_is_constant(self):\n        with self.assertNumQueries(2):\n            list(orders_for_list())\n\n# 3) let the database do the work\nInventory.objects.filter(product_id=42, available_qty__gte=1).update(available_qty=F(\"available_qty\") - 1)\nProduct.objects.filter(Q(active=True) & (Q(price__lt=500) | Q(name__icontains=\"sale\")))\nOrder.objects.annotate(n_items=Count(\"items\"), total=Sum(F(\"items__quantity\") * F(\"items__unit_price\")))\n\n# 4) index a big table without blocking writes\nclass Migration(migrations.Migration):\n    atomic = False                                # CONCURRENTLY cannot run inside a transaction\n    operations = [AddIndexConcurrently(\"product\", models.Index(fields=[\"category\", \"-created_at\"], name=\"idx_prod_cat_created\"))]",
+      "note": "Put assertNumQueries on every list endpoint. It turns an N+1 into a failing test instead of a slow production page. Test against PostgreSQL where you can; SQLite hides locking and planner behaviour."
+    },
+    "exercise": "Take a view that lists 20 orders with the customer name and each order's items. Count the queries (debug toolbar or assertNumQueries) before and after fixing it with select_related and prefetch_related, then write the test that locks the count in. Finally add a composite index with AddIndexConcurrently and show with qs.explain() that it is used.",
+    "pitfalls": [
+      "Touching related objects in a loop, template or serializer without select_related/prefetch_related.",
+      "Calling .filter() on an already-prefetched relation: it ignores the prefetch cache and queries again. Use Prefetch(queryset=…) instead.",
+      "Using len(qs) or bool(qs) just to check for rows: use .exists() / .count().",
+      "Read-modify-write in Python (obj.qty -= 1; obj.save()) instead of F(): lost updates under concurrency.",
+      "Expecting update(), bulk_create() or bulk_update() to run save() overrides or signals.",
+      "Adding a column with a default, or backfilling millions of rows, in one migration on a live table."
+    ],
+    "viz": "nplus1",
+    "hours": 8,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Making queries",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/queries/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Database access optimization",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/optimization/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Query expressions (F, aggregates)",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/expressions/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "QuerySet API reference",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/models/querysets/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Migrations",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/migrations/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "PostgreSQL migration operations (AddIndexConcurrently)",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/contrib/postgres/operations/",
+        "kind": "Django docs"
+      }
+    ],
+    "interview": [
+      {
+        "q": "select_related vs prefetch_related?",
+        "a": "select_related does a SQL JOIN and loads the related row in the same query; it works for ForeignKey and OneToOne (single-valued). prefetch_related issues a separate query per relation and stitches the results together in Python; use it for reverse foreign keys and many-to-many, or when a JOIN would multiply rows. Prefetch() lets you filter or order the prefetched queryset."
+      },
+      {
+        "q": "How do you find and fix an N+1 problem in Django?",
+        "a": "Detect it with django-debug-toolbar, query logging, or assertNumQueries in a test. Fix it by loading what you will touch up front: select_related for FK/one-to-one, prefetch_related for the rest. Then lock the query count in with assertNumQueries so it cannot regress."
+      },
+      {
+        "q": "get() vs filter()?",
+        "a": "get() returns exactly one object and raises DoesNotExist if none or MultipleObjectsReturned if several. filter() returns a QuerySet that may be empty and is lazy. Use get_object_or_404 in views."
+      },
+      {
+        "q": "Explain QuerySet laziness and caching.",
+        "a": "Creating or chaining a QuerySet runs no SQL; it executes on iteration, list(), len(), bool(), get(), count() or exists(). Once evaluated, results are cached on that object, so iterating again does not re-query, but a new .filter() builds a new QuerySet and queries again."
+      },
+      {
+        "q": "update() vs save() on a model?",
+        "a": "update() on a QuerySet issues one UPDATE statement, returns the number of rows changed, and skips save() overrides and pre/post_save signals. save() works on one instance, runs the override and signals, and writes all fields unless you pass update_fields."
+      },
+      {
+        "q": "What is an F() expression and why use it?",
+        "a": "F() refers to a column value inside the database, e.g. update(qty=F('qty') - 1). The calculation happens in one atomic UPDATE, so concurrent requests cannot overwrite each other the way a Python read-modify-write can."
+      },
+      {
+        "q": "annotate() vs aggregate()?",
+        "a": "aggregate() collapses the whole queryset to one dict of values (e.g. total revenue). annotate() adds a computed value to each row, which with Count/Sum becomes a GROUP BY (e.g. item count per order)."
+      },
+      {
+        "q": "How do you add an index to a large table in production without blocking writes?",
+        "a": "Use AddIndexConcurrently from django.contrib.postgres.operations in a migration with atomic = False, which runs CREATE INDEX CONCURRENTLY. Backfill data in batches in a separate step."
+      }
+    ],
+    "basis": "Core. select_related/prefetch_related, F and Q objects, aggregation and migrations are the standard mid-level Django ORM topics; N+1, indexing and zero-downtime migrations appear at senior level.",
+    "sources": [
+      "lemon-django",
+      "golinuxcloud-django",
+      "adhdecode-django",
+      "django-docs",
+      "job-django-joindevops"
+    ]
+  },
+  {
+    "id": "drf-api",
+    "n": 17,
+    "level": 5,
+    "week": "Week 10",
+    "title": "Django REST Framework & API Design",
+    "tagline": "Serializers, viewsets, permissions, pagination, and idempotent writes.",
+    "explain": [
+      "Django REST Framework (DRF) turns Django models into HTTP APIs. It is built from a few layers, and knowing what each layer does lets you drop down a level when the magic gets in your way.",
+      "## Serializers",
+      "A serializer does two jobs: it validates incoming data (deserialization) and shapes outgoing data (serialization). ModelSerializer generates fields and validators from a model. Add field-level validation with validate_<field>() and cross-field rules with validate(). Keep business rules out of the serializer where possible and in a service function, so they work from the API, the admin and management commands alike.",
+      "> class OrderSerializer(ModelSerializer):\n    class Meta: model = Order; fields = ['id', 'items', 'total']; read_only_fields = ['total']\nMarking total read-only means a client can send any number and it is ignored. Never trust a client-sent price or status.",
+      "## Views: three layers",
+      "- APIView: you write get, post and so on yourself. Full control.\n- Generic views (ListCreateAPIView and friends): mixins that provide the common list, create, retrieve, update and delete behaviour.\n- ViewSet plus a Router: full CRUD from one class and automatic URLs. Least code, most magic.",
+      "## Authentication and permissions",
+      "Authentication answers who you are (session, token, or JWT through a third-party package). Permissions answer whether you may do this. IsAuthenticated protects the view, but the bug that ships to production is the missing object-level check: any logged-in user can fetch /orders/123. Fix it by filtering get_queryset() by request.user, or by implementing has_object_permission. Throttling limits request rates per user, IP or scope.",
+      "## List endpoints",
+      "- Pagination: page-number and limit/offset pagination use SQL OFFSET and get slower on deep pages, because the database must skip all earlier rows. Cursor pagination uses a keyset (WHERE id < last_seen ORDER BY id DESC LIMIT n) so it stays fast and stable while rows are inserted.\n- Filtering and ordering: allow only a list of named fields, never arbitrary columns.\n- Query tuning: serializers are the most common place N+1 hides, so build the queryset in get_queryset() with select_related and prefetch_related.",
+      "## Write endpoints",
+      "- Validate in the serializer and keep business rules in a service function inside transaction.atomic().\n- Return consistent status codes: 400 validation error, 401 not logged in, 403 not allowed, 404 not found, 409 conflict, 429 throttled.\n- PUT replaces the whole resource, PATCH changes part of it.\n- Make POSTs that create valuable things idempotent with an Idempotency-Key header, so a retry after a timeout cannot create a duplicate order.\n- Version your API (a URL prefix such as /api/v1/) before clients depend on it."
+    ],
+    "keyPoints": [
+      "Serializer = validation + representation; ModelSerializer generates both from the model.",
+      "APIView → generic views → ViewSet + Router: less code, more magic.",
+      "Authentication ≠ authorization. Object-level checks prevent IDOR.",
+      "Cursor pagination for big or fast-changing lists; allowlist ordering and filter fields.",
+      "N+1 hides in serializers: optimise get_queryset().",
+      "PUT replaces, PATCH partially updates; Idempotency-Key makes POST retry-safe."
+    ],
+    "sql": [
+      {
+        "title": "Offset versus cursor (keyset) pagination",
+        "code": "-- Offset: the database reads and discards 100,000 rows to return 20\nSELECT * FROM orders ORDER BY created_at DESC, id DESC LIMIT 20 OFFSET 100000;\n\n-- Cursor / keyset: start after the last row you returned; an index on (created_at, id) makes it cheap\nSELECT * FROM orders\nWHERE (created_at, id) < ('2026-11-01 10:00:00+00', 98765)\nORDER BY created_at DESC, id DESC\nLIMIT 20;"
+      },
+      {
+        "title": "Idempotency keys",
+        "code": "CREATE TABLE idempotency_keys (\n  key             TEXT PRIMARY KEY,\n  user_id         BIGINT NOT NULL,\n  request_hash    TEXT NOT NULL,\n  response_status INTEGER,\n  response_body   JSONB,\n  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()\n);\n-- INSERT ... ON CONFLICT (key) DO NOTHING;  0 rows inserted -> a retry: return the stored response"
+      }
+    ],
+    "django": {
+      "title": "A safe, fast list endpoint",
+      "code": "from rest_framework import serializers, viewsets, filters\nfrom rest_framework.pagination import CursorPagination\nfrom rest_framework.permissions import IsAuthenticated\nfrom rest_framework.throttling import ScopedRateThrottle\n\nclass OrderSerializer(serializers.ModelSerializer):\n    items = OrderItemSerializer(many=True, read_only=True)\n    class Meta:\n        model = Order\n        fields = [\"id\", \"status\", \"total_amount\", \"created_at\", \"items\"]   # explicit, never \"__all__\"\n        read_only_fields = [\"status\", \"total_amount\"]                       # the client may not set these\n\nclass OrderPagination(CursorPagination):\n    page_size = 20\n    ordering = (\"-created_at\", \"-id\")                                       # stable, indexed ordering\n\nclass OrderViewSet(viewsets.ModelViewSet):\n    serializer_class = OrderSerializer\n    permission_classes = [IsAuthenticated]\n    pagination_class = OrderPagination\n    filter_backends = [filters.OrderingFilter]\n    ordering_fields = [\"created_at\", \"total_amount\"]                        # allowlist\n    throttle_classes = [ScopedRateThrottle]\n    throttle_scope = \"orders\"                                               # rate set in REST_FRAMEWORK[\"DEFAULT_THROTTLE_RATES\"]\n\n    def get_queryset(self):\n        return (Order.objects\n                .filter(customer__user=self.request.user)                   # object-level isolation: no IDOR\n                .select_related(\"customer\")\n                .prefetch_related(\"items__product\"))                        # no N+1 inside the serializer",
+      "note": "For POST /orders, read the Idempotency-Key header, look it up in your idempotency table inside the same transaction, and return the stored response on a repeat. The serializer should never accept price, status or total from the client."
+    },
+    "exercise": "Build GET /orders with cursor pagination, an ordering allowlist and object-level isolation, and a test using assertNumQueries that proves the query count does not grow with the number of orders. Then build POST /orders with an Idempotency-Key and test that sending it twice returns the same order and creates only one.",
+    "pitfalls": [
+      "fields = \"__all__\" leaking internal columns or allowing mass assignment.",
+      "Checking IsAuthenticated but never filtering objects by owner (IDOR).",
+      "Nested serializers or SerializerMethodField running a query per row.",
+      "Offset pagination on large tables; ordering by a non-unique field with cursor pagination.",
+      "Letting clients order or filter by any field.",
+      "Trusting the client for price, total or status; returning 200 with an error body."
+    ],
+    "hours": 7,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Serializers",
+        "url": "https://www.django-rest-framework.org/api-guide/serializers/",
+        "kind": "DRF docs"
+      },
+      {
+        "title": "Viewsets",
+        "url": "https://www.django-rest-framework.org/api-guide/viewsets/",
+        "kind": "DRF docs"
+      },
+      {
+        "title": "Permissions",
+        "url": "https://www.django-rest-framework.org/api-guide/permissions/",
+        "kind": "DRF docs"
+      },
+      {
+        "title": "Pagination",
+        "url": "https://www.django-rest-framework.org/api-guide/pagination/",
+        "kind": "DRF docs"
+      },
+      {
+        "title": "Throttling",
+        "url": "https://www.django-rest-framework.org/api-guide/throttling/",
+        "kind": "DRF docs"
+      }
+    ],
+    "interview": [
+      {
+        "q": "What does a DRF serializer do?",
+        "a": "It validates incoming data (deserialization) and converts model instances to primitive types for the response (serialization). ModelSerializer generates fields and validators from a model; validate_<field>() and validate() add custom rules."
+      },
+      {
+        "q": "APIView vs generic views vs ViewSets?",
+        "a": "APIView gives you raw HTTP method handlers. Generic views add reusable mixins (list, create, retrieve…). ViewSets group related actions into one class and a Router generates the URLs. Moving up the stack means less code and less visibility; drop down when you need custom behaviour."
+      },
+      {
+        "q": "Authentication vs permissions in DRF?",
+        "a": "Authentication identifies the caller (session, token, JWT via a package). Permissions decide if that caller may perform the action (IsAuthenticated, custom classes, has_object_permission). Both run before the view body."
+      },
+      {
+        "q": "How do you prevent one user reading another user's data (IDOR)?",
+        "a": "Authorize the object, not just the user: filter get_queryset() by the owner (e.g. customer__user=request.user) so other people's objects return 404, or implement has_object_permission, and test it with two users."
+      },
+      {
+        "q": "Why prefer cursor pagination over offset?",
+        "a": "OFFSET makes the database scan and discard all earlier rows, so deep pages get slow, and inserts between requests cause skipped or duplicated items. Cursor (keyset) pagination filters from the last seen value using an index, so it stays fast and stable. It needs a stable, unique ordering."
+      },
+      {
+        "q": "How do you avoid N+1 in DRF?",
+        "a": "Build the queryset in get_queryset() with select_related / prefetch_related for everything the serializer touches, and lock the count with assertNumQueries."
+      },
+      {
+        "q": "PUT vs PATCH?",
+        "a": "PUT replaces the whole resource and expects all required fields; PATCH applies a partial update (serializer partial=True)."
+      },
+      {
+        "q": "How do you make POST /orders safe to retry?",
+        "a": "Require an Idempotency-Key header, store key + request hash + response in the same transaction as the order, and on a repeat return the stored response instead of creating another order. A unique constraint on the key protects against concurrent duplicates."
+      }
+    ],
+    "basis": "Core for Django roles. Serializers, viewsets, routers, filtering and pagination are in the Middle (3-5 yrs) Django topic list; API design is the mid-level focus.",
+    "sources": [
+      "lemon-django",
+      "hackajob-backend",
+      "drf-docs"
+    ],
+    "viz": "pagination"
+  },
+  {
+    "id": "celery-async",
+    "n": 18,
+    "level": 5,
+    "week": "Week 11",
+    "title": "Celery & Background Jobs",
+    "tagline": "Move slow work out of the request, and survive retries, crashes and the on_commit race.",
+    "explain": [
+      "Anything slow or unreliable, such as sending email, calling a payment API, generating a PDF or resizing an image, should not run inside the web request. The user waits, a slow third party ties up your web workers, and a failure becomes a failed page. Celery moves that work out of the request into a background worker.",
+      "## How it fits together",
+      "- Producer: your Django app calls task.delay(args). That publishes a message (the task name and its arguments) to a broker.\n- Broker: a queue such as Redis or RabbitMQ that holds messages until a worker takes one.\n- Worker: a separate process that consumes messages and runs your task function. Run more workers to process more at once.\n- Result backend: optional storage for return values. You only need it if you read results back.\n- Beat: a scheduler process that enqueues periodic tasks, such as nightly reports and cleanup.",
+      "Follow one message through the system, then see what happens when the worker dies.",
+      "@viz:celery-flow",
+      "## Delivery is at-least-once",
+      "By default a task is acknowledged just before it runs, so a worker crash mid-task can lose it. With acks_late the message is redelivered after a crash, and may then run twice. Either way you cannot assume exactly once, so write idempotent tasks: make the effect safe to repeat, with a unique constraint or a 'processed' marker. This is the same idea as an Idempotency-Key. Also pass IDs, not model instances, and re-load fresh data inside the task, because the object may have changed or been deleted by the time it runs.",
+      "## The race that bites everyone",
+      "If you call .delay() inside transaction.atomic(), the worker can pick the task up before your transaction commits, then fail with DoesNotExist because the row is not visible yet.",
+      "> with transaction.atomic():\n    order = Order.objects.create(...)\n    transaction.on_commit(lambda: send_receipt.delay(order.id))\nThe task is only queued after COMMIT succeeds, and not at all if the transaction rolls back. If even that is not enough (the process can crash between COMMIT and the enqueue), use the outbox pattern: write a to-do row in the same transaction, and let a separate publisher send it.",
+      "## Failure is a normal case",
+      "- Retries: autoretry_for with retry_backoff and jitter, and a max_retries cap so a poison task cannot loop forever.\n- Time limits: soft and hard limits so a hung task does not hold a worker forever.\n- Separate queues: keep slow, bulk work apart from urgent work such as password-reset emails.\n- Monitoring: watch queue length and failure rate. A silently backed-up queue is an outage that nobody noticed."
+    ],
+    "keyPoints": [
+      "Web app → broker (Redis/RabbitMQ) → worker. Result backend only if you need results.",
+      "At-least-once delivery means tasks must be idempotent.",
+      "Pass IDs and re-load inside the task; never pass model instances.",
+      "Enqueue with transaction.on_commit(); outbox pattern when you cannot lose the job.",
+      "Retries: backoff + jitter + max_retries; add time limits.",
+      "Monitor queue depth and failures."
+    ],
+    "sql": [
+      {
+        "title": "Idempotent effect: do it once even if the task runs twice",
+        "code": "CREATE TABLE points_ledger (\n  order_id   BIGINT PRIMARY KEY REFERENCES orders(id),   -- one row per order, enforced by the database\n  points     INTEGER NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT now()\n);\nINSERT INTO points_ledger (order_id, points) VALUES (42, 10)\nON CONFLICT (order_id) DO NOTHING;      -- a retry or duplicate delivery inserts 0 rows and changes nothing"
+      },
+      {
+        "title": "Outbox pattern",
+        "code": "CREATE TABLE outbox (\n  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  task       TEXT  NOT NULL,\n  payload    JSONB NOT NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  sent_at    TIMESTAMPTZ\n);\n-- INSERT the row in the SAME transaction as the order. A publisher then claims unsent rows:\nSELECT id, task, payload FROM outbox\nWHERE sent_at IS NULL\nORDER BY id\nFOR UPDATE SKIP LOCKED\nLIMIT 50;"
+      }
+    ],
+    "django": {
+      "title": "Idempotent task, enqueued after commit",
+      "code": "# orders/tasks.py\nfrom celery import shared_task\nfrom django.db import OperationalError, transaction\n\n@shared_task(bind=True, autoretry_for=(OperationalError,), retry_backoff=True, retry_jitter=True,\n             max_retries=5, soft_time_limit=30)\ndef award_points(self, order_id):                      # pass the ID, not the Order\n    with transaction.atomic():\n        PointsLedger.objects.get_or_create(order_id=order_id, defaults={\"points\": 10})   # unique(order_id)\n    # a retry or duplicate delivery finds the row and does nothing\n\n# orders/services.py\n@transaction.atomic\ndef place_order(customer, cart):\n    order = Order.objects.create(customer=customer, status=\"pending\")\n    ...\n    transaction.on_commit(lambda: award_points.delay(order.id))   # enqueue only after COMMIT",
+      "note": "For effects outside your database (an email, a payment call) a unique row cannot make the effect itself idempotent. Use the provider's idempotency key where it exists, or accept at-least-once delivery and design the message so a duplicate is harmless."
+    },
+    "exercise": "Add a Celery task that awards points once per order. Prove with a test that calling the task twice for the same order creates one ledger row. Then deliberately call .delay() inside atomic() with a worker running and watch the DoesNotExist race, and fix it with transaction.on_commit.",
+    "pitfalls": [
+      "Calling .delay() inside transaction.atomic() (the worker runs before the COMMIT).",
+      "Passing model instances or non-serializable arguments instead of IDs.",
+      "Assuming exactly-once execution; non-idempotent tasks that double-charge or double-email.",
+      "Retrying forever with no backoff, no max_retries and no time limit.",
+      "No monitoring of queue length; running multiple Beat instances and double-scheduling."
+    ],
+    "viz": "oncommit",
+    "hours": 6,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Performing actions after commit (on_commit)",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/db/transactions/#performing-actions-after-commit",
+        "kind": "Django docs"
+      },
+      {
+        "title": "First steps with Django",
+        "url": "https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html",
+        "kind": "Celery docs"
+      },
+      {
+        "title": "Tasks (retries, idempotency)",
+        "url": "https://docs.celeryq.dev/en/stable/userguide/tasks.html",
+        "kind": "Celery docs"
+      },
+      {
+        "title": "Periodic tasks (Beat)",
+        "url": "https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html",
+        "kind": "Celery docs"
+      }
+    ],
+    "interview": [
+      {
+        "q": "Why and how would you use Celery in a Django app?",
+        "a": "To move slow or unreliable work (email, payments, reports) out of the request cycle. Django publishes a message to a broker (Redis/RabbitMQ), workers consume and execute it; a result backend is optional. It improves response time and lets you retry and schedule work."
+      },
+      {
+        "q": "Why use transaction.on_commit with Celery?",
+        "a": "If you enqueue inside atomic(), the worker may run before the transaction commits and not find the row (DoesNotExist). on_commit runs the callback only after a successful COMMIT, so the data is visible. If the process may crash between commit and enqueue, use an outbox table."
+      },
+      {
+        "q": "What happens if a Celery task runs twice?",
+        "a": "It can: delivery is at-least-once, especially with acks_late or after a worker crash or retry. Make tasks idempotent, for example with a unique constraint or a processed marker, so a repeat is harmless."
+      },
+      {
+        "q": "How do you configure retries with backoff?",
+        "a": "Use autoretry_for for the exception types, retry_backoff=True (optionally retry_jitter), and a max_retries cap; add soft_time_limit/time_limit so a stuck task cannot hang a worker."
+      },
+      {
+        "q": "What should you pass as Celery task arguments?",
+        "a": "Small, JSON-serializable values such as IDs. Re-load the object inside the task so you act on current data and avoid serializing stale model instances."
+      },
+      {
+        "q": "Celery Beat vs cron?",
+        "a": "Beat is Celery's scheduler: it enqueues periodic tasks that workers execute, with schedules defined in config or the database. Run exactly one Beat instance or tasks will be scheduled twice; cron is simpler for a single host with no queue."
+      },
+      {
+        "q": "How do you make sure an event is not lost if the app crashes right after commit?",
+        "a": "The transactional outbox: insert an outbox row in the same transaction as the business change, and have a publisher read unsent rows (FOR UPDATE SKIP LOCKED) and enqueue them, marking them sent."
+      }
+    ],
+    "basis": "Mid priority at 0-5 yrs, core at 5+. Celery setup, Beat and retries with backoff are Senior Django topics, junior roles ask only for basic awareness, and on_commit before enqueueing is a named senior topic.",
+    "sources": [
+      "lemon-django",
+      "adhdecode-django",
+      "job-django-madfish",
+      "job-junior-cuculus",
+      "django-docs",
+      "celery-docs"
+    ]
+  },
+  {
+    "id": "web-security",
+    "n": 19,
+    "level": 5,
+    "week": "Week 12",
+    "title": "Web Security for Django APIs",
+    "tagline": "What Django protects by default, how people switch it off, and the bug that is not in the framework: access control.",
+    "explain": [
+      "Django is secure by default in several places, if you do not switch the protection off. Most real vulnerabilities come from stepping outside those defaults. Learn what is protected for you and what is not.",
+      "## What Django protects by default",
+      "- SQL injection: the ORM sends parameters separately from the SQL text, so queries built with filter() are not injectable.\n- XSS (cross-site scripting): templates auto-escape variables, which blocks most XSS.\n- CSRF (cross-site request forgery): CsrfViewMiddleware rejects state-changing requests from a browser that lack a valid token.\n- Clickjacking: XFrameOptionsMiddleware sets X-Frame-Options so other sites cannot frame your pages.\n- Passwords: stored as salted, slow hashes (PBKDF2 by default), never plaintext.",
+      "## How people break out of the defaults",
+      "- Raw SQL built with f-strings or % formatting. Always pass parameters: cursor.execute('... WHERE id = %s', [value]).\n- mark_safe() or the |safe filter on user input, which switches auto-escaping off.\n- @csrf_exempt on views that use cookie authentication.\n- DEBUG=True in production, which leaks settings and stack traces, or a leaked SECRET_KEY, which lets an attacker forge sessions and signed data.\n- An over-permissive ALLOWED_HOSTS, or CORS_ALLOW_ALL_ORIGINS together with credentials.",
+      "> Bad: User.objects.raw(f\"SELECT * FROM auth_user WHERE username = '{name}'\")\nSending name = \"x' OR '1'='1\" returns every user. Good: User.objects.raw('SELECT * FROM auth_user WHERE username = %s', [name]), where the value is sent separately and never parsed as SQL.",
+      "## Broken access control: the bug the framework cannot catch",
+      "IDOR (insecure direct object reference) means /orders/123 works for any logged-in user, not only its owner. Authentication proves who someone is. Every object access also needs an authorization check: filter the queryset by request.user, or verify ownership before returning or changing data. This is one of the most common API flaws, because it is easy to forget and every test as the owner still passes.",
+      "## CORS vs CSRF, and going to production",
+      "CSRF protects cookie-authenticated browsers from cross-site form posts. CORS decides which other origins may read your API's responses from JavaScript. They are different problems and one does not replace the other. For production:",
+      "- Serve over HTTPS and set SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE and HSTS.\n- Keep secrets in environment variables, never in the repository.\n- Set DEBUG=False and a strict ALLOWED_HOSTS.\n- Rate-limit login and other abusable endpoints.\n- Run python manage.py check --deploy, which lists missing hardening settings.\n- Keep Django and dependencies updated, because security fixes ship as patch releases."
+    ],
+    "keyPoints": [
+      "ORM parameters prevent SQL injection; raw SQL must use %s parameters, never f-strings.",
+      "Auto-escaping blocks XSS; mark_safe on user input defeats it.",
+      "CSRF token = proof the request came from your own page; CORS controls cross-origin reads.",
+      "Authentication ≠ authorization: check object ownership (IDOR).",
+      "Never ship DEBUG=True or a committed SECRET_KEY; run check --deploy."
+    ],
+    "sql": [
+      {
+        "title": "Parameters keep input out of the SQL text",
+        "code": "-- Vulnerable: user input becomes part of the statement\n--   SELECT * FROM customers WHERE email = '' OR '1'='1';     -- returns every customer\n\n-- Safe: the value travels separately from the statement\nPREPARE find_customer(text) AS\n  SELECT * FROM customers WHERE email = $1;\nEXECUTE find_customer($$' OR '1'='1$$);                      -- treated as an ordinary string, matches nothing"
+      },
+      {
+        "title": "Least-privilege database role",
+        "code": "CREATE ROLE app_user LOGIN PASSWORD 'change-me';\nGRANT SELECT, INSERT, UPDATE ON orders, order_items TO app_user;   -- no DROP / ALTER for the web app\n-- run migrations with a separate, more privileged role"
+      }
+    ],
+    "django": {
+      "title": "Injection, IDOR and production settings",
+      "code": "# SQL injection: never format user input into SQL\nCustomer.objects.raw(f\"SELECT * FROM customers WHERE email = '{email}'\")     # VULNERABLE\nCustomer.objects.raw(\"SELECT * FROM customers WHERE email = %s\", [email])    # safe: parameters\nCustomer.objects.filter(email=email)                                         # safest: the ORM\n\n# IDOR: authorize the object, not just the user\ndef order_detail(request, pk):\n    order = get_object_or_404(Order, pk=pk, customer__user=request.user)     # someone else's order -> 404\n    return JsonResponse(serialize(order))\n\n# settings for production\nDEBUG = False\nALLOWED_HOSTS = [\"api.example.com\"]\nSECRET_KEY = os.environ[\"DJANGO_SECRET_KEY\"]\nSECURE_SSL_REDIRECT = True\nSESSION_COOKIE_SECURE = True\nCSRF_COOKIE_SECURE = True\nSECURE_HSTS_SECONDS = 31536000\n# then run:  python manage.py check --deploy",
+      "note": "Run check --deploy in CI so a risky setting fails the build. Returning 404 (not 403) for other people's objects avoids confirming that the object exists."
+    },
+    "exercise": "Write a test where user B requests user A's order and expects 404, watch it fail on a naive view, then fix the view. Run manage.py check --deploy against your settings and resolve every warning, noting which ones you consciously accept.",
+    "pitfalls": [
+      "@csrf_exempt on views that use cookie/session authentication.",
+      "mark_safe() or |safe on anything a user can influence.",
+      "Authenticating the user but not authorising the specific object (IDOR).",
+      "fields = \"__all__\" on serializers (mass assignment of is_staff, owner, status…).",
+      "DEBUG=True, hard-coded SECRET_KEY, or secrets committed to git.",
+      "Logging passwords, tokens or full request bodies."
+    ],
+    "hours": 4,
+    "priority": 1,
+    "references": [
+      {
+        "title": "Security in Django",
+        "url": "https://docs.djangoproject.com/en/5.2/topics/security/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Cross Site Request Forgery protection",
+        "url": "https://docs.djangoproject.com/en/5.2/ref/csrf/",
+        "kind": "Django docs"
+      },
+      {
+        "title": "Deployment checklist (check --deploy)",
+        "url": "https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/",
+        "kind": "Django docs"
+      }
+    ],
+    "interview": [
+      {
+        "q": "How does Django protect against SQL injection?",
+        "a": "The ORM builds queries with parameters sent separately from the SQL text, so user input is never interpreted as SQL. The risk returns with raw() / cursor.execute() when you format strings yourself; always pass parameters (%s with a list)."
+      },
+      {
+        "q": "How does CSRF protection work in Django?",
+        "a": "CsrfViewMiddleware gives each session a secret token and requires unsafe requests (POST/PUT/PATCH/DELETE) to send it in the form or a header; a malicious site cannot read the token, so cross-site requests are rejected. It matters for cookie/session authentication; token-in-header APIs are not vulnerable the same way."
+      },
+      {
+        "q": "How are XSS attacks prevented, and how can you break it?",
+        "a": "Django templates auto-escape variables so injected HTML/JS renders as text. You break it with mark_safe(), |safe or autoescape off on untrusted data, or by building HTML strings yourself."
+      },
+      {
+        "q": "What is IDOR and how do you prevent it?",
+        "a": "Insecure direct object reference: an endpoint like /orders/123 returns the object to any authenticated user. Prevent it by authorising each object, e.g. get_object_or_404(Order, pk=pk, customer__user=request.user), or has_object_permission in DRF, and by testing with two users."
+      },
+      {
+        "q": "CORS vs CSRF?",
+        "a": "CSRF is an attack where another site makes a victim's browser send an authenticated request; the defence is a token. CORS is a browser policy controlling which origins may read cross-origin responses via JavaScript; it does not stop requests from being sent. Misconfigured wildcard CORS with credentials is a vulnerability."
+      },
+      {
+        "q": "How does Django store passwords?",
+        "a": "As a salted, iterated hash (PBKDF2 with SHA256 by default), with the algorithm and parameters stored in the value so hashers can be upgraded; plaintext passwords are never stored."
+      },
+      {
+        "q": "What does manage.py check --deploy do?",
+        "a": "It audits settings for production risks, such as DEBUG, missing HTTPS redirect, insecure cookies, missing HSTS or a weak SECRET_KEY, and reports warnings. Running it in CI keeps risky settings from shipping."
+      }
+    ],
+    "basis": "Core. CSRF, SQL injection, XSS and password hashing are in the Middle Django topic list, and SQL-injection prevention is part of the junior backend bar.",
+    "sources": [
+      "lemon-django",
+      "join-junior-backend",
+      "django-docs"
+    ],
+    "viz": "security"
+  }
+]

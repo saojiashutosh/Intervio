@@ -1,0 +1,158 @@
+[
+  {
+    "week": 1,
+    "title": "Relational modelling and ER diagrams",
+    "deliverable": "ER diagram v1, schema.sql, seed.sql and 10 basic queries",
+    "days": [
+      "Install PostgreSQL, create a database and role, connect with psql/pgAdmin. Learn database, schema, table, row, column.",
+      "Identify entities, attributes and relationships for an online store: customer, address, product, category, order, order_item, payment.",
+      "Practise 1–1, 1–N and N–M. Resolve many-to-many with a junction table.",
+      "Define primary and foreign keys. Compare natural vs surrogate keys; test invalid references.",
+      "Convert the ER diagram into CREATE TABLE statements. Choose appropriate PostgreSQL types.",
+      "Insert sample data; write SELECT, WHERE, ORDER BY, LIMIT and JOIN queries. Commit ERD and schema."
+    ]
+  },
+  {
+    "week": 2,
+    "title": "Keys, constraints and normalization",
+    "deliverable": "Normalized schema v2 and a short data dictionary",
+    "days": [
+      "Review candidate, primary, composite and foreign keys, and referential actions.",
+      "Learn NOT NULL, UNIQUE, CHECK, DEFAULT and exclusion/FK constraints. Add them to the store schema.",
+      "Learn functional dependencies. Find update/insert/delete anomalies in a deliberately flat order spreadsheet.",
+      "Normalize examples to 1NF: atomic values, no repeating groups.",
+      "Normalize to 2NF and 3NF. Identify partial and transitive dependencies; document why each table exists.",
+      "Refactor the e-commerce schema, write positive and negative constraint tests, explain trade-offs."
+    ]
+  },
+  {
+    "week": 3,
+    "title": "Data types, denormalization, SQL vs NoSQL",
+    "deliverable": "Level 1 e-commerce data model and SQL query pack",
+    "days": [
+      "Compare integer, numeric, text, varchar, boolean, date, timestamptz, uuid, jsonb, arrays and enums. Pick types for money, time, IDs, status.",
+      "NULL semantics, three-valued logic, COALESCE, CAST and safe numeric handling.",
+      "Denormalization: duplicated attributes, summary tables, materialized views, read models. State the consistency cost.",
+      "Compare relational vs document, key-value, wide-column and graph stores. Map use cases, not hype.",
+      "Write joins, aggregates, GROUP BY, HAVING, subqueries and CTEs for store analytics.",
+      "Review the full schema; create sample workload queries and a decision note on why PostgreSQL is the system of record."
+    ]
+  },
+  {
+    "week": 4,
+    "title": "Query execution plans",
+    "deliverable": "Reproducible slow-query benchmark and plan analysis",
+    "days": [
+      "How PostgreSQL parses, rewrites, plans and executes a query. Scan, join, sort and aggregate nodes.",
+      "EXPLAIN and EXPLAIN (ANALYZE, BUFFERS). Estimated vs actual rows; cost vs elapsed time.",
+      "Generate 50k–100k realistic products. Measure product search, category filter and sort queries.",
+      "Read seq scan, index scan, bitmap scan, nested loop, hash join and merge join.",
+      "Investigate bad estimates, stale statistics, selectivity and ANALYZE. Change one factor at a time.",
+      "Write a before/after performance report with plan output."
+    ]
+  },
+  {
+    "week": 5,
+    "title": "Indexing and search optimization",
+    "deliverable": "Level 2 optimized product-search queries with measured evidence",
+    "days": [
+      "B-tree indexes, equality/range predicates, ordering and selectivity.",
+      "Single-column and composite indexes. Practise leftmost-prefix behaviour and column order.",
+      "Partial, covering (INCLUDE), expression, unique, GIN and GiST indexes — when each helps.",
+      "Optimize product search by category, price range, status and created_at. Compare plans and timings.",
+      "Index costs: disk, write amplification, vacuum, maintenance, redundant indexes. Test insert/update impact.",
+      "Run a small benchmark matrix; document which index helps which query and why."
+    ]
+  },
+  {
+    "week": 6,
+    "title": "ACID and transaction design",
+    "deliverable": "Transaction-safe order creation flow",
+    "days": [
+      "Atomicity, consistency, isolation, durability — relate each to placing an order.",
+      "BEGIN, COMMIT, ROLLBACK, SAVEPOINT. Simulate a payment failure and verify rollback.",
+      "Design order creation: validate cart, reserve stock, create order/items, record payment intent, commit.",
+      "Use constraints as the final integrity boundary; do not rely only on app-side validation.",
+      "Implement idempotency keys for order/payment requests. Handle retries without duplicate orders.",
+      "Integration tests: success, insufficient stock, duplicate request, mid-transaction failure."
+    ]
+  },
+  {
+    "week": 7,
+    "title": "Isolation, locks, MVCC, concurrency",
+    "deliverable": "Safe inventory transaction demo and concurrency test report",
+    "days": [
+      "Dirty reads, non-repeatable reads, phantom reads and serialization anomalies.",
+      "Test READ COMMITTED and REPEATABLE READ with two concurrent psql sessions.",
+      "Test SERIALIZABLE and implement retry handling for serialization failures.",
+      "Row locks: FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE; use them for stock reservation.",
+      "MVCC snapshots, deadlocks, lock waits, optimistic concurrency and lock ordering.",
+      "Run concurrent purchase tests. Prove inventory never falls below zero; inspect pg_locks."
+    ]
+  },
+  {
+    "week": 8,
+    "title": "Replication and high availability",
+    "deliverable": "Level 4 replication architecture and recovery runbook",
+    "days": [
+      "Primary/standby, WAL, streaming replication, synchronous vs asynchronous.",
+      "Read replicas, replication lag, failover, promotion and split-brain risks.",
+      "Design which reads can go to replicas and which must hit the primary (read-after-write, payment, stock).",
+      "Backups vs replication, point-in-time recovery, WAL archiving and restore testing.",
+      "Define RPO and RTO. Write a failure runbook for primary database loss.",
+      "Draw a production topology; explain failover and data-loss trade-offs."
+    ]
+  },
+  {
+    "week": 9,
+    "title": "Sharding and consistency models",
+    "deliverable": "Scalable database architecture design and trade-off record",
+    "days": [
+      "Vertical vs horizontal partitioning; table partitioning vs sharding.",
+      "Choose shard keys: cardinality, hotspots, tenant locality, query routing.",
+      "Cross-shard queries, transactions, uniqueness, rebalancing and shard migration.",
+      "Strong, eventual and causal consistency; read-your-writes and monotonic reads.",
+      "Design cache and replica behaviour for catalogue, inventory and order history.",
+      "Produce a scale-out architecture with capacity assumptions, bottlenecks and failure modes."
+    ]
+  },
+  {
+    "week": 10,
+    "title": "Backend integration, Django ORM, migrations",
+    "deliverable": "Working Django API backed by PostgreSQL and reproducible migrations",
+    "days": [
+      "Django project structure, settings per environment, DRF validation, error handling and DB connection management (CONN_MAX_AGE / pgbouncer).",
+      "Implement product/category/customer/order endpoints. Compare the ORM’s SQL (queryset.query) with hand-written SQL.",
+      "Master the ORM honestly: select_related / prefetch_related, F and Q, annotate/aggregate, raw SQL escape hatches. Kill N+1.",
+      "Versioned migrations: forward, rollback strategy, safe expand/contract, RunSQL, concurrent indexes.",
+      "Pagination, filtering, sorting allowlists, transaction.atomic and API-level tests.",
+      "Logging, health checks, env configuration, Docker Compose and README setup instructions."
+    ]
+  },
+  {
+    "week": 11,
+    "title": "Redis, caching, reliability",
+    "deliverable": "Cached backend with metrics and failure behaviour",
+    "days": [
+      "Redis strings, hashes, sets, sorted sets, TTL, eviction policies and persistence basics.",
+      "Cache-aside for product details and category listings. Measure hit rate and latency.",
+      "Cache invalidation on product update (transaction.on_commit); stale data and TTL trade-offs.",
+      "Rate limiting or a short-lived idempotency/cache lock. Why Redis locks need careful expiry and ownership.",
+      "Observability: query latency, pool saturation, cache hit ratio, slow queries, error rate.",
+      "Test Redis outage and cache-stampede protection; document graceful degradation."
+    ]
+  },
+  {
+    "week": 12,
+    "title": "Capstone, system design, interview preparation",
+    "deliverable": "Portfolio-ready e-commerce backend and system design case study",
+    "days": [
+      "Finish core flows: catalogue, cart, checkout, stock, order history, admin product updates.",
+      "Add a load test with a defined workload; capture p50/p95/p99, throughput and error rate.",
+      "Tune top slow queries and the connection pool. Record before/after evidence.",
+      "Finalize architecture diagram, data model, API contract, migration strategy, backup/recovery plan.",
+      "Run a mock database design interview: clarify requirements, estimate scale, model data, discuss bottlenecks.",
+      "Polish README, demo script, test suite, trade-off notes and a 10-minute project walkthrough."
+    ]
+  }
+]

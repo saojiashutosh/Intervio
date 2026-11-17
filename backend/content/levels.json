@@ -1,0 +1,93 @@
+[
+  {
+    "level": 1,
+    "title": "Designing Tables",
+    "weeks": "Weeks 1–3",
+    "blurb": "Database design and SQL foundations.",
+    "project": "Design an e-commerce database",
+    "projectGoals": [
+      "Entities: customers, addresses, products, categories, product_categories, inventory, carts, cart_items, orders, order_items, payments, shipments",
+      "Rules: unique SKU; non-negative prices and stock; quantity > 0; historical unit price snapshot; valid order/payment states; deliberate delete behaviour",
+      "Artifacts: ER diagram, data dictionary, migrations, seed data, 20 SQL queries, constraint tests"
+    ],
+    "acceptance": [
+      "No repeating product columns",
+      "No invalid foreign keys",
+      "Historical order totals do not change when catalogue prices change"
+    ]
+  },
+  {
+    "level": 2,
+    "title": "Making Queries Fast",
+    "weeks": "Weeks 4–5",
+    "blurb": "Performance optimization with plans and indexes.",
+    "project": "Product search performance lab",
+    "projectGoals": [
+      "Generate 50k–100k products with realistic category, price, status, name and timestamp distributions",
+      "Workload: SKU lookup; category + active + newest; price range; name search; category counts",
+      "Baseline with EXPLAIN (ANALYZE, BUFFERS); add ONE index at a time; compare plans, latency, buffers and write cost",
+      "Try composite/partial B-tree, lower(name) expression index, GIN for full-text / JSONB"
+    ],
+    "acceptance": [
+      "Report the slowest 3 queries",
+      "Chosen indexes with measured impact",
+      "Indexes rejected because they did not help"
+    ]
+  },
+  {
+    "level": 3,
+    "title": "Transactions",
+    "weeks": "Weeks 6–7",
+    "blurb": "Data consistency and concurrency.",
+    "project": "Safe order and inventory system",
+    "projectGoals": [
+      "POST /orders with idempotency key, stock validation/reservation, order + items, rollback on failure",
+      "Transaction + row locking or a carefully designed conditional UPDATE; check affected-row counts",
+      "Tests: two concurrent requests for the final unit, duplicate retries, simulated failure, payment-provider timeout (separately)"
+    ],
+    "acceptance": [
+      "No negative stock",
+      "No duplicate order for the same idempotency key",
+      "No partially committed order"
+    ]
+  },
+  {
+    "level": 4,
+    "title": "Scaling",
+    "weeks": "Weeks 8–9",
+    "blurb": "Distributed databases.",
+    "project": "Scalable database architecture",
+    "projectGoals": [
+      "Diagram primary + read replica + cache + backup/WAL; label read/write paths and consistency requirements",
+      "Workload assumptions: active users, req/s, read/write ratio, growth, peak, availability target",
+      "Compare in order: vertical scaling, pooling, indexing, partitioning, read replicas, sharding",
+      "Define RPO/RTO, failover, replica-lag handling, restore drills, shard key, hot-key mitigation, rebalancing"
+    ],
+    "acceptance": [
+      "Architecture decision record",
+      "Assumptions, bottlenecks, failure modes",
+      "Phased scaling plan"
+    ]
+  },
+  {
+    "level": 5,
+    "title": "Django & API Engineering",
+    "weeks": "Weeks 10-12",
+    "blurb": "The framework layer interviews probe next: ORM, APIs, background jobs and security.",
+    "project": "Capstone: production-style Django API",
+    "projectGoals": [
+      "Products, cart, checkout (POST /orders with an Idempotency-Key), order history and admin product updates",
+      "DRF with cursor pagination, ordering allowlists, object-level permissions and throttling",
+      "assertNumQueries on every list endpoint; versioned migrations including a concurrent index",
+      "Celery for post-order work using on_commit and idempotent tasks; Redis cache-aside with invalidation",
+      "manage.py check --deploy clean; CSRF and CORS configured deliberately",
+      "Docker Compose, structured logs, health checks; unit, integration, concurrency and API tests"
+    ],
+    "acceptance": [
+      "No N+1 on list endpoints, proved by tests",
+      "Concurrent checkout never oversells and a repeated Idempotency-Key never creates a second order",
+      "check --deploy passes and no endpoint exposes another user's data",
+      "README with setup, architecture diagram and benchmark results"
+    ]
+  }
+]

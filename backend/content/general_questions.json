@@ -1,0 +1,72 @@
+[
+  {
+    "topic": "sql",
+    "q": "What is the difference between WHERE and HAVING?",
+    "a": "WHERE filters rows before grouping; HAVING filters groups after aggregation."
+  },
+  {
+    "topic": "sql",
+    "q": "What is the difference between INNER, LEFT and FULL joins?",
+    "a": "INNER keeps matching rows only; LEFT keeps all left rows with NULLs for no match; FULL keeps unmatched rows from both sides."
+  },
+  {
+    "topic": "sql",
+    "q": "How do you design a database for an e-commerce system?",
+    "a": "Start with normalized customers/products/orders/order_items/inventory/payments; define invariants and transaction boundaries; index access paths; add cache/replicas as load requires."
+  },
+  {
+    "topic": "ops",
+    "q": "How do you handle schema changes with zero/low downtime?",
+    "a": "Expand/contract: add nullable/new structure, deploy dual-compatible code, backfill in batches, switch reads/writes, validate, then remove the old structure in a later deploy. Create indexes CONCURRENTLY; add constraints NOT VALID then VALIDATE."
+  },
+  {
+    "topic": "ops",
+    "q": "What is connection pooling and why is it needed?",
+    "a": "Reuses DB connections and caps concurrency; too many connections cause memory and context-switch overhead. Tune pool size with DB capacity and app replicas (pgbouncer / Django persistent connections)."
+  },
+  {
+    "topic": "django",
+    "q": "What is the N+1 query problem and how do you fix it in Django?",
+    "a": "Iterating a queryset and touching a related object issues one extra query per row. Use select_related (JOIN, for FK/one-to-one) or prefetch_related (second query, for reverse FK/M2M); detect with django-debug-toolbar or assertNumQueries."
+  },
+  {
+    "topic": "django",
+    "q": "select_related vs prefetch_related?",
+    "a": "select_related does a SQL JOIN and loads related rows in one query (single-valued relations). prefetch_related issues a separate query per relation and joins in Python (multi-valued relations, or when a JOIN would explode rows)."
+  },
+  {
+    "topic": "django",
+    "q": "How do you avoid race conditions when updating a counter or stock in Django?",
+    "a": "Use an F() expression (UPDATE … SET qty = qty - 1) or filter(...).update(...) with a condition and check the returned row count; use select_for_update() inside transaction.atomic() when read-then-decide is required."
+  },
+  {
+    "topic": "django",
+    "q": "What does transaction.atomic() do, and what about ATOMIC_REQUESTS?",
+    "a": "It opens a transaction (or a savepoint if nested) and rolls back on exception. ATOMIC_REQUESTS wraps every view in one; explicit atomic blocks in a service layer give tighter, shorter transactions. Use transaction.on_commit for side effects."
+  },
+  {
+    "topic": "django",
+    "q": "How do Django migrations work and how do you make them safe in production?",
+    "a": "Each migration is a Python file of operations tracked in django_migrations. Be safe: avoid long locks, add columns nullable first, backfill in batches, AddIndexConcurrently with atomic=False, split schema and data migrations, never edit applied migrations, expand/contract across deploys."
+  },
+  {
+    "topic": "django",
+    "q": "queryset.update() vs save() — differences?",
+    "a": "update() issues one UPDATE, skips save() overrides and signals (no pre/post_save), and returns the affected row count; save() loads/instance-level and fires signals. bulk_create/bulk_update similarly skip signals."
+  },
+  {
+    "topic": "django",
+    "q": "How does Django’s QuerySet laziness work?",
+    "a": "A queryset does not hit the DB until evaluated (iteration, len, list, bool, slicing with step, repr). Results are cached on the queryset instance; .iterator() avoids caching for large sets; .exists() / .count() are cheaper checks."
+  },
+  {
+    "topic": "django",
+    "q": "How do you do keyset (cursor) pagination vs offset pagination?",
+    "a": "OFFSET scans and discards rows, so deep pages get slow. Keyset filters with WHERE (created_at, id) < (last_created_at, last_id) ORDER BY created_at DESC, id DESC LIMIT n, using an index. DRF offers CursorPagination."
+  },
+  {
+    "topic": "django",
+    "q": "How would you cache in Django and avoid stale data?",
+    "a": "Cache-aside via django.core.cache (Redis), short TTLs, delete keys in transaction.on_commit after writes, stampede protection (lock / jittered TTL), and fall back to the DB when Redis is down."
+  }
+]

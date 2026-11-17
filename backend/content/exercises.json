@@ -1,0 +1,92 @@
+[
+  {
+    "n": 1,
+    "prompt": "List the 20 newest active products.",
+    "hint": "ORDER BY + LIMIT, filter on the boolean.",
+    "solution": "SELECT * FROM products\nWHERE active\nORDER BY created_at DESC\nLIMIT 20;"
+  },
+  {
+    "n": 2,
+    "prompt": "Find products priced between ₹500 and ₹2,000, sorted by price ascending.",
+    "hint": "BETWEEN is inclusive on both ends.",
+    "solution": "SELECT id, name, price FROM products\nWHERE price BETWEEN 500 AND 2000\nORDER BY price ASC;"
+  },
+  {
+    "n": 3,
+    "prompt": "Show each product with its category name, including products without a category.",
+    "hint": "Which join keeps rows with no match?",
+    "solution": "SELECT p.id, p.name, c.name AS category\nFROM products p\nLEFT JOIN categories c ON c.id = p.category_id;"
+  },
+  {
+    "n": 4,
+    "prompt": "Find customers who have never placed an order.",
+    "hint": "Anti-join: LEFT JOIN … IS NULL, or NOT EXISTS.",
+    "solution": "SELECT c.*\nFROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id);"
+  },
+  {
+    "n": 5,
+    "prompt": "Calculate total revenue by month for paid orders.",
+    "hint": "date_trunc + GROUP BY.",
+    "solution": "SELECT date_trunc('month', created_at) AS month,\n       sum(total_amount)               AS revenue\nFROM orders\nWHERE status = 'paid'\nGROUP BY 1\nORDER BY 1;"
+  },
+  {
+    "n": 6,
+    "prompt": "Find the top 5 customers by lifetime paid spend.",
+    "hint": "Aggregate, order desc, limit.",
+    "solution": "SELECT customer_id, sum(total_amount) AS spend\nFROM orders\nWHERE status = 'paid'\nGROUP BY customer_id\nORDER BY spend DESC\nLIMIT 5;"
+  },
+  {
+    "n": 7,
+    "prompt": "Find categories with more than 20 active products.",
+    "hint": "WHERE filters rows, HAVING filters groups.",
+    "solution": "SELECT c.name, count(*) AS active_products\nFROM categories c\nJOIN products p ON p.category_id = c.id\nWHERE p.active\nGROUP BY c.id, c.name\nHAVING count(*) > 20;"
+  },
+  {
+    "n": 8,
+    "prompt": "Return the latest order for each customer.",
+    "hint": "PostgreSQL’s DISTINCT ON, or a window function.",
+    "solution": "SELECT DISTINCT ON (customer_id) *\nFROM orders\nORDER BY customer_id, created_at DESC;"
+  },
+  {
+    "n": 9,
+    "prompt": "Find products whose available quantity is below 5.",
+    "hint": "Join inventory to products.",
+    "solution": "SELECT p.id, p.name, i.available_qty\nFROM inventory i\nJOIN products p ON p.id = i.product_id\nWHERE i.available_qty < 5;"
+  },
+  {
+    "n": 10,
+    "prompt": "Find orders containing at least 3 distinct products.",
+    "hint": "GROUP BY order_id HAVING count(distinct …).",
+    "solution": "SELECT order_id\nFROM order_items\nGROUP BY order_id\nHAVING count(DISTINCT product_id) >= 3;"
+  },
+  {
+    "n": 11,
+    "prompt": "Create a transaction that decreases stock only when enough quantity exists.",
+    "hint": "Put the condition in the UPDATE and check the affected row count.",
+    "solution": "BEGIN;\nUPDATE inventory\n   SET available_qty = available_qty - 2, updated_at = now()\n WHERE product_id = 42 AND available_qty >= 2;\n-- application: if rowcount = 0 -> ROLLBACK (out of stock)\nCOMMIT;"
+  },
+  {
+    "n": 12,
+    "prompt": "Add an index for active products by category and newest first; prove whether the plan uses it.",
+    "hint": "Partial composite index; compare EXPLAIN before/after.",
+    "solution": "CREATE INDEX idx_products_active_cat_created\n  ON products (category_id, created_at DESC) WHERE active;\n\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id, name FROM products\nWHERE category_id = 12 AND active\nORDER BY created_at DESC LIMIT 20;"
+  },
+  {
+    "n": 13,
+    "prompt": "Write a query to detect duplicate emails before adding a UNIQUE constraint.",
+    "hint": "Normalize case, GROUP BY, HAVING.",
+    "solution": "SELECT lower(email) AS email, count(*)\nFROM customers\nGROUP BY lower(email)\nHAVING count(*) > 1;"
+  },
+  {
+    "n": 14,
+    "prompt": "Use a CTE to calculate each customer’s order count and average order value.",
+    "hint": "WITH aggregates AS (…) then join.",
+    "solution": "WITH stats AS (\n  SELECT customer_id, count(*) AS orders, avg(total_amount) AS aov\n  FROM orders GROUP BY customer_id\n)\nSELECT c.full_name, s.orders, round(s.aov, 2) AS avg_order_value\nFROM stats s JOIN customers c ON c.id = s.customer_id\nORDER BY s.orders DESC;"
+  },
+  {
+    "n": 15,
+    "prompt": "Use a window function to rank products by revenue within each category.",
+    "hint": "RANK() OVER (PARTITION BY … ORDER BY …).",
+    "solution": "WITH rev AS (\n  SELECT p.id, p.name, p.category_id,\n         sum(oi.quantity * oi.unit_price) AS revenue\n  FROM order_items oi\n  JOIN orders o   ON o.id = oi.order_id AND o.status = 'paid'\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY p.id\n)\nSELECT *, RANK() OVER (PARTITION BY category_id ORDER BY revenue DESC) AS rnk\nFROM rev;"
+  }
+]
