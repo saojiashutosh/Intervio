@@ -13,11 +13,11 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import CardState, Concept, Domain, Drill, Level, LevelBand, Note, Profile, Progress, Question, Source, SqlExercise, WeekPlan
+from .models import CardState, Concept, Domain, Drill, Level, LevelBand, Note, Profile, Progress, Question, Source, SqlExercise, Track, WeekPlan
 from .roadmap import build_roadmap, parse_profile
 from .serializers import (
     ConceptSerializer, DomainSerializer, DrillSerializer, LevelBandSerializer, LevelSerializer, QuestionSerializer,
-    SourceSerializer, SqlExerciseSerializer, WeekPlanSerializer,
+    SourceSerializer, SqlExerciseSerializer, TrackSerializer, WeekPlanSerializer,
 )
 
 User = get_user_model()
@@ -34,7 +34,8 @@ class ContentView(APIView):
         general = Question.objects.filter(concept__isnull=True)
         return Response(
             {
-                "levels": LevelSerializer(Level.objects.all(), many=True).data,
+                "tracks": TrackSerializer(Track.objects.all(), many=True).data,
+                "levels": LevelSerializer(Level.objects.select_related("track"), many=True).data,
                 "concepts": ConceptSerializer(concepts, many=True).data,
                 "plan": WeekPlanSerializer(WeekPlan.objects.all(), many=True).data,
                 "exercises": SqlExerciseSerializer(SqlExercise.objects.all(), many=True).data,
@@ -140,12 +141,12 @@ class RoadmapView(APIView):
         concepts = [
             {
                 "slug": c.slug, "n": c.n, "title": c.title, "level": c.level.level, "hours": float(c.hours), "priority": c.priority,
-                "viz": c.viz, "references": c.references, "q_count": len(c.questions.all()),
+                "viz": c.viz, "references": c.references, "q_count": len(c.questions.all()), "track": c.level.track.slug,
             }
-            for c in Concept.objects.select_related("level").prefetch_related("questions")
+            for c in Concept.objects.select_related("level__track").prefetch_related("questions")
         ]
         levels = list(Level.objects.values("level", "project"))
-        return Response(build_roadmap(p, concepts, levels))
+        return Response(build_roadmap(p, concepts, levels, {t.slug: t.title for t in Track.objects.all()}))
 
 
 class ProgressView(APIView):
@@ -233,3 +234,27 @@ class FlashcardReviewView(APIView):
             state.reviews += 1
             state.save(update_fields=["box", "due_at", "reviews"])
         return Response({"id": question.id, "box": state.box, "due_at": state.due_at})
+
+
+class ProblemListView(APIView):
+    """The problem bank. Public: the problems and their cases are teaching material, and the cases run in the browser."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .models import Problem
+        rows = Problem.objects.select_related("concept").all()
+        return Response([{"slug": p.slug, "title": p.title, "difficulty": p.difficulty, "concept": p.concept.slug if p.concept else None,
+                          "concept_title": p.concept.title if p.concept else None, "cases": len(p.cases)} for p in rows])
+
+
+class ProblemDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, slug):
+        from django.shortcuts import get_object_or_404
+        from .models import Problem
+        p = get_object_or_404(Problem.objects.select_related("concept"), slug=slug)
+        return Response({"slug": p.slug, "title": p.title, "difficulty": p.difficulty, "concept": p.concept.slug if p.concept else None,
+                         "concept_title": p.concept.title if p.concept else None, "statement": p.statement, "examples": p.examples, "starter": p.starter,
+                         "prelude": p.prelude, "cases": p.cases, "hints": p.hints, "solution": p.solution, "notes": p.notes})
+

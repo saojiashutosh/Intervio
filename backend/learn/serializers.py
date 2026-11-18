@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Concept, Domain, DomainTopic, Drill, Level, LevelBand, Question, Source, SqlExercise, WeekPlan
+from .models import Concept, Domain, DomainTopic, Drill, Level, LevelBand, Question, Source, SqlExercise, Track, WeekPlan
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -9,10 +9,18 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = ["id", "topic", "q", "a"]
 
 
+class TrackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Track
+        fields = ["slug", "title", "blurb"]
+
+
 class LevelSerializer(serializers.ModelSerializer):
+    track = serializers.SlugRelatedField(slug_field="slug", read_only=True)
+
     class Meta:
         model = Level
-        fields = ["level", "title", "weeks", "blurb", "project", "project_goals", "acceptance"]
+        fields = ["track", "level", "title", "weeks", "blurb", "project", "project_goals", "acceptance"]
 
 
 class ConceptSerializer(serializers.ModelSerializer):
@@ -23,8 +31,8 @@ class ConceptSerializer(serializers.ModelSerializer):
     class Meta:
         model = Concept
         fields = [
-            "slug", "n", "level", "week", "title", "tagline", "explain", "key_points",
-            "sql", "django", "exercise", "pitfalls", "viz", "interview", "hours", "priority", "references", "basis", "sources",
+            "slug", "n", "level", "week", "title", "tagline", "everyday", "explain", "key_points",
+            "sql", "django", "exercise", "pitfalls", "viz", "lab", "scenes", "interview", "hours", "priority", "references", "basis", "sources",
         ]
 
 

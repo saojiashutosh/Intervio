@@ -9,6 +9,8 @@ urlpatterns = [
     path("auth/me/", views.MeView.as_view()),
     path("profile/", views.ProfileView.as_view()),
     path("roadmap/", views.RoadmapView.as_view()),
+    path("problems/", views.ProblemListView.as_view()),
+    path("problems/<slug:slug>/", views.ProblemDetailView.as_view()),
     path("progress/", views.ProgressView.as_view()),
     path("progress/toggle/", views.ProgressToggleView.as_view()),
     path("flashcards/", views.FlashcardsView.as_view()),
