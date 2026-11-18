@@ -14,7 +14,8 @@
       "No repeating product columns",
       "No invalid foreign keys",
       "Historical order totals do not change when catalogue prices change"
-    ]
+    ],
+    "track": "database"
   },
   {
     "level": 2,
@@ -32,7 +33,8 @@
       "Report the slowest 3 queries",
       "Chosen indexes with measured impact",
       "Indexes rejected because they did not help"
-    ]
+    ],
+    "track": "database"
   },
   {
     "level": 3,
@@ -49,7 +51,8 @@
       "No negative stock",
       "No duplicate order for the same idempotency key",
       "No partially committed order"
-    ]
+    ],
+    "track": "database"
   },
   {
     "level": 4,
@@ -67,7 +70,8 @@
       "Architecture decision record",
       "Assumptions, bottlenecks, failure modes",
       "Phased scaling plan"
-    ]
+    ],
+    "track": "database"
   },
   {
     "level": 5,
@@ -88,6 +92,220 @@
       "Concurrent checkout never oversells and a repeated Idempotency-Key never creates a second order",
       "check --deploy passes and no endpoint exposes another user's data",
       "README with setup, architecture diagram and benchmark results"
+    ],
+    "track": "database"
+  },
+  {
+    "track": "swe-core",
+    "level": 6,
+    "title": "Behavioral interviews",
+    "weeks": "Ongoing",
+    "blurb": "Your stories, with real numbers.",
+    "project": "STAR story bank",
+    "projectGoals": [
+      "Write 5 STAR stories (conflict, failure, deadline, ownership, ambiguity) with real numbers in the Result"
+    ],
+    "acceptance": [
+      "Every STAR story has a measurable result and says what YOU did",
+      "You can tell each story in two minutes without notes"
+    ]
+  },
+  {
+    "track": "python-django",
+    "level": 7,
+    "title": "Python and Django internals",
+    "weeks": "Core",
+    "blurb": "What happens inside Python and inside a Django request.",
+    "project": "Traced Django service",
+    "projectGoals": [
+      "A custom middleware that logs method, path, status and duration for every request",
+      "Login with Django sessions for the browser and a token endpoint for API clients",
+      "Tests with the Django test client that cover a successful request, a rejected request and a middleware short-circuit"
+    ],
+    "acceptance": [
+      "You can draw the request path from server to view and back, naming each layer",
+      "A request without credentials is rejected before the view runs, proven by a test",
+      "No mutable default arguments remain in the code or model fields",
+      "You can explain when you would choose sessions, tokens or JWT for this service"
+    ]
+  },
+  {
+    "track": "delivery",
+    "level": 8,
+    "title": "Git, containers and deployment",
+    "weeks": "Core",
+    "blurb": "From a commit to a running service.",
+    "project": "Ship the API",
+    "projectGoals": [
+      "A Dockerfile that orders layers so a code change does not reinstall dependencies, plus a .dockerignore",
+      "A compose file that runs the web app, Postgres and Redis together",
+      "A CI workflow that runs the tests on every push and blocks a failing change",
+      "Run the app with Gunicorn behind Nginx locally and pass python manage.py check --deploy"
+    ],
+    "acceptance": [
+      "A fresh clone starts the whole stack with one command",
+      "Editing one line of code rebuilds in seconds because dependency layers are cached",
+      "A deliberately broken test makes the pipeline fail before any deploy step",
+      "Secrets come from the environment and are not in the repository or the image"
+    ]
+  },
+  {
+    "track": "frontend",
+    "level": 9,
+    "title": "Browser, React and performance",
+    "weeks": "Core",
+    "blurb": "The runtime, the rendering model, and what users feel.",
+    "project": "A fast, accessible list-and-detail app",
+    "projectGoals": [
+      "Build a searchable list and a detail view in React with loading, empty and error states",
+      "Debounce the search input and cancel stale requests",
+      "Measure the page with a performance tool and fix the largest problem you find",
+      "Make every control reachable and usable by keyboard, with labels and visible focus"
+    ],
+    "acceptance": [
+      "You can explain why each re-render happened using props, state and keys",
+      "The page has no console errors and handles a slow or failing API gracefully",
+      "You recorded a before and after number for one performance fix",
+      "A keyboard-only run through the main flow works"
+    ]
+  },
+  {
+    "track": "data",
+    "level": 10,
+    "title": "Analytics SQL and pipelines",
+    "weeks": "Core",
+    "blurb": "Answer questions in SQL, then automate the answers reliably.",
+    "project": "A daily pipeline with checks",
+    "projectGoals": [
+      "Load a CSV or API source into Postgres idempotently so a re-run changes nothing",
+      "Write window-function and CTE queries for a ranking, a running total and a month-over-month change",
+      "Add data-quality checks (row counts, nulls, duplicates) that fail the run",
+      "Schedule it with a simple orchestrator or cron and log each run"
+    ],
+    "acceptance": [
+      "Running the pipeline twice for the same day gives identical results",
+      "A deliberately bad input file is caught by a check before it reaches the final table",
+      "Each query has a note on its grain (one row per what?)",
+      "You can explain batch versus streaming for this data"
+    ]
+  },
+  {
+    "track": "devops",
+    "level": 11,
+    "title": "Reliability and operations",
+    "weeks": "Core",
+    "blurb": "Know when a service is unhealthy, and act well when it is.",
+    "project": "Observe and write a postmortem",
+    "projectGoals": [
+      "Expose request count, error count and latency metrics from a small service",
+      "Define one SLI and an SLO for it and compute the remaining error budget from your data",
+      "Declare a small piece of infrastructure as code and review its plan before applying",
+      "Cause a failure on purpose, handle it as an incident, and write a blameless postmortem"
+    ],
+    "acceptance": [
+      "Your SLO has a number, a time window and a measurable SLI",
+      "The postmortem lists a timeline, impact, causes and concrete follow-up actions",
+      "Infrastructure changes show a reviewed plan before they are applied",
+      "An alert fires on a symptom users would feel, not only on a machine metric"
+    ]
+  },
+  {
+    "track": "ml",
+    "level": 12,
+    "title": "Models and ML systems",
+    "weeks": "Core",
+    "blurb": "Evaluate honestly, deploy carefully, monitor continuously.",
+    "project": "Train, evaluate and monitor a classifier",
+    "projectGoals": [
+      "Split data into train and test (and validate with cross-validation) before touching the test set",
+      "Report precision, recall and a confusion matrix, and explain which one matters for your problem",
+      "Serve the model behind a simple API and log its inputs and predictions",
+      "Detect a simulated input drift and describe your rollback plan"
+    ],
+    "acceptance": [
+      "The test set was used once, at the end",
+      "You can explain overfitting using your own training and validation scores",
+      "A drifted batch of inputs triggers an alert or a failed check",
+      "You can state a baseline the model must beat to be worth shipping"
+    ]
+  },
+  {
+    "track": "system-design",
+    "level": 13,
+    "title": "System design",
+    "weeks": "Core",
+    "blurb": "The building blocks (caching, load balancing, queues, consistency, CDN, communication) and the classic designs (feed, chat, crawler, key-value store, notifications, file sync, video, proximity, payments).",
+    "project": "Scale a small Django service and measure it",
+    "projectGoals": [
+      "Run two app processes behind a load balancer (nginx or similar) and show a login works whichever process answers",
+      "Add cache-aside to one hot read with a TTL, then record the hit rate and the database queries before and after",
+      "Move one slow task to a queue with an idempotent worker and show it survives being delivered twice",
+      "Add a per-user rate limit that answers 429 with a Retry-After header",
+      "Write a one-page design for a URL shortener: numbers, data model, the read path and what you would cache",
+      "Design, on paper and in 35 minutes each, a news feed, a chat system and a payment system using the six-step framework, with the numbers and the trade-offs written down",
+      "Estimate, for one of them, requests per second, storage per year and bandwidth, and state the decision each number drives"
+    ],
+    "acceptance": [
+      "You can draw, from memory, the path of a read through load balancer, cache and database, and say what is stale at each step",
+      "A load test shows the cache hit rate and the drop in database load, with the numbers written down",
+      "Killing one app process does not log users out or lose queued work",
+      "You can explain, with one example each, a retry storm, a cache stampede and a split brain, and the usual fix for each",
+      "You can run the six-step framework aloud for a new prompt and finish the high-level design within 20 minutes"
+    ]
+  },
+  {
+    "track": "dsa",
+    "level": 14,
+    "title": "Data structures and algorithms",
+    "weeks": "Ongoing",
+    "blurb": "The structures and patterns behind most coding questions, each with the cost you must state.",
+    "project": "Interview practice log",
+    "projectGoals": [
+      "Solve at least 4 problems for each of: hash maps, stacks and queues, linked lists, sorting and binary search, trees, graphs, heaps, backtracking and dynamic programming, in plain Python, without looking up the answer first",
+      "For every problem write the brute-force complexity, the improved time and space, and the edge cases you tested",
+      "Re-solve five problems you got wrong, a week later, from a blank file"
+    ],
+    "acceptance": [
+      "Each solved problem has a note stating time and space complexity",
+      "You can explain two-sum from brute force to hash map in under two minutes",
+      "You can write merge sort, binary search, BFS and a memoized recursion from memory",
+      "You have timed yourself solving one medium problem in 30 minutes, with tests"
+    ]
+  },
+  {
+    "track": "lld",
+    "level": 15,
+    "title": "Low-level design",
+    "weeks": "Core",
+    "blurb": "Classes, relationships and methods that are easy to change.",
+    "project": "Three designs with code and tests",
+    "projectGoals": [
+      "Design and code a library system (members, books, loans, late fees) using the six-step method",
+      "Implement an LRU cache from a dict and a doubly linked list, without OrderedDict",
+      "Model an elevator or an order status as a state machine and test every transition"
+    ],
+    "acceptance": [
+      "Each design starts from written requirements and has a class and relationship sketch",
+      "Adding a new requirement (a member type, a pricing rule, a state) edits no existing working class",
+      "Every design has tests for the main flow and at least one error case, and a note on concurrency"
+    ]
+  },
+  {
+    "track": "cs-core",
+    "level": 16,
+    "title": "Operating systems, concurrency and networking",
+    "weeks": "Core",
+    "blurb": "The fundamentals interviewers ask about by name, each with a runnable simulation.",
+    "project": "Simulate it: a scheduler, a page replacer and a thread-safe bank",
+    "projectGoals": [
+      "Simulate FIFO, shortest-job-first and round robin for a set of jobs and report average turnaround and response time",
+      "Count page faults for FIFO and LRU on a reference string with 3 and 4 frames, and show Belady's anomaly",
+      "Write a thread-safe bank account with transfer(), take locks in a global order, and test with 8 threads that the total stays constant"
+    ],
+    "acceptance": [
+      "You can compute turnaround and response time for a small job set by hand and match your code",
+      "A test shows a lost update without a lock and the correct total with one",
+      "You can explain deadlock, its four conditions and one way to prevent it"
     ]
   }
 ]

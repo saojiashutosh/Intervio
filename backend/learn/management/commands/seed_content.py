@@ -2,9 +2,9 @@ import json
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import models, transaction
 
-from learn.models import Concept, Domain, DomainTopic, Drill, Level, LevelBand, Note, Question, Source, SqlExercise, WeekPlan
+from learn.models import Concept, Domain, Problem, DomainTopic, Drill, Level, LevelBand, Note, Question, Source, SqlExercise, Track, WeekPlan
 
 
 def load(name):
@@ -41,11 +41,17 @@ class Command(BaseCommand):
                 keep.append(topic.pk)
             domain.topics.exclude(pk__in=keep).delete()
 
+        tracks = {}
+        for i, t in enumerate(load("tracks.json")):
+            tracks[t["slug"]], _ = Track.objects.update_or_create(
+                slug=t["slug"], defaults={"title": t["title"], "blurb": t["blurb"], "sort": i})
+
         levels = {}
         for d in load("levels.json"):
             levels[d["level"]], _ = Level.objects.update_or_create(
                 level=d["level"],
                 defaults={
+                    "track": tracks[d["track"]],
                     "title": d["title"],
                     "weeks": d["weeks"],
                     "blurb": d["blurb"],
@@ -56,6 +62,9 @@ class Command(BaseCommand):
             )
 
         n_q = 0
+        # `n` is unique. When lessons are renumbered, updating one at a time can briefly give two lessons the same number,
+        # so move every existing number out of the way first; each lesson then gets its real number below.
+        Concept.objects.update(n=models.F("n") + 100000)
         for c in load("concepts.json"):
             concept, _ = Concept.objects.update_or_create(
                 slug=c["id"],
@@ -66,12 +75,15 @@ class Command(BaseCommand):
                     title=c["title"],
                     tagline=c["tagline"],
                     explain=c["explain"],
+                    everyday=c.get("everyday", {}),
                     key_points=c["keyPoints"],
                     sql=c["sql"],
                     django=c["django"],
                     exercise=c["exercise"],
                     pitfalls=c["pitfalls"],
                     viz=c.get("viz", ""),
+                    lab=c.get("lab", ""),
+                    scenes=c.get("scenes", []),
                     hours=c["hours"],
                     priority=c["priority"],
                     references=c["references"],
@@ -85,6 +97,16 @@ class Command(BaseCommand):
                     defaults=dict(concept=concept, topic="concept", q=qa["q"], a=qa["a"]),
                 )
                 n_q += 1
+
+        for i, pr in enumerate(load("problems.json")):
+            Problem.objects.update_or_create(
+                slug=pr["slug"],
+                defaults=dict(
+                    concept=Concept.objects.filter(slug=pr["concept"]).first(), title=pr["title"], difficulty=pr["difficulty"], statement=pr["statement"],
+                    examples=pr["examples"], starter=pr["starter"], prelude=pr.get("prelude", ""), cases=pr["cases"], hints=pr["hints"],
+                    solution=pr["solution"], notes=pr.get("notes", ""), sort=i,
+                ),
+            )
 
         for i, g in enumerate(load("general_questions.json")):
             Question.objects.update_or_create(

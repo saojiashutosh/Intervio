@@ -18,7 +18,7 @@
           "amazon-sde2",
           "formation-sde"
         ],
-        "app": null
+        "app": "big-o-structures"
       },
       {
         "band": "0-2",
@@ -28,7 +28,7 @@
         "sources": [
           "amazon-sde2"
         ],
-        "app": null
+        "app": "django-testing"
       },
       {
         "band": "0-2",
@@ -48,7 +48,7 @@
         "sources": [
           "amazon-sde2"
         ],
-        "app": null
+        "app": "behavioral-star"
       },
       {
         "band": "2-5",
@@ -59,7 +59,7 @@
           "amazon-sde2",
           "formation-sde"
         ],
-        "app": null
+        "app": "coding-patterns"
       },
       {
         "band": "2-5",
@@ -69,7 +69,7 @@
         "sources": [
           "hello-levels"
         ],
-        "app": null
+        "app": "system-design"
       },
       {
         "band": "2-5",
@@ -90,7 +90,7 @@
           "amazon-sde2",
           "hackajob-backend"
         ],
-        "app": null
+        "app": "behavioral-star"
       },
       {
         "band": "5+",
@@ -100,7 +100,7 @@
         "sources": [
           "hello-levels"
         ],
-        "app": null
+        "app": "system-design"
       },
       {
         "band": "5+",
@@ -123,6 +123,182 @@
           "amazon-sde2"
         ],
         "app": null
+      },
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Arrays, hash maps, stacks and queues",
+        "detail": "Know the cost of each operation and use a set or dict instead of searching inside a loop; stacks for nesting, deque for queues.",
+        "sources": [
+          "amazon-topics",
+          "ms-tech-interview",
+          "meta-swe-prep"
+        ],
+        "app": "arrays-hashing"
+      },
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Linked lists, sorting and binary search",
+        "detail": "Pointer manipulation, one n log n sort in detail, binary search with correct boundaries.",
+        "sources": [
+          "ms-tech-interview",
+          "meta-swe-prep"
+        ],
+        "app": "linked-lists"
+      },
+      {
+        "band": "2-5",
+        "area": "Coding",
+        "topic": "Trees, graphs and traversals (DFS and BFS)",
+        "detail": "Recursion on trees, BFS for fewest steps, a visited set, topological order.",
+        "sources": [
+          "meta-swe-prep",
+          "ms-tech-interview",
+          "iq-google-swe"
+        ],
+        "app": "graphs-traversal"
+      },
+      {
+        "band": "2-5",
+        "area": "Coding",
+        "topic": "Recursion, backtracking and dynamic programming",
+        "detail": "Choose-explore-undo, memoisation or a table, state the recurrence and the cost.",
+        "sources": [
+          "meta-swe-prep",
+          "iq-google-swe"
+        ],
+        "app": "dynamic-programming"
+      },
+      {
+        "band": "2-5",
+        "area": "Design",
+        "topic": "Low-level (object-oriented) design",
+        "detail": "Turn a short prompt into classes, relationships and methods, with SOLID and a few patterns; Amazon lists object-oriented design among its topics and links separate low-level-design guidance.",
+        "sources": [
+          "amazon-topics",
+          "amazon-sde3"
+        ],
+        "app": "lld-parking-lot"
+      },
+      {
+        "band": "2-5",
+        "area": "Design",
+        "topic": "SOLID and design patterns",
+        "detail": "Single responsibility, open-closed, substitution; strategy, factory, observer, decorator, state.",
+        "sources": [
+          "amazon-topics",
+          "wiki-solid"
+        ],
+        "app": "oop-solid"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "Caching and load balancing",
+        "detail": "Cache-aside, eviction, invalidation; load balancer algorithms, health checks and stateless servers.",
+        "sources": [
+          "hello-levels",
+          "amazon-sde3"
+        ],
+        "app": "caching-at-scale"
+      },
+      {
+        "band": "0-2",
+        "area": "Interview process",
+        "topic": "Know the loop and run a coding round",
+        "detail": "Rounds by company and role; clarify, example, brute force, pattern, code, test, complexity.",
+        "sources": [
+          "amazon-sde2",
+          "meta-swe-prep",
+          "ms-tech-interview"
+        ],
+        "app": "interview-loop-formats"
+      },
+      {
+        "band": "2-5",
+        "area": "Fundamentals",
+        "topic": "Operating systems and concurrency",
+        "detail": "Processes, scheduling, virtual memory, threads, locks and deadlock; Amazon lists operating systems and distributed computing among its topics.",
+        "sources": [
+          "amazon-topics",
+          "ostep"
+        ],
+        "app": "concurrency-basics"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "A framework for the design round",
+        "detail": "Requirements, core entities, API, optional data flow, high-level design, deep dives, with a time budget; estimate only when numbers change the design.",
+        "sources": [
+          "hello-delivery",
+          "sd-primer",
+          "amazon-sde2"
+        ],
+        "app": "sd-interview-framework"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "Back-of-the-envelope estimation",
+        "detail": "Powers of two, latency numbers, QPS, storage and bandwidth, and the decision each number drives.",
+        "sources": [
+          "sd-primer",
+          "sd-primer-twitter"
+        ],
+        "app": "back-of-envelope-estimation"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "CAP, consistency patterns and availability",
+        "detail": "CP versus AP, weak, eventual and strong consistency, quorums, fail-over, nines of availability.",
+        "sources": [
+          "sd-primer",
+          "dynamo-paper"
+        ],
+        "app": "cap-consistency-patterns"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "CDN, DNS, reverse proxy and microservices",
+        "detail": "Edge caching, push versus pull, DNS steering, service boundaries, REST versus RPC, async messaging.",
+        "sources": [
+          "mdn-cdn",
+          "mdn-dns",
+          "fowler-microservices",
+          "grpc-intro"
+        ],
+        "app": "dns-cdn-reverse-proxy"
+      },
+      {
+        "band": "2-5",
+        "area": "System design",
+        "topic": "Classic designs: feed, chat, crawler, key-value store",
+        "detail": "The prompts that recur in the Primer and in large-company loops, with numbers and the trade-off behind each choice.",
+        "sources": [
+          "sd-primer-twitter",
+          "sd-primer-crawler",
+          "discord-messages",
+          "dynamo-paper"
+        ],
+        "app": "design-news-feed"
+      },
+      {
+        "band": "5+",
+        "area": "System design",
+        "topic": "Payments, file sync, video, proximity, notifications",
+        "detail": "Idempotency and ledgers, content-addressed blocks, adaptive streaming, spatial indexes, queued delivery with retries.",
+        "sources": [
+          "stripe-idempotency",
+          "dropbox-streaming-sync",
+          "mdn-adaptive-streaming",
+          "uber-h3",
+          "fcm-architecture"
+        ],
+        "app": "design-payment-system"
       }
     ]
   },
@@ -145,7 +321,7 @@
           "hackajob-backend",
           "roadmap-backend"
         ],
-        "app": null
+        "app": "python-internals"
       },
       {
         "band": "0-2",
@@ -168,7 +344,7 @@
           "job-junior-cuculus",
           "roadmap-backend"
         ],
-        "app": null
+        "app": "docker-containers"
       },
       {
         "band": "2-5",
@@ -240,7 +416,7 @@
           "lemon-django",
           "job-django-madfish"
         ],
-        "app": null
+        "app": "ci-cd-deploy"
       },
       {
         "band": "5+",
@@ -272,7 +448,7 @@
         "sources": [
           "lemon-django"
         ],
-        "app": "consistency"
+        "app": "caching-at-scale"
       },
       {
         "band": "5+",
@@ -305,7 +481,7 @@
           "lemon-django",
           "job-django-madfish"
         ],
-        "app": "indexing"
+        "app": "prod-ops"
       },
       {
         "band": "5+",
@@ -316,7 +492,64 @@
           "job-django-madfish",
           "job-django-joindevops"
         ],
-        "app": null
+        "app": "cloud-basics"
+      },
+      {
+        "band": "2-5",
+        "area": "Coding",
+        "topic": "Data structures and algorithms for interviews",
+        "detail": "Hash maps, trees, graphs, sorting and complexity: the coding rounds large companies run for backend roles too.",
+        "sources": [
+          "amazon-topics",
+          "meta-swe-prep"
+        ],
+        "app": "arrays-hashing"
+      },
+      {
+        "band": "2-5",
+        "area": "Architecture",
+        "topic": "Low-level (object-oriented) design",
+        "detail": "Classes, relationships and a pattern or two for a small system, with extension and concurrency.",
+        "sources": [
+          "amazon-topics",
+          "amazon-sde3"
+        ],
+        "app": "oop-solid"
+      },
+      {
+        "band": "2-5",
+        "area": "Concurrency",
+        "topic": "Threads, locks, the GIL and deadlock",
+        "detail": "Race conditions, mutual exclusion, lock ordering, threads versus processes in Python.",
+        "sources": [
+          "py-threading",
+          "py-glossary",
+          "ostep-threads"
+        ],
+        "app": "concurrency-basics"
+      },
+      {
+        "band": "2-5",
+        "area": "Architecture",
+        "topic": "System design rounds: framework and classic designs",
+        "detail": "The same framework and designs large companies use; backend roles meet them from mid level.",
+        "sources": [
+          "hello-delivery",
+          "sd-primer",
+          "amazon-sde2"
+        ],
+        "app": "sd-interview-framework"
+      },
+      {
+        "band": "5+",
+        "area": "Architecture",
+        "topic": "Idempotency, payments and reliable messaging",
+        "detail": "Idempotency keys, ledgers, queues with retries and dead-letter queues, reconciliation.",
+        "sources": [
+          "stripe-idempotency",
+          "fcm-architecture"
+        ],
+        "app": "design-payment-system"
       }
     ]
   },
@@ -339,7 +572,7 @@
           "fullstack-postings-2026",
           "greatfrontend-career"
         ],
-        "app": null
+        "app": "react-rendering"
       },
       {
         "band": "0-2",
@@ -361,7 +594,7 @@
           "mdn-learn",
           "fullstack-postings-2026"
         ],
-        "app": null
+        "app": "git-workflow"
       },
       {
         "band": "2-5",
@@ -372,7 +605,7 @@
           "fullstack-postings-2026",
           "greatfrontend-career"
         ],
-        "app": null
+        "app": "js-event-loop"
       },
       {
         "band": "2-5",
@@ -392,7 +625,7 @@
         "sources": [
           "fullstack-postings-2026"
         ],
-        "app": null
+        "app": "ci-cd-deploy"
       },
       {
         "band": "5+",
@@ -415,6 +648,40 @@
           "hello-levels"
         ],
         "app": "replication"
+      },
+      {
+        "band": "2-5",
+        "area": "Coding",
+        "topic": "Data structures and algorithms for interviews",
+        "detail": "Large-company loops include algorithmic coding for full-stack roles as well.",
+        "sources": [
+          "amazon-topics",
+          "fe-handbook"
+        ],
+        "app": "arrays-hashing"
+      },
+      {
+        "band": "2-5",
+        "area": "Frontend",
+        "topic": "UI coding and frontend system design",
+        "detail": "Large-company loops for full-stack roles can include UI coding and client-side design as well as backend design.",
+        "sources": [
+          "fe-handbook",
+          "amazon-fe"
+        ],
+        "app": "ui-coding-components"
+      },
+      {
+        "band": "2-5",
+        "area": "Frontend",
+        "topic": "CSS layout and React state",
+        "detail": "The layout and state skills that UI coding rounds test.",
+        "sources": [
+          "mdn-flexbox",
+          "react-choose-state",
+          "fe-handbook"
+        ],
+        "app": "css-layout-responsive"
       }
     ]
   },
@@ -437,7 +704,7 @@
           "mdn-learn",
           "roadmap-frontend"
         ],
-        "app": null
+        "app": "js-event-loop"
       },
       {
         "band": "0-2",
@@ -448,7 +715,7 @@
           "mdn-learn",
           "roadmap-frontend"
         ],
-        "app": null
+        "app": "react-rendering"
       },
       {
         "band": "0-2",
@@ -470,7 +737,7 @@
           "mdn-learn",
           "roadmap-frontend"
         ],
-        "app": null
+        "app": "web-performance-a11y"
       },
       {
         "band": "2-5",
@@ -481,7 +748,7 @@
           "roadmap-frontend",
           "mdn-learn"
         ],
-        "app": null
+        "app": "js-event-loop"
       },
       {
         "band": "2-5",
@@ -503,7 +770,7 @@
           "roadmap-frontend",
           "mdn-learn"
         ],
-        "app": null
+        "app": "web-performance-a11y"
       },
       {
         "band": "2-5",
@@ -533,7 +800,7 @@
         "sources": [
           "greatfrontend-career"
         ],
-        "app": null
+        "app": "web-performance-a11y"
       },
       {
         "band": "5+",
@@ -544,6 +811,82 @@
           "tih-levels"
         ],
         "app": null
+      },
+      {
+        "band": "2-5",
+        "area": "Interview",
+        "topic": "Algorithmic coding",
+        "detail": "The Front End Interview Handbook lists algorithmic coding as one of five round types, asked at Amazon, Google and Microsoft; Amazon names data structures and algorithms as a core focus.",
+        "sources": [
+          "fe-handbook",
+          "amazon-fe"
+        ],
+        "app": "arrays-hashing"
+      },
+      {
+        "band": "0-2",
+        "area": "Interview",
+        "topic": "JavaScript utility functions",
+        "detail": "Implement debounce, throttle, memoize, curry, Promise.all, an event emitter and a deep clone; explain closures and timers.",
+        "sources": [
+          "fe-handbook",
+          "amazon-fe",
+          "mdn-promise-all"
+        ],
+        "app": "js-utility-functions"
+      },
+      {
+        "band": "0-2",
+        "area": "Interview",
+        "topic": "UI coding: autocomplete, modal, tabs",
+        "detail": "Build a small component with a state model, stale-response handling, keyboard use, ARIA roles and loading, empty and error states.",
+        "sources": [
+          "fe-handbook",
+          "apg-dialog",
+          "apg-tabs",
+          "apg-combobox"
+        ],
+        "app": "ui-coding-components"
+      },
+      {
+        "band": "2-5",
+        "area": "Design",
+        "topic": "Frontend system design",
+        "detail": "Client architecture for a feed or chat: data flow, client cache, virtualisation, cursor pagination, optimistic updates, SSE or WebSocket.",
+        "sources": [
+          "fe-handbook",
+          "web-virtualize",
+          "react-useoptimistic",
+          "mdn-sse",
+          "tanstack-caching"
+        ],
+        "app": "frontend-system-design"
+      },
+      {
+        "band": "0-2",
+        "area": "Core web",
+        "topic": "CSS layout: box model, flexbox, grid, responsive",
+        "detail": "Box sizing, margin collapsing, flexbox axes, grid and fr, media queries, the viewport tag, flexible images.",
+        "sources": [
+          "mdn-box-model",
+          "mdn-flexbox",
+          "mdn-grid",
+          "mdn-responsive",
+          "amazon-fe"
+        ],
+        "app": "css-layout-responsive"
+      },
+      {
+        "band": "2-5",
+        "area": "Frameworks",
+        "topic": "React state: structure, lifting, reducers, context",
+        "detail": "Minimal state, derived values, one owner, controlled components, reducers and context.",
+        "sources": [
+          "react-choose-state",
+          "react-share-state",
+          "react-reducer-context"
+        ],
+        "app": "react-state-management"
       }
     ]
   },
@@ -566,7 +909,7 @@
           "dev-de-skills",
           "datadriven-de-jd"
         ],
-        "app": "keys"
+        "app": "sql-analytics"
       },
       {
         "band": "0-2",
@@ -589,7 +932,7 @@
           "datadriven-de-jd",
           "de-zoomcamp"
         ],
-        "app": null
+        "app": "data-pipelines"
       },
       {
         "band": "0-2",
@@ -600,7 +943,7 @@
           "dev-de-skills",
           "de-zoomcamp"
         ],
-        "app": null
+        "app": "data-pipelines"
       },
       {
         "band": "2-5",
@@ -610,7 +953,7 @@
         "sources": [
           "de-zoomcamp"
         ],
-        "app": null
+        "app": "spark-batch"
       },
       {
         "band": "2-5",
@@ -642,7 +985,7 @@
         "sources": [
           "de-zoomcamp"
         ],
-        "app": null
+        "app": "data-pipelines"
       },
       {
         "band": "5+",
@@ -685,7 +1028,7 @@
           "proxify-devops",
           "devops-sre-skills"
         ],
-        "app": null
+        "app": "http-networking-basics"
       },
       {
         "band": "0-2",
@@ -695,7 +1038,7 @@
         "sources": [
           "roadmap-devops"
         ],
-        "app": null
+        "app": "git-workflow"
       },
       {
         "band": "0-2",
@@ -706,7 +1049,7 @@
           "roadmap-devops",
           "so-survey-2025"
         ],
-        "app": null
+        "app": "docker-containers"
       },
       {
         "band": "0-2",
@@ -716,7 +1059,7 @@
         "sources": [
           "roadmap-devops"
         ],
-        "app": null
+        "app": "cloud-basics"
       },
       {
         "band": "2-5",
@@ -726,7 +1069,7 @@
         "sources": [
           "roadmap-devops"
         ],
-        "app": null
+        "app": "infrastructure-as-code"
       },
       {
         "band": "2-5",
@@ -737,7 +1080,7 @@
           "sre-book",
           "devops-sre-skills"
         ],
-        "app": null
+        "app": "observability-slos"
       },
       {
         "band": "2-5",
@@ -747,7 +1090,7 @@
         "sources": [
           "sre-book"
         ],
-        "app": null
+        "app": "incident-management"
       },
       {
         "band": "2-5",
@@ -758,7 +1101,7 @@
           "roadmap-devops",
           "sre-book"
         ],
-        "app": null
+        "app": "observability-slos"
       },
       {
         "band": "5+",
@@ -769,7 +1112,7 @@
           "sre-book",
           "devops-sre-skills"
         ],
-        "app": null
+        "app": "incident-management"
       },
       {
         "band": "5+",
@@ -779,7 +1122,7 @@
         "sources": [
           "sre-book"
         ],
-        "app": null
+        "app": "observability-slos"
       },
       {
         "band": "5+",
@@ -790,7 +1133,19 @@
           "sre-book",
           "ddia"
         ],
-        "app": "replication"
+        "app": "consensus-leader-election"
+      },
+      {
+        "band": "2-5",
+        "area": "Systems",
+        "topic": "CAP, availability and communication",
+        "detail": "Nines of availability, series and parallel redundancy, fail-over, CDN and DNS steering.",
+        "sources": [
+          "sd-primer",
+          "sre-slo",
+          "mdn-cdn"
+        ],
+        "app": "latency-throughput-availability"
       }
     ]
   },
@@ -813,7 +1168,7 @@
           "tryexponent-ml",
           "ml-interviews-book"
         ],
-        "app": null
+        "app": "coding-patterns"
       },
       {
         "band": "0-2",
@@ -834,7 +1189,7 @@
           "ml-interviews-book",
           "tryexponent-ml"
         ],
-        "app": null
+        "app": "ml-fundamentals"
       },
       {
         "band": "0-2",
@@ -844,7 +1199,7 @@
         "sources": [
           "ikickstart-mle"
         ],
-        "app": null
+        "app": "ml-production"
       },
       {
         "band": "2-5",
@@ -855,7 +1210,7 @@
           "tryexponent-ml",
           "ml-interviews-book"
         ],
-        "app": null
+        "app": "ml-system-design"
       },
       {
         "band": "2-5",
@@ -866,7 +1221,7 @@
           "ml-interviews-book",
           "de-zoomcamp"
         ],
-        "app": null
+        "app": "ml-production"
       },
       {
         "band": "5+",
@@ -877,7 +1232,7 @@
           "tryexponent-ml",
           "ikickstart-mle"
         ],
-        "app": null
+        "app": "ml-system-design"
       },
       {
         "band": "5+",
@@ -887,7 +1242,66 @@
         "sources": [
           "ikickstart-mle"
         ],
-        "app": null
+        "app": "ml-production"
+      },
+      {
+        "band": "0-2",
+        "area": "Coding",
+        "topic": "Data structures and algorithms",
+        "detail": "ML engineer coding rounds are close to software-engineering coding; practise hash maps, trees, graphs and complexity.",
+        "sources": [
+          "ml-interviews-book",
+          "huyen-formats",
+          "amazon-topics"
+        ],
+        "app": "arrays-hashing"
+      },
+      {
+        "band": "2-5",
+        "area": "ML systems",
+        "topic": "Design an LLM-based system",
+        "detail": "Retrieval (hybrid, rerank), prompt assembly, guardrails, cost and latency, evaluation. Claimed to be the most common ML design prompt now (one author, no data).",
+        "sources": [
+          "techinterview-llm",
+          "anthropic-contextual-retrieval",
+          "anthropic-evals"
+        ],
+        "app": "llm-system-design"
+      },
+      {
+        "band": "0-2",
+        "area": "ML",
+        "topic": "Generalization, cross-validation and regularization",
+        "detail": "Overfitting, validation and test sets, leakage, Ridge, Lasso and elastic net.",
+        "sources": [
+          "sklearn-cv",
+          "sklearn-linear",
+          "ml-interviews-book"
+        ],
+        "app": "ml-generalization-regularization"
+      },
+      {
+        "band": "0-2",
+        "area": "ML",
+        "topic": "Metrics and A/B testing",
+        "detail": "Confusion matrix, precision, recall, ROC AUC, imbalanced data, fixed-sample experiments.",
+        "sources": [
+          "sklearn-metrics",
+          "evanmiller-ab",
+          "ml-interviews-book"
+        ],
+        "app": "ml-metrics-experimentation"
+      },
+      {
+        "band": "2-5",
+        "area": "ML systems",
+        "topic": "Recommender and ranking system design",
+        "detail": "Candidate generation, scoring and re-ranking; content-based and collaborative filtering; embeddings; cold start.",
+        "sources": [
+          "google-recsys",
+          "huyen-formats"
+        ],
+        "app": "recommender-system-design"
       }
     ]
   }

@@ -314,6 +314,1014 @@
       "kind": "prep-guide",
       "checked": "snippet",
       "used_for": "DDIA is the most recommended book for system design preparation; practice matters more than another book."
+    },
+    {
+      "key": "python-docs",
+      "title": "Python documentation: tutorial, glossary, built-in time complexity, free-threading",
+      "url": "https://docs.python.org/3/",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Default-argument warning, GIL and generator definitions, free-threaded build status, and the average/worst-case/amortized time-complexity table for list, dict and set."
+    },
+    {
+      "key": "git-book",
+      "title": "Pro Git: Git Branching - Rebasing",
+      "url": "https://git-scm.com/book/en/v2/Git-Branching-Rebasing",
+      "publisher": "Git",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "How rebase replays commits versus how merge joins them, and the rule not to rebase commits that exist outside your repository."
+    },
+    {
+      "key": "docker-docs",
+      "title": "Docker docs: build cache, optimizing cache, building best practices, Compose networking",
+      "url": "https://docs.docker.com/build/cache/",
+      "publisher": "Docker",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Each instruction creates a layer and a changed layer invalidates all later ones; ordering rules and .dockerignore; multi-stage builds reduce final image size; use USER for non-root; pin base image versions; ENV values persist in layers; Compose service names resolve through an internal DNS."
+    },
+    {
+      "key": "gunicorn-docs",
+      "title": "Gunicorn: deploying",
+      "url": "https://gunicorn.org/deploy/",
+      "publisher": "Gunicorn",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Why Gunicorn should run behind a proxy such as Nginx (slow clients and buffering) and the proxy headers to forward."
+    },
+    {
+      "key": "github-actions-docs",
+      "title": "GitHub Actions: understanding and workflow syntax",
+      "url": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "publisher": "GitHub",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Workflow, event, job, runner, step and action definitions; jobs run in parallel unless one needs another; push and pull_request triggers; uses and run steps."
+    },
+    {
+      "key": "rfc7519",
+      "title": "RFC 7519: JSON Web Token (JWT)",
+      "url": "https://www.rfc-editor.org/rfc/rfc7519",
+      "publisher": "IETF",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "A JWT is a claims set carried in a signed (JWS) or encrypted (JWE) structure; a signed token gives integrity, not confidentiality; the exp claim; payload privacy cautions."
+    },
+    {
+      "key": "pgbouncer-docs",
+      "title": "PgBouncer features: pooling modes and what breaks",
+      "url": "https://www.pgbouncer.org/features.html",
+      "publisher": "PgBouncer",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Session, transaction and statement pooling, and the feature table showing which session-level features never work under transaction pooling."
+    },
+    {
+      "key": "git-docs",
+      "title": "git-revert documentation",
+      "url": "https://git-scm.com/docs/git-revert",
+      "publisher": "Git",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "git revert records new commits that reverse earlier ones, and git reset is the tool for discarding uncommitted changes."
+    },
+    {
+      "key": "mdn-http",
+      "title": "MDN: HTTP overview, caching and status codes",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "HTTP as a stateless client-server protocol over TCP or TLS, request and response parts, HTTP/2 framing, status code meanings (401 versus 403), Cache-Control directives, ETag and 304 validation."
+    },
+    {
+      "key": "aws-docs",
+      "title": "AWS: Regions and Availability Zones, RDS Multi-AZ, IAM best practices",
+      "url": "https://docs.aws.amazon.com/",
+      "publisher": "Amazon Web Services",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Region and AZ definitions, Multi-AZ standby behaviour for RDS, IAM least privilege, temporary credentials through roles, MFA and root-user protection."
+    },
+    {
+      "key": "mdn-js",
+      "title": "MDN: JavaScript event loop",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Single-threaded agent, call stack, job queue as the event loop, run to completion, tasks versus microtasks with microtask priority, and the advice to cut one job into several."
+    },
+    {
+      "key": "react-docs",
+      "title": "React docs: render and commit, state as a snapshot, rendering lists, synchronizing with effects",
+      "url": "https://react.dev/learn",
+      "publisher": "Meta (react.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Trigger, render, commit; pure rendering; state snapshots; key rules and the index-key warning; Effect dependencies, cleanup and Strict Mode."
+    },
+    {
+      "key": "web-dev-vitals",
+      "title": "web.dev: Web Vitals",
+      "url": "https://web.dev/articles/vitals",
+      "publisher": "Google (web.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The three Core Web Vitals (LCP, INP, CLS), what each measures and the good thresholds at the 75th percentile."
+    },
+    {
+      "key": "w3c-wai",
+      "title": "W3C WAI: Accessibility principles",
+      "url": "https://www.w3.org/WAI/fundamentals/accessibility-principles/",
+      "publisher": "W3C Web Accessibility Initiative",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The four principles (perceivable, operable, understandable, robust) with keyboard and text-alternative examples."
+    },
+    {
+      "key": "airflow-docs",
+      "title": "Apache Airflow: best practices",
+      "url": "https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html",
+      "publisher": "Apache Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Tasks should produce the same outcome on re-run, avoid plain INSERT, do not use now() in tasks, use the data interval, keep top-level code light."
+    },
+    {
+      "key": "kafka-docs",
+      "title": "Apache Kafka: introduction",
+      "url": "https://kafka.apache.org/intro",
+      "publisher": "Apache Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Kafka as an event streaming platform; events, producers and consumers, partitioned durable topics, events not deleted after consumption."
+    },
+    {
+      "key": "sre-monitoring",
+      "title": "Google SRE book: Monitoring Distributed Systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "publisher": "Google",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Four golden signals, symptoms versus causes, every page should be actionable, black-box versus white-box monitoring."
+    },
+    {
+      "key": "sre-slo",
+      "title": "Google SRE book: Service Level Objectives",
+      "url": "https://sre.google/sre-book/service-level-objectives/",
+      "publisher": "Google",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "SLI, SLO and SLA definitions, indicator types, why 100 percent is unrealistic, and the error budget."
+    },
+    {
+      "key": "sre-incidents",
+      "title": "Google SRE book: Managing Incidents",
+      "url": "https://sre.google/sre-book/managing-incidents/",
+      "publisher": "Google",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "When to declare an incident, the incident roles, the live incident document and clear handoff."
+    },
+    {
+      "key": "sre-postmortem",
+      "title": "Google SRE book: Postmortem Culture: Learning from Failure",
+      "url": "https://sre.google/sre-book/postmortem-culture/",
+      "publisher": "Google",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "What a postmortem is, its goals, the blameless principle and its reasoning, and review questions."
+    },
+    {
+      "key": "otel-docs",
+      "title": "OpenTelemetry: Observability primer",
+      "url": "https://opentelemetry.io/docs/concepts/observability-primer/",
+      "publisher": "OpenTelemetry (CNCF)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Definition of observability and of logs, metrics, traces and spans."
+    },
+    {
+      "key": "terraform-docs",
+      "title": "Terraform: Introduction",
+      "url": "https://developer.hashicorp.com/terraform/intro",
+      "publisher": "HashiCorp",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Terraform as declarative infrastructure as code, the write, plan and apply workflow, what a plan shows, and the state file."
+    },
+    {
+      "key": "spark-docs",
+      "title": "Apache Spark: RDD programming guide and Spark SQL guide",
+      "url": "https://spark.apache.org/docs/latest/rdd-programming-guide.html",
+      "publisher": "Apache Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Transformations versus actions and lazy evaluation, the shuffle and its cost, caching guidance, DataFrames and Spark SQL."
+    },
+    {
+      "key": "sklearn-docs",
+      "title": "scikit-learn: cross-validation and precision-recall",
+      "url": "https://scikit-learn.org/stable/modules/cross_validation.html",
+      "publisher": "scikit-learn",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Overfitting, hold-out test sets, validation sets, k-fold cross-validation, preprocessing leakage and Pipelines, precision, recall and the threshold trade-off."
+    },
+    {
+      "key": "rules-of-ml",
+      "title": "Google: Rules of Machine Learning",
+      "url": "https://developers.google.com/machine-learning/guides/rules-of-ml",
+      "publisher": "Google",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Launch without ML first, training-serving skew and monitoring it, logging serving-time features, model freshness, and feedback loops."
+    },
+    {
+      "key": "django-cache",
+      "title": "Django cache framework",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/cache/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Backends, default 300 s timeout, per-process LocMemCache, add/get_or_set, KEY_PREFIX and VERSION, cache_page."
+    },
+    {
+      "key": "redis-eviction",
+      "title": "Redis key eviction",
+      "url": "https://redis.io/docs/latest/develop/reference/eviction/",
+      "publisher": "Redis",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "maxmemory, eviction policy names and definitions, approximated LRU, hit-rate formula from keyspace_hits and keyspace_misses."
+    },
+    {
+      "key": "nginx-lb",
+      "title": "Using nginx as HTTP load balancer",
+      "url": "https://nginx.org/en/docs/http/load_balancing.html",
+      "publisher": "nginx",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Round robin default, least_conn, ip_hash, weights, passive health checks with max_fails and fail_timeout."
+    },
+    {
+      "key": "twelve-factor-processes",
+      "title": "The Twelve-Factor App: Processes",
+      "url": "https://12factor.net/processes",
+      "publisher": "Heroku / 12factor.net",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Stateless, share-nothing processes; sticky sessions discouraged; session data belongs in a datastore with expiration."
+    },
+    {
+      "key": "django-sessions",
+      "title": "Django: how to use sessions",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/http/sessions/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Session backends (db, cached_db, cache, file, signed cookies), SESSION_ENGINE, local-memory cache is not multi-process safe."
+    },
+    {
+      "key": "dynamo-paper",
+      "title": "Dynamo: Amazon's Highly Available Key-value Store (SOSP 2007)",
+      "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+      "publisher": "Amazon",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Consistent hashing ring, a key is assigned to the first node clockwise, problems of random positions, virtual nodes (tokens)."
+    },
+    {
+      "key": "redis-cluster-spec",
+      "title": "Redis Cluster specification",
+      "url": "https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/",
+      "publisher": "Redis",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "16384 hash slots, HASH_SLOT = CRC16(key) mod 16384, each master serves a subset of slots."
+    },
+    {
+      "key": "rabbitmq-confirms",
+      "title": "RabbitMQ: consumer acknowledgements and publisher confirms",
+      "url": "https://www.rabbitmq.com/docs/confirms",
+      "publisher": "RabbitMQ",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Acknowledgements, automatic requeue of unacked messages when a connection closes, redelivery flag, consumers must handle redeliveries, automatic ack is unsafe."
+    },
+    {
+      "key": "sqs-visibility",
+      "title": "Amazon SQS visibility timeout",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html",
+      "publisher": "Amazon Web Services",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Visibility timeout (default 30 s), message reappears if not deleted, at-least-once delivery, dead-letter queues for repeated failures."
+    },
+    {
+      "key": "rfc6585",
+      "title": "RFC 6585: Additional HTTP Status Codes (429 Too Many Requests)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585",
+      "publisher": "IETF",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "429 means too many requests in a given time, the response MAY include Retry-After, the spec does not define how users are identified or requests counted."
+    },
+    {
+      "key": "stripe-rate-limiters",
+      "title": "Scaling your API with rate limiters (Stripe)",
+      "url": "https://stripe.com/blog/rate-limiters",
+      "publisher": "Stripe",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Token bucket per user, Redis-backed, four limiter types (request rate, concurrent requests, fleet usage load shedder, worker utilization load shedder), allowing brief bursts."
+    },
+    {
+      "key": "drf-throttling",
+      "title": "Django REST framework: throttling",
+      "url": "https://www.django-rest-framework.org/api-guide/throttling/",
+      "publisher": "Django REST framework",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "AnonRateThrottle, UserRateThrottle, DEFAULT_THROTTLE_RATES format, cache backend, non-atomic caveat, Retry-After only when wait() is implemented."
+    },
+    {
+      "key": "redis-incr",
+      "title": "Redis INCR (counter and rate limiter patterns)",
+      "url": "https://redis.io/docs/latest/commands/incr/",
+      "publisher": "Redis",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Atomic increment, per-key counters with EXPIRE, MULTI/EXEC to increment and set the expiry together, the race in a naive GET-then-INCR limiter."
+    },
+    {
+      "key": "aws-retries",
+      "title": "Timeouts, retries and backoff with jitter (Amazon Builders' Library)",
+      "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+      "publisher": "Amazon Web Services",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Retries multiply across layers, exponential backoff, jitter spreads retries, retry limits with a token bucket, choosing timeouts from latency percentiles (p99.9 example), retrying side-effecting APIs needs idempotency."
+    },
+    {
+      "key": "fowler-circuit-breaker",
+      "title": "Circuit Breaker (Martin Fowler)",
+      "url": "https://martinfowler.com/bliki/CircuitBreaker.html",
+      "publisher": "Martin Fowler",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Closed, open and half-open states, failure threshold trips the breaker, calls are rejected while open, a trial call after a reset timeout."
+    },
+    {
+      "key": "raft-paper",
+      "title": "In Search of an Understandable Consensus Algorithm (Raft)",
+      "url": "https://raft.github.io/raft.pdf",
+      "publisher": "Ongaro and Ousterhout, Stanford",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Server states (leader, follower, candidate), terms as a logical clock, election timeout and RequestVote, majority vote with one vote per term, randomized timeouts (150-300 ms example), commit on a majority, stale-term handling."
+    },
+    {
+      "key": "raft-site",
+      "title": "Raft Consensus Algorithm",
+      "url": "https://raft.github.io/",
+      "publisher": "Raft",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Consensus means servers agreeing on values, progress while a majority is available, a cluster of 5 tolerates 2 failures."
+    },
+    {
+      "key": "mdn-redirections",
+      "title": "MDN: Redirections in HTTP",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Redirections",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "301 Moved Permanently is meant to last forever and crawlers update the URL, 302 is temporary and crawlers do not memorise the new URL, redirects use a Location header."
+    },
+    {
+      "key": "mdn-how-web-works",
+      "title": "MDN: How the Web works",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_Web_works",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "DNS maps a web address to the server's real IP address, the browser sends an HTTP request over TCP/IP, the server answers with 200 OK and the files in packets, the browser assembles the page."
+    },
+    {
+      "key": "amazon-topics",
+      "title": "Amazon Software Development Interview Topics",
+      "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
+      "publisher": "Amazon",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Technical topics listed for software development interviews: programming language, data structures, algorithms, coding, object-oriented design, databases, distributed computing, operating systems, internet topics, general machine learning and AI. States that most technical interviews include coding and system design whiteboarding."
+    },
+    {
+      "key": "amazon-sde3",
+      "title": "SDE III Interview Prep",
+      "url": "https://amazon.jobs/content/en/how-we-hire/sde-iii-interview-prep",
+      "publisher": "Amazon",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Five 55-minute loop interviews; half of the phone screen on Leadership Principles; at least one systems design question; links to separate guidance on low-level design and high-level design."
+    },
+    {
+      "key": "amazon-fe",
+      "title": "Interview prep for Front End Engineer roles",
+      "url": "https://amazon.jobs/content/en/how-we-hire/university/front-end-engineer",
+      "publisher": "Amazon",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Front end interviews focus on maintainable code, data structures and algorithms, JavaScript, CSS and HTML, and Leadership Principles."
+    },
+    {
+      "key": "meta-swe-prep",
+      "title": "Preparing for your software engineering interview at Meta",
+      "url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
+      "publisher": "Meta",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Screen is mostly coding (algorithms, data structures, recursion, binary trees; BFS, DFS; Big-O); the full interview has coding, a 45-minute systems or product design round, and a 45-minute behavioral round. Blog is older, so round details may have changed."
+    },
+    {
+      "key": "ms-tech-interview",
+      "title": "Technical interviewing (Microsoft Careers)",
+      "url": "https://careers.microsoft.com/v2/global/en/hiring-tips/technical-interviewing",
+      "publisher": "Microsoft",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Common structures (arrays and strings, graphs and others), know at least one n log n sort, explain complexity, design a system from scratch, test your own code, ask clarifying questions first."
+    },
+    {
+      "key": "fe-handbook",
+      "title": "Front End Interview Handbook: introduction",
+      "url": "https://www.frontendinterviewhandbook.com/introduction",
+      "publisher": "Front End Interview Handbook",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "Five round types: JavaScript coding, UI coding, algorithmic coding, quiz and system design; a per-company table of which are asked (Amazon, Google, Microsoft all five). Community-maintained, so details may lag."
+    },
+    {
+      "key": "py-heapq",
+      "title": "heapq: heap queue algorithm (Python docs)",
+      "url": "https://docs.python.org/3/library/heapq.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "heapq is a min-heap in a list; heapify is linear; tuples for priorities with a counter tie-break; nlargest and nsmallest; max-heap functions added in 3.14."
+    },
+    {
+      "key": "py-collections",
+      "title": "collections: deque and OrderedDict (Python docs)",
+      "url": "https://docs.python.org/3/library/collections.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "deque has O(1) appends and pops at both ends and O(n) in the middle; list pop(0) is O(n); OrderedDict.move_to_end and popitem(last=False) suit LRU caches."
+    },
+    {
+      "key": "py-functools",
+      "title": "functools: cache and lru_cache (Python docs)",
+      "url": "https://docs.python.org/3/library/functools.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "cache is lru_cache(maxsize=None); arguments must be hashable; maxsize default 128; cache_info reports hits, misses, maxsize, currsize."
+    },
+    {
+      "key": "py-graphlib",
+      "title": "graphlib.TopologicalSorter (Python docs)",
+      "url": "https://docs.python.org/3/library/graphlib.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "TopologicalSorter takes a dict of node to its predecessors, static_order gives an ordering, and CycleError is raised if a cycle exists."
+    },
+    {
+      "key": "py-sorting",
+      "title": "Sorting HOWTO (Python docs)",
+      "url": "https://docs.python.org/3/howto/sorting.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Sorts are guaranteed stable; key functions are called once per item; Python uses Timsort."
+    },
+    {
+      "key": "py-bisect",
+      "title": "bisect: array bisection (Python docs)",
+      "url": "https://docs.python.org/3/library/bisect.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "bisect_left and bisect_right on a sorted list; O(log n) search; insort is O(n) because of the insertion step."
+    },
+    {
+      "key": "py-sys",
+      "title": "sys: recursion limit (Python docs)",
+      "url": "https://docs.python.org/3/library/sys.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "getrecursionlimit and setrecursionlimit exist, a too-high limit can crash, RecursionError. The default value of 1000 is not stated on that page."
+    },
+    {
+      "key": "wiki-solid",
+      "title": "SOLID (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/SOLID",
+      "publisher": "Wikipedia",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "Statements of the five SOLID principles; the acronym was coined around 2004 by Michael Feathers, from principles Robert Martin introduced in 2000."
+    },
+    {
+      "key": "rg-strategy",
+      "title": "Strategy (refactoring.guru)",
+      "url": "https://refactoring.guru/design-patterns/strategy",
+      "publisher": "refactoring.guru",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Intent and applicability of the Strategy pattern."
+    },
+    {
+      "key": "rg-observer",
+      "title": "Observer (refactoring.guru)",
+      "url": "https://refactoring.guru/design-patterns/observer",
+      "publisher": "refactoring.guru",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Intent, structure (publisher and subscribers) and applicability of the Observer pattern."
+    },
+    {
+      "key": "rg-state",
+      "title": "State (refactoring.guru)",
+      "url": "https://refactoring.guru/design-patterns/state",
+      "publisher": "refactoring.guru",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Intent of the State pattern, its link to finite-state machines, and the weakness of conditional-based state machines."
+    },
+    {
+      "key": "iq-google-swe",
+      "title": "Google software engineer interview guide (Interview Query)",
+      "url": "https://www.interviewquery.com/interview-guides/google-software-engineer",
+      "publisher": "Interview Query",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Search summary only: Google loops described as mostly data structures and algorithms (graphs, trees, dynamic programming come up often), with system design emphasised at senior levels. Candidate-reported, not official."
+    },
+    {
+      "key": "techinterview-llm",
+      "title": "ML Engineer interview in the post-LLM era (techinterview.org)",
+      "url": "https://www.techinterview.org/post/3233474925/ml-engineer-interview-post-llm-era/",
+      "publisher": "techinterview.org",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Claims algorithmic coding and system design rounds are unchanged while ML system design is now often 'design an LLM-based system'. The author gives no data or method, so this is opinion."
+    },
+    {
+      "key": "huyen-formats",
+      "title": "Common interview formats (Machine Learning Interviews book)",
+      "url": "https://huyenchip.com/ml-interviews-book/contents/2.2.1-common-interview-formats.html",
+      "publisher": "Chip Huyen",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "ML onsites are typically 4 to 8 interviews including a coding question, ML theory, ML implementation and behavioral; coding challenges are 1 to 3 questions."
+    },
+    {
+      "key": "meta-hiring-process",
+      "title": "Meta Jobs Hiring Process",
+      "url": "https://www.metacareers.com/hiring-process/",
+      "publisher": "Meta",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Read directly: the process typically has multiple rounds (a recruiter conversation, initial screening, a full loop) over about 2 to 3 months; coding tasks may be writing code or solving algorithms; design interviews run in CoderPad with Mermaid Markdown; select roles include an authorized AI assistant in the coding environment, candidates are expected to use it, and no outside AI tools are authorized."
+    },
+    {
+      "key": "mdn-promise-all",
+      "title": "Promise.all() (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Promise.all returns results in input order, rejects with the first rejection, fulfils immediately for an empty iterable, keeps non-promise values."
+    },
+    {
+      "key": "mdn-structuredclone",
+      "title": "structuredClone() (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "structuredClone deep-copies values, supports circular references, throws DataCloneError for values it cannot serialise. The page does not list which types fail; that part is general knowledge."
+    },
+    {
+      "key": "apg-dialog",
+      "title": "Modal Dialog Pattern (W3C ARIA Authoring Practices)",
+      "url": "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+      "publisher": "W3C",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "role=dialog, aria-modal=true, aria-labelledby; focus moves in, Tab and Shift+Tab stay inside, Escape closes, focus returns to the opener."
+    },
+    {
+      "key": "apg-tabs",
+      "title": "Tabs Pattern (W3C ARIA Authoring Practices)",
+      "url": "https://www.w3.org/WAI/ARIA/apg/patterns/tabs/",
+      "publisher": "W3C",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "tablist, tab, tabpanel roles; aria-selected, aria-controls, aria-labelledby; Left and Right Arrow wrap; Home and End optional."
+    },
+    {
+      "key": "apg-combobox",
+      "title": "Combobox Pattern (W3C ARIA Authoring Practices)",
+      "url": "https://www.w3.org/WAI/ARIA/apg/patterns/combobox/",
+      "publisher": "W3C",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "role=combobox, aria-expanded, aria-controls, aria-activedescendant; Down Arrow, Enter, Escape behaviour."
+    },
+    {
+      "key": "web-virtualize",
+      "title": "Virtualize large lists with react-window (web.dev)",
+      "url": "https://web.dev/articles/virtualize-long-lists-react-window",
+      "publisher": "Google (web.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Windowing renders only what is visible, keeping the number of DOM nodes tied to the window size; large DOMs slow style calculation and mutations."
+    },
+    {
+      "key": "react-useoptimistic",
+      "title": "useOptimistic (React docs)",
+      "url": "https://react.dev/reference/react/useOptimistic",
+      "publisher": "Meta (react.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Optimistic state renders only while an Action is pending; if the Action throws, the UI shows the real value again."
+    },
+    {
+      "key": "mdn-sse",
+      "title": "Using server-sent events (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "One-way server-to-client stream over text/event-stream, automatic reconnect, limit of 6 connections per browser and domain without HTTP/2."
+    },
+    {
+      "key": "mdn-websockets",
+      "title": "WebSockets API (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Two-way interactive session without polling; WebSocket does not support backpressure (WebTransport does)."
+    },
+    {
+      "key": "tanstack-caching",
+      "title": "Caching (TanStack Query)",
+      "url": "https://tanstack.com/query/latest/docs/framework/react/guides/caching",
+      "publisher": "TanStack",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "staleTime default 0, gcTime default 5 minutes, cached data returned immediately while a refetch runs in the background."
+    },
+    {
+      "key": "ostep",
+      "title": "Operating Systems: Three Easy Pieces (table of contents)",
+      "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+      "publisher": "Arpaci-Dusseau, University of Wisconsin-Madison",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Book organised into virtualization, concurrency and persistence; chapter list for processes, scheduling, address spaces, paging, TLBs, swapping, threads, locks, condition variables, semaphores and concurrency bugs."
+    },
+    {
+      "key": "ostep-threads",
+      "title": "Concurrency: an introduction (OSTEP chapter 26)",
+      "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf",
+      "publisher": "Arpaci-Dusseau, University of Wisconsin-Madison",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Race condition (a counter at 50 ending at 51), critical section and mutual exclusion definitions. Read by extracting the PDF text locally."
+    },
+    {
+      "key": "py-glossary",
+      "title": "Python glossary: global interpreter lock",
+      "url": "https://docs.python.org/3/glossary.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Only one thread executes Python bytecode at a time in CPython, the GIL is released during I/O, and can be disabled in free-threaded builds from Python 3.13."
+    },
+    {
+      "key": "py-threading",
+      "title": "threading (Python docs)",
+      "url": "https://docs.python.org/3/library/threading.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Threads suit I/O-bound work; multiprocessing for CPU-bound; Lock, RLock, Condition (wait in a while loop), Semaphore, Event."
+    },
+    {
+      "key": "anthropic-contextual-retrieval",
+      "title": "Introducing Contextual Retrieval (Anthropic)",
+      "url": "https://www.anthropic.com/news/contextual-retrieval",
+      "publisher": "Anthropic",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Contextual embeddings and BM25 plus reranking; Anthropic's own experiments report top-20 failure rate 5.7% to 3.7%, 2.9% and 1.9%. Not independently verified."
+    },
+    {
+      "key": "anthropic-prompt-caching",
+      "title": "Prompt caching (Anthropic docs)",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+      "publisher": "Anthropic",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Prefix caching; 5-minute write 1.25x and read 0.1x base input price (some models differ), default 5-minute lifetime, exact prefix match, minimum length varies by model. Only the first part of a long page was read."
+    },
+    {
+      "key": "anthropic-evals",
+      "title": "Define success criteria and build evaluations (Anthropic docs)",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests",
+      "publisher": "Anthropic",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Specific, measurable success criteria; task-specific, automated evals; grading by exact match, code, or a different model. Only the first part of a long page was read."
+    },
+    {
+      "key": "sd-primer",
+      "title": "The System Design Primer (README)",
+      "url": "https://github.com/donnemartin/system-design-primer",
+      "publisher": "Donne Martin (GitHub, CC BY 4.0)",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "Full topic list (scalability, CAP, consistency and availability patterns, DNS, CDN push and pull, load balancer, reverse proxy, microservices, databases, caching strategies, asynchronism, TCP, UDP, RPC, REST), the four-step approach, powers of two, latency numbers, availability in numbers, and the list of solved interview questions."
+    },
+    {
+      "key": "sd-primer-twitter",
+      "title": "System Design Primer: design the Twitter timeline and search",
+      "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md",
+      "publisher": "Donne Martin (GitHub, CC BY 4.0)",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "100 million active users, 500 million tweets a day, 250 billion reads a month, 10 KB a tweet, fan-out on write into a memory cache, timeline entry layout, the hybrid for celebrity users."
+    },
+    {
+      "key": "sd-primer-crawler",
+      "title": "System Design Primer: design a web crawler",
+      "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/web_crawler/README.md",
+      "publisher": "Donne Martin (GitHub, CC BY 4.0)",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "1 billion links, weekly refresh, 500 KB a page, 2 PB a month; frontier ranking with Redis sorted sets; page signatures with Jaccard or cosine similarity; DNS caching; thin treatment of politeness."
+    },
+    {
+      "key": "sd-primer-querycache",
+      "title": "System Design Primer: design a key-value cache for search queries",
+      "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/query_cache/README.md",
+      "publisher": "Donne Martin (GitHub, CC BY 4.0)",
+      "kind": "community-guide",
+      "checked": "read",
+      "used_for": "LRU from a hash table and a doubly linked list, sharding by hash(query), consistent hashing preferred, TTL refresh, 270 bytes per entry and 4,000 requests a second."
+    },
+    {
+      "key": "hello-delivery",
+      "title": "Hello Interview: system design delivery framework",
+      "url": "https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery",
+      "publisher": "Hello Interview",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Six steps with time budgets: requirements (about 5 min), core entities (2), API (5), optional data flow (5), high-level design (10 to 15), deep dives (10)."
+    },
+    {
+      "key": "xu-vol1-toc",
+      "title": "System Design Interview, Volume 1 (Alex Xu): table of contents",
+      "url": "https://www.goodreads.com/book/show/35158217",
+      "publisher": "Search summaries of book listings",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Search summaries only: scale from zero to millions of users, back-of-the-envelope estimation, a framework, rate limiter, consistent hashing, key-value store, URL shortener, web crawler, notification system, news feed, chat system, search autocomplete, YouTube, Google Drive. Chapter 6 to 12 titles were not confirmed by the summaries."
+    },
+    {
+      "key": "xu-vol2-toc",
+      "title": "System Design Interview, Volume 2 (Alex Xu): table of contents",
+      "url": "https://lastminutelecture-study.pages.dev/books/system-design-interview-an-insider-s-guide-volume-2-2nd-edition/",
+      "publisher": "Search summaries of book listings",
+      "kind": "prep-guide",
+      "checked": "snippet",
+      "used_for": "Search summaries only: proximity service, nearby friends, Google Maps, distributed message queue, metrics monitoring, stock exchange, and others."
+    },
+    {
+      "key": "mdn-cdn",
+      "title": "CDN (MDN glossary)",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/CDN",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "CDN definition, nearer servers lower latency, lower origin load, and the caveats about extra DNS lookups and cache partitioning."
+    },
+    {
+      "key": "mdn-dns",
+      "title": "DNS (MDN glossary)",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/DNS",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "DNS is a hierarchical, decentralised naming system mapping names to IP addresses. The page does not cover caching or TTLs."
+    },
+    {
+      "key": "fowler-microservices",
+      "title": "Microservices (Martin Fowler and James Lewis)",
+      "url": "https://martinfowler.com/articles/microservices.html",
+      "publisher": "Martin Fowler",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Characteristics of microservices, the costs (distributed complexity, eventual consistency, multiplicative downtime, operational overhead) and the advice to start with a monolith."
+    },
+    {
+      "key": "grpc-intro",
+      "title": "Introduction to gRPC",
+      "url": "https://grpc.io/docs/what-is-grpc/introduction/",
+      "publisher": "gRPC",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "gRPC lets a client call a method on a remote server; Protocol Buffers are the interface definition language and message format. The page does not mention HTTP/2 or call types."
+    },
+    {
+      "key": "rfc9309",
+      "title": "RFC 9309: Robots Exclusion Protocol",
+      "url": "https://www.rfc-editor.org/rfc/rfc9309.html",
+      "publisher": "IETF",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "robots.txt location and format, user-agent groups, allow and disallow with the most specific rule winning, honour request, not access control, cache at most 24 hours."
+    },
+    {
+      "key": "discord-messages",
+      "title": "How Discord stores trillions of messages",
+      "url": "https://discord.com/blog/how-discord-stores-trillions-of-messages",
+      "publisher": "Discord",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Snowflake ids, partitioning by channel and time bucket, hot partitions, Cassandra to ScyllaDB, data services with consistent hashing, and Discord's own node and latency figures."
+    },
+    {
+      "key": "fcm-architecture",
+      "title": "FCM architectural overview",
+      "url": "https://firebase.google.com/docs/cloud-messaging/fcm-architecture",
+      "publisher": "Google (Firebase)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Trusted server sends to the FCM backend, which relays through Android transport, APNs and web push; registration tokens; TTL and priority are not covered on that page."
+    },
+    {
+      "key": "stripe-idempotency",
+      "title": "Designing robust and predictable APIs with idempotency (Stripe)",
+      "url": "https://stripe.com/blog/idempotency",
+      "publisher": "Stripe",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Client-generated Idempotency-Key, server replays the stored result, exponential backoff with jitter; does not cover key expiry, parameter mismatch or concurrent duplicates. Dated 2017."
+    },
+    {
+      "key": "dropbox-streaming-sync",
+      "title": "Streaming File Synchronization (Dropbox Tech Blog)",
+      "url": "https://dropbox.tech/infrastructure/streaming-file-synchronization",
+      "publisher": "Dropbox",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "4 MB blocks, SHA-256, blocklist, commit and need-blocks, per-request byte limit, streaming sync with a 293 versus 383 second example."
+    },
+    {
+      "key": "mdn-adaptive-streaming",
+      "title": "Setting up adaptive streaming media sources (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Audio_and_video_delivery/Setting_up_adaptive_streaming_media_sources",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Adaptive streaming splits media into chunks in several qualities; DASH .mpd and HLS .m3u8 manifests; no special server components over HTTP. Does not describe the switching algorithm."
+    },
+    {
+      "key": "uber-h3",
+      "title": "H3: Uber's Hexagonal Hierarchical Spatial Index",
+      "url": "https://www.uber.com/blog/h3/",
+      "publisher": "Uber",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "64-bit cell indexes from latitude, longitude and resolution 0 to 15, one seventh the area per finer level, hexagon neighbours equidistant, use for surge pricing and dispatch."
+    },
+    {
+      "key": "sklearn-cv",
+      "title": "Cross-validation: evaluating estimator performance (scikit-learn)",
+      "url": "https://scikit-learn.org/stable/modules/cross_validation.html",
+      "publisher": "scikit-learn",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Overfitting, held-out test set, validation set versus test set, k-fold CV, preprocessing learnt from training data, pipelines."
+    },
+    {
+      "key": "sklearn-linear",
+      "title": "Linear models (scikit-learn)",
+      "url": "https://scikit-learn.org/stable/modules/linear_model.html",
+      "publisher": "scikit-learn",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Ridge (L2 penalty, alpha shrinkage, collinearity), Lasso (L1, sparse coefficients, feature selection), elastic net with correlated features. Only the first part of the long page was read."
+    },
+    {
+      "key": "sklearn-metrics",
+      "title": "Metrics and scoring: model evaluation (scikit-learn)",
+      "url": "https://scikit-learn.org/stable/modules/model_evaluation.html",
+      "publisher": "scikit-learn",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Accuracy, precision, recall, F-beta, confusion matrix, ROC AUC without a threshold, balanced accuracy for imbalanced data. Only the first part of the long page was read."
+    },
+    {
+      "key": "evanmiller-ab",
+      "title": "How Not To Run an A/B Test (Evan Miller)",
+      "url": "https://www.evanmiller.org/how-not-to-run-an-ab-test.html",
+      "publisher": "Evan Miller",
+      "kind": "prep-guide",
+      "checked": "read",
+      "used_for": "Repeated significance testing inflates false positives (26.1% example), peeking table, fix the sample size in advance, n = 16 sigma^2 / delta^2, sequential and Bayesian alternatives. A single author's article, widely cited."
+    },
+    {
+      "key": "google-recsys",
+      "title": "Recommendation systems: candidate generation overview (Google Machine Learning)",
+      "url": "https://developers.google.com/machine-learning/recommendation/overview/candidate-generation",
+      "publisher": "Google",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Three-stage architecture (candidate generation, scoring, re-ranking), billions to hundreds or thousands, content-based versus collaborative filtering, shared embedding space and similarity measures. Does not cover cold start or why several generators are used."
+    },
+    {
+      "key": "mdn-box-model",
+      "title": "The box model (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Box_model",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Content, padding, border and margin boxes; the 410 by 210 versus 350 by 150 example; border-box pattern; margin collapsing rules."
+    },
+    {
+      "key": "mdn-flexbox",
+      "title": "Flexbox (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Flexbox",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Main and cross axes, display flex, flex-direction, flex-wrap, justify-content, align-items, the flex shorthand."
+    },
+    {
+      "key": "mdn-grid",
+      "title": "Grids (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Grids",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "display grid, grid-template-columns, the fr unit, gap, placing items, grid-template-areas. Does not give a flexbox versus grid rule of thumb."
+    },
+    {
+      "key": "mdn-responsive",
+      "title": "Responsive design (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_design",
+      "publisher": "Mozilla (MDN Web Docs)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Media queries and breakpoints, mobile first, relative units, fluid grids, responsive images, the viewport meta tag."
+    },
+    {
+      "key": "react-choose-state",
+      "title": "Choosing the state structure (react.dev)",
+      "url": "https://react.dev/learn/choosing-the-state-structure",
+      "publisher": "Meta (react.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Five principles: group related state, avoid contradictions, redundancy, duplication and deep nesting."
+    },
+    {
+      "key": "react-share-state",
+      "title": "Sharing state between components (react.dev)",
+      "url": "https://react.dev/learn/sharing-state-between-components",
+      "publisher": "Meta (react.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Lifting state up, controlled versus uncontrolled components, single source of truth."
+    },
+    {
+      "key": "react-reducer-context",
+      "title": "Scaling up with reducer and context (react.dev)",
+      "url": "https://react.dev/learn/scaling-up-with-reducer-and-context",
+      "publisher": "Meta (react.dev)",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Reducers keep handlers short, prop drilling, putting state and dispatch in context in three steps."
     }
   ],
   "levels": [

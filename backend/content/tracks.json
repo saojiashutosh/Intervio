@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "database",
+    "title": "Database engineering",
+    "blurb": "How databases really work, with the Django ORM angle: design, speed, transactions, scaling and running them in production."
+  },
+  {
+    "slug": "python-django",
+    "title": "Python and Django core",
+    "blurb": "The language and framework behaviour interviewers probe: Python internals, the Django request cycle, and authentication."
+  },
+  {
+    "slug": "swe-core",
+    "title": "Behavioral and interview skills",
+    "blurb": "How to tell your story: STAR answers with real numbers, and how interview loops are structured."
+  },
+  {
+    "slug": "dsa",
+    "title": "Data structures and algorithms",
+    "blurb": "The coding rounds: arrays and hash maps, stacks, linked lists, sorting, trees, graphs, heaps, recursion and dynamic programming, each with runnable Python and the complexity you must be able to state."
+  },
+  {
+    "slug": "lld",
+    "title": "Low-level design (object-oriented)",
+    "blurb": "Turn a one-line prompt into classes and methods: SOLID, the design patterns that come up, and worked designs (parking lot, LRU cache, vending machine)."
+  },
+  {
+    "slug": "cs-core",
+    "title": "Computer science fundamentals",
+    "blurb": "What Amazon lists beside data structures: operating systems, concurrency and internet topics. Processes, scheduling, virtual memory, threads, locks, deadlock and how HTTP works."
+  },
+  {
+    "slug": "system-design",
+    "title": "Scaling and distributed systems",
+    "blurb": "How a system grows past one server: load balancing, caching, partitioning, queues, rate limits, retries and consensus. Every lesson is a diagram you step through."
+  },
+  {
+    "slug": "delivery",
+    "title": "Git, containers and deployment",
+    "blurb": "Collaborate with Git, package with Docker, and ship through a pipeline to a real server."
+  },
+  {
+    "slug": "frontend",
+    "title": "Frontend engineering",
+    "blurb": "How the browser runs your code, how React decides what to redraw, and how to make pages fast and usable by everyone."
+  },
+  {
+    "slug": "data",
+    "title": "Data engineering",
+    "blurb": "Analytical SQL and the pipelines that move data reliably: batch, streaming, idempotency and quality."
+  },
+  {
+    "slug": "devops",
+    "title": "DevOps and reliability",
+    "blurb": "Measure services, set reliability targets, respond to incidents and manage infrastructure as code."
+  },
+  {
+    "slug": "ml",
+    "title": "Machine learning engineering",
+    "blurb": "Train and evaluate models honestly, then run them in production without silent failures."
+  }
+]
