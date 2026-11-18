@@ -2,7 +2,23 @@ from django.conf import settings
 from django.db import models
 
 
+class Track(models.Model):
+    """A subject area with its own levels and lessons (database, python-django, ...)."""
+
+    slug = models.SlugField(unique=True)
+    title = models.CharField(max_length=100)
+    blurb = models.CharField(max_length=300)
+    sort = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort", "id"]
+
+    def __str__(self):
+        return self.title
+
+
 class Level(models.Model):
+    track = models.ForeignKey(Track, on_delete=models.PROTECT, related_name="levels")
     level = models.PositiveSmallIntegerField(unique=True)
     title = models.CharField(max_length=100)
     weeks = models.CharField(max_length=40)
@@ -26,12 +42,18 @@ class Concept(models.Model):
     title = models.CharField(max_length=200)
     tagline = models.CharField(max_length=300)
     explain = models.JSONField(default=list)
+    # Plain-words opener: {"plain": one sentence, "story": an everyday situation, "maps": [[in the story, in the lesson], ...]}
+    everyday = models.JSONField(default=dict, blank=True)
     key_points = models.JSONField(default=list)
     sql = models.JSONField(default=list)
     django = models.JSONField(default=dict)
     exercise = models.TextField()
     pitfalls = models.JSONField(default=list)
     viz = models.CharField(max_length=30, blank=True)
+    # Optional hands-on widget shown under the main animation ("Try it yourself"): the id of an interactive viz.
+    lab = models.CharField(max_length=30, blank=True)
+    # Data-driven animation (used when viz == "scenes"): a list of scenes with predict + steps. See frontend Scenes viz.
+    scenes = models.JSONField(default=list, blank=True)
     # Roadmap inputs: beginner hours, 1 = interview-critical .. 3 = nice-to-have, reading links.
     hours = models.DecimalField(max_digits=4, decimal_places=1, default=3)
     priority = models.PositiveSmallIntegerField(default=2)
@@ -105,7 +127,11 @@ class Progress(models.Model):
 class Profile(models.Model):
     """What the learner told us; the roadmap is computed from it (see roadmap.py)."""
 
-    DOMAINS = [("django", "Django / Python backend"), ("backend", "Other backend"), ("student", "Student / new to backend")]
+    DOMAINS = [
+        ("django", "Django / Python backend"), ("backend", "Other backend"), ("student", "Student / new to backend"),
+        ("sde", "Software engineer (generalist)"), ("fullstack", "Full-stack"), ("frontend", "Frontend"),
+        ("data", "Data engineering"), ("devops", "DevOps / SRE"), ("ml", "Machine learning"),
+    ]
     GOALS = [("interview", "Prepare for interviews"), ("learn", "Learn in depth")]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
@@ -120,7 +146,7 @@ class Profile(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(condition=models.Q(weeks__gte=1, weeks__lte=52), name="profile_weeks_range"),
+            models.CheckConstraint(condition=models.Q(weeks__gte=0, weeks__lte=52), name="profile_weeks_range"),  # 0 = no deadline
             models.CheckConstraint(condition=models.Q(days_per_week__gte=1, days_per_week__lte=7), name="profile_days_range"),
             models.CheckConstraint(condition=models.Q(hours_per_day__gte=0.5, hours_per_day__lte=12), name="profile_hours_range"),
             models.CheckConstraint(condition=models.Q(experience_years__gte=0, experience_years__lte=30), name="profile_exp_range"),
@@ -213,3 +239,29 @@ class DomainTopic(models.Model):
     class Meta:
         ordering = ["domain__sort", "sort"]
         constraints = [models.CheckConstraint(condition=models.Q(band__in=["0-2", "2-5", "5+"]), name="topic_band_valid")]
+
+
+class Problem(models.Model):
+    """A practice problem with runnable cases. The statements are original; the cases run in the learner's browser (Pyodide) and in the test suite."""
+
+    DIFFICULTY = [("easy", "Easy"), ("medium", "Medium"), ("hard", "Hard")]
+    slug = models.SlugField(unique=True)
+    concept = models.ForeignKey(Concept, null=True, blank=True, on_delete=models.SET_NULL, related_name="problems")
+    title = models.CharField(max_length=120)
+    difficulty = models.CharField(max_length=10, choices=DIFFICULTY)
+    statement = models.TextField()
+    examples = models.JSONField(default=list)
+    starter = models.TextField()
+    prelude = models.TextField(blank=True)
+    cases = models.JSONField(default=list)         # [{"name", "code"}]: each code runs after the learner's code and must not raise
+    hints = models.JSONField(default=list)
+    solution = models.TextField()
+    notes = models.TextField(blank=True)
+    sort = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort", "slug"]
+
+    def __str__(self):
+        return self.title
+

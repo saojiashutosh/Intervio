@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from .models import CardState, Concept, Drill, Level, Progress, Question, SqlExercise, WeekPlan
+from .models import CardState, Concept, Drill, Level, Progress, Question, SqlExercise, Track, WeekPlan
 
-admin.site.register([Level, Drill, WeekPlan, SqlExercise, Progress, CardState])
+admin.site.register([Track, Level, Drill, WeekPlan, SqlExercise, Progress, CardState])
 
 
 @admin.register(Concept)
