@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import type { VizId } from '../types'
+import type { Scene, StageScene, VizId } from '../types'
 
 const registry = {
   index: lazy(() => import('./IndexViz')),
@@ -21,7 +21,14 @@ const registry = {
   cache: lazy(() => import('./CacheViz')),
   pagination: lazy(() => import('./PaginationViz')),
   security: lazy(() => import('./SecurityViz')),
-} satisfies Record<VizId, unknown>
+  sysdesign: lazy(() => import('./SysDesignViz')),
+  migrate: lazy(() => import('./MigrateViz')),
+  bigo: lazy(() => import('./BigOViz')),
+  algo: lazy(() => import('./AlgoViz')),
+} satisfies Record<Exclude<VizId, 'scenes' | 'stage'>, unknown>
+
+const Scenes = lazy(() => import('./ScenesViz'))
+const Stage = lazy(() => import('./StageViz'))
 
 const titles: Record<VizId, string> = {
   index: 'See how an index finds a row',
@@ -43,14 +50,21 @@ const titles: Record<VizId, string> = {
   cache: 'Stale cache: the invalidation race',
   pagination: 'Offset vs cursor: watch rows move',
   security: 'Attack it, then fix it',
+  sysdesign: 'Estimate the load, then pick the architecture',
+  migrate: 'Change a live schema without downtime',
+  bigo: 'Feel how fast each complexity class grows',
+  algo: 'Watch the algorithm patterns run',
+  scenes: 'Step through it',
+  stage: 'Watch the system, one step at a time',
 }
 
-export function Visualizer({ id }: { id: VizId }) {
-  const V = registry[id]
+export function Visualizer({ id, scenes = [] }: { id: VizId; scenes?: Scene[] | StageScene[] }) {
   return (
     <section className="viz card" aria-label={titles[id]}>
       <h3><span className="tag">Interactive</span> {titles[id]}</h3>
-      <Suspense fallback={<p className="muted">Loading animation…</p>}><V /></Suspense>
+      <Suspense fallback={<p className="muted">Loading animation…</p>}>
+        {id === 'stage' ? <Stage scenes={scenes as StageScene[]} /> : id === 'scenes' ? <Scenes scenes={scenes as Scene[]} /> : (() => { const V = registry[id]; return <V /> })()}
+      </Suspense>
     </section>
   )
 }
