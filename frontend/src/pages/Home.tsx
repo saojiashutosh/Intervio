@@ -30,11 +30,11 @@ export default function Home() {
     <>
       <section className="hero">
         <div>
-          <p className="eyebrow">Database engineering · interview prep</p>
-          <h1>Learn how databases really work — then explain it under pressure.</h1>
+          <p className="eyebrow">Engineering interview prep · {content.tracks.length} tracks</p>
+          <h1>Learn how it really works — then explain it under pressure.</h1>
           <p className="lead">
-            {concepts.length} core concepts, a roadmap built around your time, SQL drills, and animations that let you <em>break</em> things on purpose.
-            Every concept includes the Django ORM angle interviewers ask about.
+            {concepts.length} lessons across {content.tracks.map((t) => t.title).join(' · ')}. A roadmap built around your time, and animations that let you <em>break</em> things on purpose.
+            Database lessons include the Django ORM angle interviewers ask about.
           </p>
           <div className="row">
             {!profile && <Link className="btn primary" to="/profile">Build my personal roadmap</Link>}
@@ -48,7 +48,19 @@ export default function Home() {
         <div className="hero-ring"><Ring pct={pct} size={120} /><span className="muted small">{doneCount}/{concepts.length} concepts</span></div>
       </section>
 
-      {content.levels.map((lv) => {
+      <nav className="trackbar" aria-label="Tracks">
+        {content.tracks.map((t) => {
+          const list = concepts.filter((c) => content.levels.find((l) => l.level === c.level)?.track === t.slug)
+          const d = list.filter((c) => isDone(`concept:${c.slug}`)).length
+          return <a key={t.slug} href={`#track-${t.slug}`}>{t.title} <span className="muted small">{d}/{list.length}</span></a>
+        })}
+      </nav>
+
+      {content.tracks.map((t) => (
+        <div key={t.slug} id={`track-${t.slug}`} className="track">
+          <h2 className="track-title">{t.title}</h2>
+          <p className="muted">{t.blurb}</p>
+          {content.levels.filter((lv) => lv.track === t.slug).map((lv) => {
         const list = concepts.filter((c) => c.level === lv.level)
         return (
           <section key={lv.level} className="level">
@@ -70,6 +82,8 @@ export default function Home() {
           </section>
         )
       })}
+        </div>
+      ))}
     </>
   )
 }

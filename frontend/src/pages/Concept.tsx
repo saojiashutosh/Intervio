@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { api } from '../api'
 import { useContent, useProgress } from '../context'
+import type { ProblemRow } from '../types'
 import { CodeBlock } from '../components/CodeBlock'
 import { Cite } from '../components/Cite'
 import { Visualizer } from '../viz'
@@ -12,6 +14,22 @@ function QA({ q, a }: { q: string; a: string }) {
     <div className={`qa ${open ? 'open' : ''}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open}>{q}<span>{open ? '−' : '+'}</span></button>
       {open && <p>{a}</p>}
+    </div>
+  )
+}
+
+/** Problems from the problem bank that belong to this lesson (data structures and algorithms lessons). */
+function RelatedProblems({ slug }: { slug: string }) {
+  const [rows, setRows] = useState<ProblemRow[]>([])
+  useEffect(() => { let live = true; api.problems().then((r) => { if (live) setRows(r.filter((x) => x.concept === slug)) }).catch(() => {}); return () => { live = false } }, [slug])
+  if (!rows.length) return null
+  return (
+    <div className="card">
+      <b>Practice in the problem bank</b>
+      <ul className="problem-list">
+        {rows.map((r) => <li key={r.slug}><Link to={`/problems/${r.slug}`}>{r.title}</Link><span className={`diff ${r.difficulty}`}>{r.difficulty}</span></li>)}
+      </ul>
+      <p className="muted small">Write Python in the page and run it against tests, with nothing to install.</p>
     </div>
   )
 }
@@ -47,20 +65,23 @@ export default function ConceptPage() {
   const level = content.levels.find((l) => l.level === c.level)
   const key = `concept:${c.slug}`
   const sql = c.sql[Math.min(sqlTab, c.sql.length - 1)]
+  const track = content.tracks.find((t) => t.slug === level?.track)
+  const isDb = level?.track === 'database'
+  const hasDjango = Boolean(c.django?.code)
 
   const readMin = Math.max(1, Math.round(words(c.explain, c.key_points, c.pitfalls, c.exercise) / 200))
   const steps = [
     ...(c.viz ? [{ id: 'play', label: 'Play with it' }] : []),
     { id: 'read', label: 'Read' },
-    { id: 'sql', label: 'SQL' },
-    { id: 'django', label: 'Django' },
+    ...(c.sql.length ? [{ id: 'sql', label: isDb ? 'SQL' : 'Code' }] : []),
+    ...(hasDjango ? [{ id: 'django', label: 'Django' }] : []),
     { id: 'practice', label: 'Practice' },
     { id: 'interview', label: 'Check yourself' },
   ]
 
   return (
     <article className="concept">
-      <p className="crumbs"><Link to="/">Roadmap</Link> / Level {c.level}: {level?.title} / {c.week}</p>
+      <p className="crumbs"><Link to="/">Roadmap</Link> / {track?.title} / Level {c.level}: {level?.title} / {c.week}</p>
       <h1><span className="num">{c.n}</span> {c.title}</h1>
       <p className="lead">{c.tagline}</p>
       <p className="readtime">About {readMin} min to read{c.viz ? ' + 3–5 min with the animation' : ''}. Suggested order: play first, then read.</p>
@@ -69,7 +90,32 @@ export default function ConceptPage() {
         {steps.map((s, n) => <a key={s.id} href={`#${s.id}`}><span className="n">{n + 1}</span>{s.label}</a>)}
       </nav>
 
-      {c.viz && <div id="play"><Visualizer id={c.viz} /></div>}
+      {c.everyday?.story && (
+        <section className="everyday" aria-label="In everyday life">
+          <h2>In everyday life</h2>
+          <p className="plain"><b>In plain words:</b> {c.everyday.plain}</p>
+          <p>{c.everyday.story}</p>
+          {c.everyday.maps.length > 0 && (
+            <table>
+              <thead><tr><th>In the story</th><th>In this lesson</th></tr></thead>
+              <tbody>{c.everyday.maps.map(([a, b]) => <tr key={a}><td>{a}</td><td>{b}</td></tr>)}</tbody>
+            </table>
+          )}
+          <p className="muted small">A comparison to help you picture it. Real systems are more detailed, and the lesson below gives the exact version.</p>
+        </section>
+      )}
+
+      {c.viz && (
+        <div id="play">
+          <Visualizer id={c.viz} scenes={c.scenes} />
+          {c.lab && (
+            <details className="lab">
+              <summary>Try it yourself: the interactive lab</summary>
+              <Visualizer id={c.lab} />
+            </details>
+          )}
+        </div>
+      )}
 
       <section id="read">
         <h2>Understand it</h2>
@@ -78,23 +124,28 @@ export default function ConceptPage() {
         <div className="callout"><h4>Remember this</h4><ul>{c.key_points.map((k) => <li key={k}>{k}</li>)}</ul></div>
       </section>
 
-      <section id="sql">
-        <h2>In SQL</h2>
-        {c.sql.length > 1 && (
-          <div className="seg">{c.sql.map((s, idx) => <button key={s.title} className={idx === sqlTab ? 'on' : ''} onClick={() => setSqlTab(idx)}>{s.title}</button>)}</div>
-        )}
-        <CodeBlock code={sql.code} lang="sql" title={sql.title} />
-      </section>
+      {c.sql.length > 0 && (
+        <section id="sql">
+          <h2>{isDb ? 'In SQL' : 'Try it in code'}</h2>
+          {c.sql.length > 1 && (
+            <div className="seg">{c.sql.map((s, idx) => <button key={s.title} className={idx === sqlTab ? 'on' : ''} onClick={() => setSqlTab(idx)}>{s.title}</button>)}</div>
+          )}
+          <CodeBlock code={sql.code} lang={(sql.lang ?? 'sql') as 'sql' | 'py' | 'sh' | 'js'} title={sql.title} />
+        </section>
+      )}
 
-      <section id="django">
-        <h2>In Django <span className="tag">your day job</span></h2>
-        <CodeBlock code={c.django.code} lang="py" title={c.django.title} />
-        {c.django.note && <p className="callout">{c.django.note}</p>}
-      </section>
+      {hasDjango && (
+        <section id="django">
+          <h2>In Django <span className="tag">your day job</span></h2>
+          <CodeBlock code={c.django.code} lang="py" title={c.django.title} />
+          {c.django.note && <p className="callout">{c.django.note}</p>}
+        </section>
+      )}
 
       <section id="practice">
         <h2>Practice</h2>
         <p className="exercise">{c.exercise}</p>
+        <RelatedProblems slug={c.slug} />
         <h3>Common pitfalls</h3>
         <ul className="pitfalls">{c.pitfalls.map((p) => <li key={p}>{p}</li>)}</ul>
       </section>

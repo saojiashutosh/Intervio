@@ -89,7 +89,7 @@ export default function MyPlanPage() {
         <Ring pct={pct} />
         <div>
           <p><b>{s.planned_hours} h</b> of study over <b>{s.days_used}</b> days{s.end_date && <>, finishing <b>{niceDate(s.end_date)}</b></>}.</p>
-          <p className="muted small">{profile.experience_years} yrs experience · {profile.hours_per_day} h × {profile.days_per_week} days/week · {profile.weeks} weeks · {profile.goal === 'interview' ? 'interview prep' : 'deep learning'}</p>
+          <p className="muted small">{profile.experience_years} yrs experience · {profile.hours_per_day} h × {profile.days_per_week} days/week · {profile.weeks === 0 ? `about ${Math.ceil(s.study_days / profile.days_per_week)} weeks, no deadline` : `${profile.weeks} weeks`} · {profile.goal === 'interview' ? 'interview prep' : 'deep learning'}</p>
           <p className="muted small">{doneCount}/{sessionsAll.length} sessions done</p>
         </div>
       </section>
