@@ -14,6 +14,8 @@ const registry = {
   hashring: lazy(() => import('./SystemVisuals').then((m) => ({ default: m.HashRingViz }))),
   'celery-flow': lazy(() => import('./SystemVisuals').then((m) => ({ default: m.CeleryFlowViz }))),
   wal: lazy(() => import('./SystemVisuals').then((m) => ({ default: m.WalViz }))),
+  'sd-framework': lazy(() => import('./OpsVisuals').then((m) => ({ default: m.SdFramework }))),
+  pool: lazy(() => import('./OpsVisuals').then((m) => ({ default: m.PoolViz }))),
   'cache-aside': lazy(() => import('./SystemVisuals').then((m) => ({ default: m.CacheAsideViz }))),
 }
 
@@ -33,6 +35,8 @@ export const INLINE_TITLES: Record<InlineId, string> = {
   'celery-flow': 'What happens to a Celery task',
   wal: 'Crash recovery with the write-ahead log',
   'cache-aside': 'Cache-aside: hit, miss and invalidation',
+  'sd-framework': 'Answer a design question in six steps',
+  pool: 'Connection pools: why 3 servers can break a database',
 }
 
 export const isInlineId = (id: string): id is InlineId => id in registry
