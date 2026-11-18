@@ -1,4 +1,4 @@
-import type { Card, CardStats, Content, Profile, Roadmap } from './types'
+import type { Card, CardStats, Content, ProblemFull, ProblemRow, Profile, Roadmap } from './types'
 
 const TOKEN_KEY = 'intervio.token'
 const USER_KEY = 'intervio.user'
@@ -31,6 +31,8 @@ const post = <T,>(path: string, data: unknown) => request<T>(path, { method: 'PO
 
 export const api = {
   content: () => request<Content>('/content/'),
+  problems: () => request<ProblemRow[]>('/problems/'),
+  problem: (slug: string) => request<ProblemFull>(`/problems/${slug}/`),
   register: (username: string, password: string) => post<{ token: string; username: string }>('/auth/register/', { username, password }),
   login: (username: string, password: string) => post<{ token: string; username: string }>('/auth/login/', { username, password }),
   roadmap: (p: Profile) => post<Roadmap>('/roadmap/', p),

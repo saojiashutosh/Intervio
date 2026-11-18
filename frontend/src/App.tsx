@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { Providers, useAuth, useContent } from './context'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
+import { Providers, useContent } from './context'
+import { SearchPalette, Sidebar, TopBar } from './components/Chrome'
 import Home from './pages/Home'
 import ConceptPage from './pages/Concept'
 import PlanPage from './pages/Plan'
@@ -10,6 +11,7 @@ import DomainsPage from './pages/Domains'
 import SourcesPage from './pages/Sources'
 import ProfilePage from './pages/Profile'
 import PracticePage from './pages/Practice'
+import { ProblemPage, ProblemsPage } from './pages/Problems'
 import ProjectsPage from './pages/Projects'
 import InterviewPage from './pages/Interview'
 import LoginPage from './pages/Login'
@@ -21,24 +23,24 @@ function ScrollTop() {
 }
 
 function Shell() {
-  const { user, signOut } = useAuth()
   const { content, error } = useContent()
+  const [menu, setMenu] = useState(false)
+  const [search, setSearch] = useState(false)
+  const { pathname } = useLocation()
+  useEffect(() => { setMenu(false) }, [pathname])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((v) => !v) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   return (
     <>
-      <header className="nav">
-        <Link to="/" className="brand">🗄️ Intervio</Link>
-        <nav aria-label="Main">
-          <NavLink to="/" end>Roadmap</NavLink>
-          <NavLink to="/my-plan">My plan</NavLink>
-          <NavLink to="/domains">Domains</NavLink>
-          <NavLink to="/practice">Practice</NavLink>
-          <NavLink to="/projects">Projects</NavLink>
-          <NavLink to="/interview">Interview</NavLink>
-        </nav>
-        <div className="who">
-          {user ? <><span className="muted small">{user}</span><button className="ghost small" onClick={signOut}>Sign out</button></> : <Link className="btn ghost small" to="/login">Sign in</Link>}
-        </div>
-      </header>
+      <TopBar onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
+      <SearchPalette open={search} onClose={() => setSearch(false)} />
+      <div className="layout">
+        <Sidebar open={menu} onClose={() => setMenu(false)} />
       <main className="container"><ErrorBoundary>
         {error && <div className="card"><h3>Can’t load content</h3><p>{error}</p><p className="muted small">Start the API: <code>cd backend &amp;&amp; .venv\Scripts\python manage.py runserver</code></p></div>}
         {!content && !error && <p className="muted">Loading…</p>}
@@ -51,12 +53,15 @@ function Shell() {
           <Route path="/sources" element={<SourcesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/practice" element={<PracticePage />} />
+          <Route path="/problems" element={<ProblemsPage />} />
+          <Route path="/problems/:slug" element={<ProblemPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/interview" element={<InterviewPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<p>Page not found. <Link to="/">Back home</Link></p>} />
         </Routes>
       </ErrorBoundary></main>
+      </div>
       <footer className="foot muted small">Intervio · learn it, break it, explain it. · <Link to="/sources">Sources &amp; trust levels</Link></footer>
     </>
   )
