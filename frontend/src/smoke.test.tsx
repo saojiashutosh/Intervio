@@ -5,6 +5,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App'
 
+// The real runner needs a Web Worker and downloads Python (checked in a real browser). Here it is replaced by a controllable fake.
+const runMock = vi.hoisted(() => ({ next: { results: [] as { name: string; ok: boolean; error?: string }[] } as { results: { name: string; ok: boolean; error?: string }[]; stopped?: boolean; error?: string } }))
+vi.mock('./lib/pyrunner', () => ({ stopRun: () => {}, runCases: async (_p: string, _c: string, cases: { name: string }[], onStatus?: (s: string) => void) => { onStatus?.('running'); return runMock.next.results.length || runMock.next.stopped || runMock.next.error ? runMock.next : { results: cases.map((c) => ({ name: c.name, ok: true })) } } }))
+
 const API = 'http://127.0.0.1:8000'
 
 beforeAll(() => {
@@ -16,6 +20,16 @@ beforeAll(() => {
 afterEach(() => { cleanup(); localStorage.clear() })
 
 const IGNORED = /not wrapped in act|ReactDOMTestUtils/
+
+/** Click the stage's own Next button n times. */
+const stageNext = (c: HTMLElement, n: number) => {
+  for (let i = 0; i < n; i++) {
+    const b = c.querySelector<HTMLButtonElement>('.stage-nav .primary')
+    if (b && !b.disabled) fireEvent.click(b)
+  }
+}
+/** Queries scoped to the old interactive widget, which now sits in a collapsible lab under the stage. */
+const inLab = (c: HTMLElement) => { const d = c.querySelector('details.lab') as HTMLDetailsElement; d.open = true; return within(d) }
 
 async function visit(path: string, expectText: RegExp) {
   window.history.pushState({}, '', path)
@@ -37,7 +51,7 @@ async function visit(path: string, expectText: RegExp) {
 
 describe('pages render', () => {
   const pages: [string, RegExp][] = [
-    ['/', /Learn how databases really work/],
+    ['/', /Learn how it really works/],
     ['/plan', /12-week study plan/],
     ['/my-plan', /Your personal roadmap/],
     ['/profile', /Build my roadmap/],
@@ -84,26 +98,29 @@ describe('animations respond to interaction', () => {
 
   it('N+1: switching strategy changes the query count', async () => {
     const c = await visit('/concept/django-orm', /Interactive/)
-    await screen.findAllByText(/queries:/)
-    click(/Run the page/)
+    const lab = inLab(c)
+    await lab.findAllByText(/queries:/)
+    fireEvent.click(lab.getAllByRole('button', { name: /Run the page/ })[0])
     await waitFor(() => expect(c.querySelector('.querylog code')).not.toBeNull())
-    click(/select_related/)
+    fireEvent.click(lab.getAllByRole('button', { name: /select_related/ })[0])
     await waitFor(() => expect(c.textContent).toMatch(/1 query no matter how many orders/))
   })
   it('on_commit race: steps through both versions', async () => {
     const c = await visit('/concept/celery-async', /Interactive/)
-    await screen.findByText(/Web request/)
-    click(/next step/i); click(/next step/i); click(/next step/i)
+    const lab = inLab(c)
+    await lab.findAllByText(/Web request/)
+    for (let i = 0; i < 3; i++) fireEvent.click(lab.getAllByRole('button', { name: /next step/i })[0])
     await waitFor(() => expect(c.textContent).toMatch(/DoesNotExist/))
-    click(/transaction\.on_commit/)
+    fireEvent.click(lab.getAllByRole('button', { name: /transaction\.on_commit/ })[0])
     await waitFor(() => expect(c.textContent).not.toMatch(/FAILED/))
   })
   it('lock race: naive then atomic', async () => {
     const c = await visit('/concept/locks-mvcc', /Interactive/)
-    await screen.findByText(/Buyer|Predict/)
-    for (let i = 0; i < 4; i++) click(/next step/i)
+    const lab = inLab(c)
+    await lab.findAllByText(/Buyer|Predict/)
+    for (let i = 0; i < 4; i++) fireEvent.click(lab.getAllByRole('button', { name: /next step/i })[0])
     await waitFor(() => expect(c.textContent).toMatch(/Oversold/))
-    click(/Atomic conditional UPDATE/)
+    fireEvent.click(lab.getAllByRole('button', { name: /Atomic conditional UPDATE/ })[0])
     await waitFor(() => expect(c.querySelector('.bubble')).toBeNull())
   })
   it('isolation: both levels', async () => {
@@ -177,10 +194,10 @@ describe('delete my roadmap', () => {
 })
 
 describe('every concept has an animation', () => {
-  it('shows the Interactive panel on all 19 concept pages', async () => {
+  it('shows the Interactive panel on every concept page', async () => {
     const res = await fetch('/api/content/')
     const content = await res.json() as { concepts: { slug: string; viz: string }[] }
-    expect(content.concepts.length).toBe(19)
+    expect(content.concepts.length).toBeGreaterThanOrEqual(21)
     expect(content.concepts.filter((c) => !c.viz)).toEqual([])
   })
 })
@@ -293,10 +310,11 @@ describe('new animations respond to interaction', () => {
   })
   it('security: injection leaks all rows, IDOR leaks another order', async () => {
     const c = await visit('/concept/web-security', /Interactive/)
+    const lab = inLab(c)
     await waitFor(() => expect(c.textContent).toMatch(/Every customer leaked/))
-    click(/IDOR/)
+    fireEvent.click(lab.getAllByRole('button', { name: /IDOR/ })[0])
     await waitFor(() => expect(c.textContent).toMatch(/Asha just read Ravi's order/))
-    click(/Authorizes the object/)
+    fireEvent.click(lab.getAllByRole('button', { name: /Authorizes the object/ })[0])
     await waitFor(() => expect(c.textContent).toMatch(/404/))
   })
 })
@@ -369,5 +387,429 @@ describe('visuals embedded in lessons', () => {
     c = await visit('/concept/consistency', /Interactive/)
     const f3 = await fig('Cache-aside: hit, miss and invalidation'); press(f3, 'Write: invalidate'); next(f3, 4)
     await waitFor(() => expect(c.textContent).toMatch(/cache: product:7 = v2/))
+  })
+})
+
+describe('system design and production-ops lessons', () => {
+  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const fig = async (label: string) => within(await screen.findByLabelText(label))
+  const press = (f: ReturnType<typeof within>, name: RegExp | string, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(f.getByRole('button', { name })) }
+
+  it('sysdesign: the numbers decide the architecture', async () => {
+    const c = await visit('/concept/system-design', /Interactive/)
+    const lab = inLab(c)
+    const labClick = async (n: string) => fireEvent.click((await lab.findAllByRole('button', { name: n }))[0])
+    await labClick('Small SaaS / blog')
+    await waitFor(() => expect(c.textContent).toMatch(/One primary can handle the writes\. Do not shard yet/))
+    await labClick('Chat app')
+    await waitFor(() => expect(c.textContent).toMatch(/Because peak writes .* are above/))
+    expect(c.querySelector('.archbox.on')).not.toBeNull()
+  })
+  it('sd-framework: six steps end at trade-offs', async () => {
+    const c = await visit('/concept/system-design', /Interactive/)
+    const f = await fig('Answer a design question in six steps')
+    press(f, /next step/i, 6)
+    await waitFor(() => expect(c.textContent).toMatch(/Step 6: State trade-offs and failure modes/))
+  })
+  it('migrate: one-step rename fails, expand-backfill-contract does not', async () => {
+    const c = await visit('/concept/prod-ops', /Interactive/)
+    const main = inLab(c)
+    await main.findAllByRole('button', { name: /next step/i })
+    press(main, /next step/i, 3)
+    await waitFor(() => expect(c.textContent).toMatch(/column "name" does not exist/))
+    press(main, /Expand, backfill, contract/)
+    press(main, /next step/i, 6)
+    await waitFor(() => expect(c.textContent).toMatch(/Contract: DROP COLUMN name/))
+    expect(c.textContent).toMatch(/Done with zero errors/)
+  })
+  it('pool: too many instances exhaust connections, a pool caps them', async () => {
+    const c = await visit('/concept/prod-ops', /Interactive/)
+    const f = await fig('Connection pools: why 3 servers can break a database')
+    fireEvent.change(f.getByLabelText('App instances'), { target: { value: '12' } })
+    await waitFor(() => expect(c.textContent).toMatch(/too many clients already/))
+    press(f, /Shared pool/)
+    await waitFor(() => expect(c.textContent).toMatch(/share 40 real connections/))
+  })
+})
+
+describe('tracks and the new lessons', () => {
+  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const next = (n: number) => { for (let i = 0; i < n; i++) click(/next step/i) }
+
+  it('home groups lessons into tracks', async () => {
+    const c = await visit('/', /Learn how it really works/)
+    const bar = c.querySelector('nav.trackbar') as HTMLElement
+    for (const t of [/Database engineering/, /Python and Django core/, /Behavioral and interview skills/, /Data structures and algorithms/, /Low-level design/, /Git, containers and deployment/]) {
+      expect(bar.textContent).toMatch(t)
+    }
+    expect(c.querySelectorAll('.track').length).toBeGreaterThanOrEqual(4)
+    expect(c.textContent).toMatch(/Behavioral Interviews and STAR Stories/)
+  })
+  it('lessons without SQL do not show an SQL section', async () => {
+    const c = await visit('/concept/behavioral-star', /Interactive/)
+    expect(c.textContent).not.toMatch(/In SQL/)
+    expect(c.querySelector('#sql')).toBeNull()
+    expect(c.querySelector('#django')).toBeNull()
+    expect(c.querySelector('#interview')).not.toBeNull()
+  })
+  it('bigo: growth table and the list-vs-set comparison', async () => {
+    const c = await visit('/concept/big-o-structures', /Interactive/)
+    const lab = inLab(c)
+    await waitFor(() => expect(c.textContent).toMatch(/O\(n²\)/))
+    fireEvent.click((await lab.findAllByRole('button', { name: /Pick the data structure/ }))[0])
+    await waitFor(() => expect(c.textContent).toMatch(/x in seen_set/))
+  })
+  it('algo: binary search finds 91 in 4 looks, BFS reaches G in 3 hops', async () => {
+    const c = await visit('/concept/coding-patterns', /Interactive/)
+    const lab = inLab(c)
+    const labClick = async (n: string | RegExp) => fireEvent.click((await lab.findAllByRole('button', { name: n }))[0])
+    const labNext = async (k: number) => { for (let i = 0; i < k; i++) await labClick(/next step/i) }
+    await labClick('Find 91'); await labNext(5)
+    await waitFor(() => expect(c.textContent).toMatch(/Found after 4 looks/))
+    await labClick('BFS (graph)'); await labNext(9)
+    await waitFor(() => expect(c.textContent).toMatch(/G is 3 hops from A/))
+  })
+  it('python-internals: mutable default is shared between calls', async () => {
+    const c = await visit('/concept/python-internals', /Interactive/)
+    stageNext(c, 2)
+    await waitFor(() => expect(c.textContent).toMatch(/Second call: f\(2\)/))
+    expect(c.textContent).toMatch(/the same list, now \[1, 2\]/)
+  })
+  it('request cycle: response travels back out in reverse order', async () => {
+    const c = await visit('/concept/django-request-cycle', /Interactive/)
+    stageNext(c, 4)
+    await waitFor(() => expect(c.textContent).toMatch(/Response travels back out/))
+    click(/A middleware short-circuits/); stageNext(c, 2)
+    await waitFor(() => expect(c.textContent).toMatch(/B rejects the request/))
+  })
+  it('auth: JWT cannot be revoked like a session', async () => {
+    const c = await visit('/concept/auth-sessions-jwt', /Interactive/)
+    click(/JWT: signed, not looked up/); stageNext(c, 4)
+    await waitFor(() => expect(c.textContent).toMatch(/The catch: revocation/))
+    expect(c.textContent).toMatch(/Long-lived JWT/)
+  })
+  it('git, docker and ci/cd scenes step through', async () => {
+    let c = await visit('/concept/git-workflow', /Interactive/)
+    stageNext(c, 3)
+    await waitFor(() => expect(c.textContent).toMatch(/Merge feature into main/))
+    cleanup()
+    c = await visit('/concept/docker-containers', /Interactive/)
+    stageNext(c, 3)
+    await waitFor(() => expect(c.textContent).toMatch(/REBUILT/))
+    cleanup()
+    c = await visit('/concept/ci-cd-deploy', /Interactive/)
+    stageNext(c, 2)
+    await waitFor(() => expect(c.textContent).toMatch(/A test fails/))
+  })
+})
+
+describe('every track has working lessons', () => {
+  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const next = (n: number) => { for (let i = 0; i < n; i++) click(/next step/i) }
+
+  it('the profile page offers every background', async () => {
+    const c = await visit('/profile', /Build my roadmap/)
+    const opts = [...c.querySelectorAll('select option')].map((o) => (o as HTMLOptionElement).value)
+    for (const d of ['django', 'backend', 'student', 'sde', 'fullstack', 'frontend', 'data', 'devops', 'ml']) expect(opts).toContain(d)
+  })
+  it('home lists all twelve tracks', async () => {
+    const c = await visit('/', /Learn how it really works/)
+    const bar = (c.querySelector('nav.trackbar') as HTMLElement).textContent ?? ''
+    for (const t of ['Database engineering', 'Python and Django core', 'Behavioral and interview skills', 'Data structures and algorithms', 'Low-level design', 'Computer science fundamentals', 'Git, containers', 'Frontend engineering', 'Data engineering', 'DevOps and reliability', 'Machine learning engineering', 'Scaling and distributed systems']) {
+      expect(bar).toContain(t)
+    }
+  })
+  it('new lessons across tracks step through their animations', async () => {
+    const cases: [string, number, RegExp][] = [
+      ['/concept/drf-internals', 5, /Valid data: save\(\) creates the object/],
+      ['/concept/django-testing', 5, /When the run ends/],
+      ['/concept/http-networking-basics', 5, /Render and fetch more/],
+      ['/concept/cloud-basics', 5, /AZ a fails again/],
+      ['/concept/js-event-loop', 4, /Now take one task/],
+      ['/concept/react-rendering', 4, /Why purity matters/],
+      ['/concept/web-performance-a11y', 5, /CLS: reserve space/],
+      ['/concept/sql-analytics', 4, /Now compare each person with their department/],
+      ['/concept/data-pipelines', 4, /Upsert: same result/],
+      ['/concept/spark-batch', 4, /Each action can recompute/],
+      ['/concept/observability-slos', 5, /Each signal did a different job/],
+      ['/concept/incident-management', 6, /Blameless postmortem/],
+      ['/concept/infrastructure-as-code', 4, /Apply again: nothing to do/],
+      ['/concept/ml-fundamentals', 4, /Judge only on held-out data/],
+      ['/concept/ml-production', 4, /The fix|Fix: one code path/],
+      ['/concept/ml-system-design', 5, /Serve and monitor/],
+    ]
+    for (const [path, steps, text] of cases) {
+      const c = await visit(path, /Interactive/)
+      stageNext(c, steps)
+      await waitFor(() => expect(c.textContent).toMatch(text))
+      cleanup()
+    }
+  })
+  it('non-database lessons never show an SQL heading unless they have SQL', async () => {
+    const c = await visit('/concept/infrastructure-as-code', /Interactive/)
+    expect(c.textContent).not.toMatch(/In SQL/)
+    expect(c.textContent).toMatch(/Try it in code/)
+  })
+})
+
+describe('data structures, low-level design and interview-skills lessons', () => {
+  const NEW = ['arrays-hashing', 'stacks-queues', 'linked-lists', 'sorting-searching', 'trees-bst', 'graphs-traversal', 'heaps-priority-queues',
+    'recursion-backtracking', 'dynamic-programming', 'oop-solid', 'design-patterns', 'lld-parking-lot', 'lld-lru-cache', 'lld-state-machine',
+    'interview-loop-formats', 'coding-interview-method', 'js-utility-functions', 'ui-coding-components', 'frontend-system-design',
+    'llm-system-design', 'os-processes-memory', 'concurrency-basics',
+    'sd-interview-framework', 'back-of-envelope-estimation', 'latency-throughput-availability', 'cap-consistency-patterns', 'dns-cdn-reverse-proxy',
+    'microservices-communication', 'design-news-feed', 'design-web-crawler', 'design-key-value-store', 'design-chat-system', 'design-notification-system',
+    'design-autocomplete', 'design-file-storage', 'design-video-streaming', 'design-proximity-service', 'design-payment-system',
+    'ml-generalization-regularization', 'ml-metrics-experimentation', 'recommender-system-design', 'css-layout-responsive', 'react-state-management']
+  it.each(NEW)('/concept/%s renders, steps through and has code and questions', async (slug) => {
+    const errors: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { const m = a.map(String).join(' '); if (!IGNORED.test(m)) errors.push(m) })
+    try {
+      const c = await visit(`/concept/${slug}`, /Why this priority\?/)
+      await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+      const rail = () => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
+      const n = rail().length
+      expect(n).toBeGreaterThanOrEqual(6)
+      const seen = new Set<string>()
+      for (let i = 0; i < n; i++) {
+        fireEvent.click(rail()[i])
+        const skip = c.querySelector<HTMLButtonElement>('.linkish')
+        if (skip) fireEvent.click(skip)
+        await waitFor(() => expect(c.querySelector('.stage-text h4')?.textContent?.length ?? 0).toBeGreaterThan(3))
+        seen.add(c.querySelector('.stage-text h4')!.textContent!)
+      }
+      expect(seen.size).toBe(n)
+      expect(c.textContent).toMatch(/interview questions/i)
+      expect(c.textContent).toMatch(/Read & refer/)
+      expect(errors).toEqual([])
+    } finally { spy.mockRestore() }
+  })
+  it('the SDE roadmap leads with data structures and algorithms and explains its weighting', async () => {
+    const start = new Date().toLocaleDateString('en-CA')
+    localStorage.setItem('intervio.profile', JSON.stringify({ domain: 'sde', goal: 'interview', experience_years: 1.5, weeks: 10, hours_per_day: 2, days_per_week: 6, start_date: start }))
+    const c = await visit('/my-plan', /Full schedule/)
+    expect(c.textContent).toMatch(/big-company software engineer loops/)
+    expect(c.textContent).toMatch(/Arrays and Hash Maps/)
+    expect(c.textContent).toMatch(/Design an LRU Cache|The LLD Method/)
+  })
+})
+
+describe('stage lessons: isometric step-through diagrams', () => {
+  const STAGE = ['request-path', 'scaling-stateless', 'load-balancing', 'caching-at-scale', 'consistent-hashing', 'message-queues',
+    'rate-limiting', 'timeouts-retries', 'consensus-leader-election', 'design-url-shortener']
+  const rail = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
+  const heading = (c: HTMLElement) => c.querySelector('.stage-text h4')?.textContent ?? ''
+
+  it.each(STAGE)('%s: every step renders a diagram, text and no errors', async (slug) => {
+    const errors: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { const m = a.map(String).join(' '); if (!IGNORED.test(m)) errors.push(m) })
+    try {
+      const c = await visit(`/concept/${slug}`, /Interactive/)
+      await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+      const steps = rail(c)
+      expect(steps.length).toBeGreaterThanOrEqual(8)
+      const seen = new Set<string>()
+      for (let i = 0; i < steps.length; i++) {
+        fireEvent.click(rail(c)[i])
+        const skip = c.querySelector<HTMLButtonElement>('.linkish')
+        if (skip) fireEvent.click(skip)
+        await waitFor(() => expect(heading(c).length).toBeGreaterThan(3))
+        seen.add(heading(c))
+        expect(c.querySelector('.stage-canvas svg'), `step ${i + 1} has no diagram`).not.toBeNull()
+        expect(c.querySelectorAll('.stage-canvas svg .node:not(.gone)').length, `step ${i + 1} shows no nodes`).toBeGreaterThan(0)
+        expect(c.querySelector('.stage-hud .hud'), `step ${i + 1} has no HUD`).not.toBeNull()
+        expect(c.querySelector('.stage-text p:not(.stage-step)'), `step ${i + 1} has no explanation`).not.toBeNull()
+        expect(c.querySelector('[role=alert]')).toBeNull()
+      }
+      expect(seen.size, 'every step should have its own title').toBe(steps.length)
+      expect(errors).toEqual([])
+    } finally { spy.mockRestore() }
+  })
+
+  const FORMER_WIDGETS = ['er-modelling', 'keys', 'normalization', 'denormalization', 'data-types', 'constraints', 'sql-vs-nosql', 'explain',
+    'indexing', 'consistency', 'drf-api', 'web-security', 'system-design', 'big-o-structures', 'coding-patterns']
+  it.each(FORMER_WIDGETS)('%s: stepped through, with its old widget kept as a lab', async (slug) => {
+    const errors: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { const m = a.map(String).join(' '); if (!IGNORED.test(m)) errors.push(m) })
+    try {
+      const c = await visit(`/concept/${slug}`, /Interactive/)
+      await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+      expect(c.querySelector('details.lab'), 'the old widget should remain as a lab').not.toBeNull()
+      const steps = rail(c)
+      expect(steps.length).toBeGreaterThanOrEqual(6)
+      const seen = new Set<string>()
+      for (let i = 0; i < steps.length; i++) {
+        fireEvent.click(rail(c)[i])
+        const skip = c.querySelector<HTMLButtonElement>('.linkish')
+        if (skip) fireEvent.click(skip)
+        await waitFor(() => expect(heading(c).length).toBeGreaterThan(3))
+        seen.add(heading(c))
+        expect(c.querySelector('.stage-text p:not(.stage-step)'), `step ${i + 1} has no explanation`).not.toBeNull()
+        if (c.querySelector('.stage-canvas svg')) expect(c.querySelectorAll('.stage-canvas svg .node:not(.gone)').length, `step ${i + 1} shows no nodes`).toBeGreaterThan(0)
+      }
+      expect(seen.size, 'every step should have its own title').toBe(steps.length)
+      expect(errors).toEqual([])
+    } finally { spy.mockRestore() }
+  })
+
+  it('Next and Back move one step, the last step cannot go further', async () => {
+    const c = await visit('/concept/load-balancing', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    const first = heading(c)
+    const nextBtn = () => [...c.querySelectorAll<HTMLButtonElement>('.stage-nav button')].find((b) => /Next|End of lesson/.test(b.textContent ?? ''))!
+    const backBtn = () => [...c.querySelectorAll<HTMLButtonElement>('.stage-nav button')].find((b) => /Back/.test(b.textContent ?? ''))!
+    expect(backBtn().disabled).toBe(true)
+    fireEvent.click(nextBtn())
+    expect(heading(c)).not.toBe(first)
+    fireEvent.click(backBtn())
+    expect(heading(c)).toBe(first)
+    const n = rail(c).length
+    for (let i = 0; i < n + 3; i++) if (!nextBtn().disabled) fireEvent.click(nextBtn())
+    expect(nextBtn().disabled).toBe(true)
+    expect(nextBtn().textContent).toMatch(/End of lesson/)
+  })
+
+  it('arrow keys step, R replays and Space pauses', async () => {
+    const c = await visit('/concept/rate-limiting', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    const stage = c.querySelector('.stage') as HTMLElement
+    const first = heading(c)
+    fireEvent.keyDown(stage, { key: 'ArrowRight' })
+    expect(heading(c)).not.toBe(first)
+    fireEvent.keyDown(stage, { key: 'ArrowLeft' })
+    expect(heading(c)).toBe(first)
+    const pause = [...c.querySelectorAll<HTMLButtonElement>('.stage-tools button')].find((b) => /Pause|Resume/.test(b.textContent ?? ''))!
+    expect(pause.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.keyDown(stage, { key: ' ' })
+    expect(pause.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.keyDown(stage, { key: 'r' })
+    expect(pause.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('a predict step hides the explanation until you answer, then reveals it', async () => {
+    const c = await visit('/concept/caching-at-scale', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    const i = rail(c).findIndex((b) => /Hit rate/.test(b.textContent ?? ''))
+    fireEvent.click(rail(c)[i])
+    expect(c.querySelector('.predict')).not.toBeNull()
+    expect(c.querySelector('.scallout')).toBeNull()
+    const right = [...c.querySelectorAll<HTMLButtonElement>('.predict .opt')].find((b) => /10 times less/.test(b.textContent ?? ''))!
+    fireEvent.click(right)
+    await waitFor(() => expect(c.querySelector('.scallout')).not.toBeNull())
+    expect(c.textContent).toMatch(/Correct\./)
+  })
+
+  it('the diagram changes between steps: consistent hashing moves keys onto a ring', async () => {
+    const c = await visit('/concept/consistent-hashing', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    const ringShown = () => c.querySelector('[data-node="ring"]:not(.gone)') !== null
+    expect(ringShown()).toBe(false)
+    fireEvent.click(rail(c).find((b) => /The ring/.test(b.textContent ?? ''))!)
+    expect(ringShown()).toBe(true)
+  })
+
+  it('a failed node is marked down for assistive technology as well', async () => {
+    const c = await visit('/concept/load-balancing', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    fireEvent.click(rail(c).find((b) => /Health checks/.test(b.textContent ?? ''))!)
+    const list = c.querySelector('.stage-canvas .sr-only')?.textContent ?? ''
+    expect(list).toMatch(/down/)
+  })
+})
+
+
+describe('problem bank, step links and problem links', () => {
+  it('lists the problems grouped by lesson, with difficulty', async () => {
+    const c = await visit('/problems', /Problem bank/)
+    await waitFor(() => expect(c.querySelectorAll('.problem-list li').length).toBeGreaterThanOrEqual(35))
+    expect(c.textContent).toMatch(/Two Sum/)
+    expect(c.textContent).toMatch(/Edit Distance/)
+    fireEvent.click(within(c).getByRole('button', { name: 'hard' }))
+    expect(c.querySelectorAll('.problem-list li').length).toBe(1)
+  })
+
+  it('a problem opens with its statement and starter code and marks it solved when every test passes', async () => {
+    runMock.next = { results: [] }
+    const c = await visit('/problems/two-sum', /Your code/)
+    await waitFor(() => expect((c.querySelector('textarea.editor') as HTMLTextAreaElement).value).toMatch(/def two_sum/))
+    expect(c.textContent).toMatch(/indices \[i, j\]/)
+    fireEvent.click(within(c).getByRole('button', { name: 'Run tests' }))
+    await waitFor(() => expect(c.textContent).toMatch(/All tests passed/))
+    expect(JSON.parse(localStorage.getItem('intervio.solved') ?? '[]')).toContain('two-sum')
+    expect(c.querySelectorAll('.case-list li.ok').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('failing tests, a stopped run and a syntax error are each reported, and nothing is marked solved', async () => {
+    const c = await visit('/problems/two-sum', /Your code/)
+    await waitFor(() => expect(c.querySelector('textarea.editor')).not.toBeNull())
+    runMock.next = { results: [{ name: 'basic', ok: false, error: 'wrong answer' }, { name: 'duplicates', ok: true }] }
+    fireEvent.click(within(c).getByRole('button', { name: 'Run tests' }))
+    await waitFor(() => expect(c.textContent).toMatch(/1 of 2 tests passed/))
+    expect(c.querySelector('.case-list li.bad')?.textContent).toMatch(/wrong answer/)
+    runMock.next = { results: [], stopped: true }
+    fireEvent.click(within(c).getByRole('button', { name: 'Run tests' }))
+    await waitFor(() => expect(c.textContent).toMatch(/Stopped\./))
+    runMock.next = { results: [], error: 'SyntaxError: invalid syntax' }
+    fireEvent.click(within(c).getByRole('button', { name: 'Run tests' }))
+    await waitFor(() => expect(c.textContent).toMatch(/did not run/))
+    expect(localStorage.getItem('intervio.solved')).toBeNull()
+    runMock.next = { results: [] }
+  })
+
+  it('hints are revealed one at a time and the solution only on request', async () => {
+    const c = await visit('/problems/two-sum', /Your code/)
+    await waitFor(() => expect(c.querySelector('textarea.editor')).not.toBeNull())
+    expect(c.textContent).not.toMatch(/Reference solution/)
+    fireEvent.click(within(c).getByRole('button', { name: /^Hint 0\// }))
+    await waitFor(() => expect(c.querySelectorAll('.card ol li').length).toBe(1))
+    fireEvent.click(within(c).getByRole('button', { name: 'Show a reference solution' }))
+    await waitFor(() => expect(c.textContent).toMatch(/Reference solution/))
+  })
+
+  it('a data structures lesson links to its problems', async () => {
+    const c = await visit('/concept/arrays-hashing', /Why this priority\?/)
+    await waitFor(() => expect(c.textContent).toMatch(/Practice in the problem bank/))
+    expect(c.querySelector('a[href="/problems/two-sum"]')).not.toBeNull()
+  })
+
+  it('the step of a lesson is in the URL: a link opens at that step, and Next updates it', async () => {
+    const c = await visit('/concept/load-balancing#scene=1&step=3', /Interactive/)
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
+    expect(c.querySelector('.stage-step')?.textContent).toMatch(/3\s*\/\s*\d+/)
+    stageNext(c, 1)
+    await waitFor(() => expect(window.location.hash).toBe('#scene=1&step=4'))
+    window.history.pushState({}, '', '/')
+  })
+})
+
+describe('no deadline', () => {
+  it('the profile form offers it, and by default', async () => {
+    const c = await visit('/profile', /Build my roadmap/)
+    const box = c.querySelector<HTMLInputElement>('label.check input[type=checkbox]')!
+    expect(box.checked).toBe(true)
+    expect((c.querySelector('input[type=number][placeholder="no deadline"]') as HTMLInputElement).disabled).toBe(true)
+    await waitFor(() => expect(c.textContent).toMatch(/Nothing is cut/))
+    fireEvent.click(box)
+    expect((c.querySelector('input[type=number][placeholder="no deadline"]') as HTMLInputElement).disabled).toBe(false)
+  })
+
+  it('a plan with no deadline keeps every lesson and says how long it takes', async () => {
+    const start = new Date().toLocaleDateString('en-CA')
+    localStorage.setItem('intervio.profile', JSON.stringify({ domain: 'sde', goal: 'interview', experience_years: 1.5, weeks: 0, hours_per_day: 2, days_per_week: 6, start_date: start }))
+    const c = await visit('/my-plan', /Full schedule/)
+    expect(c.textContent).toMatch(/no deadline/)
+    expect(c.textContent).not.toMatch(/What I had to cut/)
+    expect(c.textContent).toMatch(/No deadline: this plan keeps every lesson/)
+  })
+})
+
+describe('everyday examples', () => {
+  it('every lesson page opens with an everyday story and a table of what each part stands for', async () => {
+    for (const slug of ['caching-at-scale', 'arrays-hashing', 'keys']) {
+      const c = await visit(`/concept/${slug}`, /In everyday life/)
+      const box = c.querySelector('.everyday')!
+      expect(box.textContent).toMatch(/In plain words/)
+      expect(box.querySelectorAll('tbody tr').length).toBeGreaterThanOrEqual(2)
+    }
   })
 })
