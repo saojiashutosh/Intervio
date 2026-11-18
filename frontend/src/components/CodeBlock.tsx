@@ -8,14 +8,28 @@ const SQL_KW = new Set(('select from where and or not null insert into values up
 const PY_KW = new Set(('def class return import from as with if else elif for in not and or is None True False raise try except lambda while pass yield ' +
   'self async await').split(' '))
 
-const TOKEN = /(--[^\n]*|#[^\n]*)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(\s+|.)/g
+const SH_KW = new Set(('FROM RUN COPY CMD WORKDIR ENV EXPOSE ENTRYPOINT ARG USER AS on jobs steps uses run name needs runs-on git docker if then fi do done').split(' '))
 
-function highlight(code: string, lang: 'sql' | 'py') {
-  const kws = lang === 'sql' ? SQL_KW : PY_KW
+const JS_KW = new Set(('const let var function return if else for while of in new await async class import from export default null undefined true false this typeof try catch throw').split(' '))
+
+const COMMENT = { sql: '--[^\\n]*', js: '//[^\\n]*', py: '#[^\\n]*', sh: '#[^\\n]*' } as const
+const REST = String.raw`('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(\s+|.)`
+// One tokenizer per language, so another language's comment marker (Python's // operator) is never taken for a comment.
+const TOKENS = {
+  sql: new RegExp(`(${COMMENT.sql})|${REST}`, 'g'),
+  js: new RegExp(`(${COMMENT.js})|${REST}`, 'g'),
+  py: new RegExp(`(${COMMENT.py})|${REST}`, 'g'),
+  sh: new RegExp(`(${COMMENT.sh})|${REST}`, 'g'),
+}
+
+type Lang = 'sql' | 'py' | 'sh' | 'js'
+
+function highlight(code: string, lang: Lang) {
+  const kws = lang === 'sql' ? SQL_KW : lang === 'sh' ? SH_KW : lang === 'js' ? JS_KW : PY_KW
   const out: { t: string; c?: string }[] = []
-  for (const m of code.matchAll(TOKEN)) {
+  for (const m of code.matchAll(TOKENS[lang])) {
     const [text, comment, str, num, word] = m
-    if (comment !== undefined && (lang === 'sql' ? comment.startsWith('--') : comment.startsWith('#'))) out.push({ t: text, c: 'tok-c' })
+    if (comment !== undefined) out.push({ t: text, c: 'tok-c' })
     else if (str !== undefined) out.push({ t: text, c: 'tok-s' })
     else if (num !== undefined) out.push({ t: text, c: 'tok-n' })
     else if (word !== undefined && kws.has(lang === 'sql' ? word.toLowerCase() : word)) out.push({ t: text, c: 'tok-k' })
@@ -24,7 +38,7 @@ function highlight(code: string, lang: 'sql' | 'py') {
   return out
 }
 
-export function CodeBlock({ code, lang = 'sql', title }: { code: string; lang?: 'sql' | 'py'; title?: string }) {
+export function CodeBlock({ code, lang = 'sql', title }: { code: string; lang?: Lang; title?: string }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1200) } catch { /* clipboard blocked */ }
@@ -32,7 +46,7 @@ export function CodeBlock({ code, lang = 'sql', title }: { code: string; lang?: 
   return (
     <figure className="code">
       <figcaption>
-        <span>{title ?? (lang === 'sql' ? 'SQL' : 'Django / Python')}</span>
+        <span>{title ?? (lang === 'sql' ? 'SQL' : lang === 'sh' ? 'Shell / config' : lang === 'js' ? 'JavaScript' : 'Python')}</span>
         <button className="ghost small" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
       </figcaption>
       <pre><code>{highlight(code, lang).map((p, i) => (p.c ? <span key={i} className={p.c}>{p.t}</span> : p.t))}</code></pre>

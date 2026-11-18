@@ -7,7 +7,9 @@ export interface WStep { title: string; note: string; body: ReactNode }
 /** Step through a scene: each step has a title, a body (diagram/tables) and a sentence explaining what changed. */
 export function Walkthrough({ steps, resetKey }: { steps: WStep[]; resetKey?: unknown }) {
   const s = useStepper(steps.length, resetKey)
-  const cur = steps[Math.max(s.i, 0)]
+  // The stepper resets one render after `steps` changes, so clamp to stay in range meanwhile.
+  const shown = Math.min(Math.max(s.i, 0), steps.length - 1)
+  const cur = steps[shown]
   return (
     <div className="walk">
       <Controls s={s} length={steps.length} />
@@ -15,7 +17,7 @@ export function Walkthrough({ steps, resetKey }: { steps: WStep[]; resetKey?: un
         {steps.map((_, n) => <span key={n} className={n <= s.i ? 'on' : ''} />)}
       </div>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={Math.max(s.i, 0)} className="walk-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+        <motion.div key={shown} className="walk-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           <h4>{s.i < 0 ? 'Press Play or Step to start' : `Step ${s.i + 1}: ${cur.title}`}</h4>
           {cur.body}
         </motion.div>

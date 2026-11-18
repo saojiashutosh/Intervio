@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 /** "Predict, then watch": commit to a guess before the animation reveals the answer. */
-export function Predict({ question, options, answer, why }: { question: string; options: string[]; answer: number; why: string }) {
+export function Predict({ question, options, answer, why, onAnswer }: { question: string; options: string[]; answer: number; why: string; onAnswer?: () => void }) {
   const [picked, setPicked] = useState<number | null>(null)
   return (
     <div className="predict">
@@ -12,7 +12,7 @@ export function Predict({ question, options, answer, why }: { question: string; 
             key={o}
             disabled={picked !== null}
             className={`opt ${picked !== null ? (i === answer ? 'right' : i === picked ? 'wrong' : '') : ''}`}
-            onClick={() => setPicked(i)}
+            onClick={() => { setPicked(i); onAnswer?.() }}
           >{o}</button>
         ))}
       </div>
