@@ -5,7 +5,7 @@
     "level": 1,
     "week": "Week 1",
     "title": "Entity–Relationship (ER) Modelling",
-    "tagline": "Draw the business before you write a single CREATE TABLE.",
+    "tagline": "Draw a picture of the things in a business and how they connect, before you build any tables.",
     "explain": [
       "An ER model is a drawing of your data before you build any tables: which things you store (entities), what you know about each (attributes), and how they connect (relationships). You do it first because changing a table layout after millions of rows exist is slow and risky, while changing a drawing is free.",
       "## The three building blocks",
@@ -457,6 +457,24 @@
           "The registers you buy afterwards",
           "Tables"
         ]
+      ],
+      "words": [
+        [
+          "entity",
+          "A thing you want to keep information about, like a student or an order."
+        ],
+        [
+          "relationship",
+          "How two things are connected, like a student joining a class."
+        ],
+        [
+          "cardinality",
+          "How many of one thing connect to the other: one-to-one, one-to-many or many-to-many."
+        ],
+        [
+          "attribute",
+          "One detail about a thing, like a student's name."
+        ]
       ]
     }
   },
@@ -466,7 +484,7 @@
     "level": 1,
     "week": "Weeks 1–2",
     "title": "Primary and Foreign Keys",
-    "tagline": "Identity and referential integrity — the spine of every schema.",
+    "tagline": "How every row gets its own unique ID, and how one table points at another.",
     "explain": [
       "A key is how the database identifies a row, and a foreign key is how one table safely points to another. Almost every bug involving 'orphan data' or 'duplicate users' is a key that was missing or wrong.",
       "## The kinds of key",
@@ -878,6 +896,24 @@
           "Clerk refusing a roll number that does not exist",
           "Referential integrity"
         ]
+      ],
+      "words": [
+        [
+          "primary key",
+          "A column whose value is different for every row, so it identifies the row."
+        ],
+        [
+          "foreign key",
+          "A column that holds another table's primary key, to point at a row there."
+        ],
+        [
+          "integrity",
+          "The database making sure a pointer always points at something that exists."
+        ],
+        [
+          "surrogate key",
+          "An ID with no meaning, made only to identify the row, like 1, 2, 3."
+        ]
       ]
     }
   },
@@ -887,7 +923,7 @@
     "level": 1,
     "week": "Week 2",
     "title": "Normalization (1NF, 2NF, 3NF)",
-    "tagline": "Every fact stored once, in the table it belongs to.",
+    "tagline": "Store each fact in only one place, so it can never disagree with itself.",
     "explain": [
       "Normalization is the discipline of storing each fact in exactly one place. It exists to prevent three bugs, called anomalies, that appear when the same fact is copied into many rows.",
       "## The three anomalies",
@@ -1366,6 +1402,20 @@
           "Fixing the card once",
           "One update instead of hundreds"
         ]
+      ],
+      "words": [
+        [
+          "normal form",
+          "A named rule about how tidy a table is. Each higher form removes one kind of repetition."
+        ],
+        [
+          "anomaly",
+          "A problem caused by repeated data, like fixing a fact in one place and missing another."
+        ],
+        [
+          "dependency",
+          "When one column's value depends on another, like a name depending on a roll number."
+        ]
       ]
     }
   },
@@ -1375,7 +1425,7 @@
     "level": 1,
     "week": "Week 3",
     "title": "Denormalization",
-    "tagline": "Duplicate on purpose, and pay the consistency bill knowingly.",
+    "tagline": "Sometimes you copy data on purpose to read it faster, and you take care to keep the copies matching.",
     "explain": [
       "Denormalization means deliberately storing a fact in more than one place to make reads faster or simpler. It is a trade, not a mistake: you pay in write complexity and risk of inconsistency, and you get faster reads. Do it only after normalizing and measuring.",
       "## When it is the right move",
@@ -1813,6 +1863,20 @@
           "Updating both when a price changes",
           "The extra work to keep copies in sync"
         ]
+      ],
+      "words": [
+        [
+          "denormalize",
+          "To copy data on purpose so reads need fewer lookups."
+        ],
+        [
+          "join",
+          "Combining rows from two tables by matching a column."
+        ],
+        [
+          "consistency",
+          "All the copies of a fact agreeing with each other."
+        ]
       ]
     }
   },
@@ -1822,7 +1886,7 @@
     "level": 1,
     "week": "Week 3",
     "title": "Data Types",
-    "tagline": "Pick types by meaning, range, precision and operations.",
+    "tagline": "Pick the right kind of value for each column: text, whole number, exact money or date.",
     "explain": [
       "Choosing a column type decides correctness, storage size, and which indexes work. Most type bugs are silent: they do not crash, they quietly store the wrong thing.",
       "## Numbers",
@@ -2333,6 +2397,24 @@
           "Asking 'what is 30 days later'",
           "A real date type allows date maths"
         ]
+      ],
+      "words": [
+        [
+          "data type",
+          "The kind of value a column holds, such as text, number or date."
+        ],
+        [
+          "decimal",
+          "A number type that stores digits exactly, which is the right choice for money."
+        ],
+        [
+          "timestamp",
+          "A date together with a time."
+        ],
+        [
+          "UUID",
+          "A long random ID that is almost certainly unique everywhere."
+        ]
       ]
     }
   },
@@ -2342,7 +2424,7 @@
     "level": 1,
     "week": "Week 2",
     "title": "Constraints",
-    "tagline": "Make invalid states unrepresentable at the database boundary.",
+    "tagline": "Let the database refuse bad data, so mistakes cannot get in.",
     "explain": [
       "A constraint is a rule the database itself enforces on every write, no matter which app, script, or person writes. Application validation can be bypassed by a bug, a second service, a bulk script, or a person in the SQL shell. Constraints cannot, so they are your last line of defence for data correctness.",
       "## The constraint types",
@@ -2761,6 +2843,24 @@
           "Age of 400 is refused",
           "CHECK constraint"
         ]
+      ],
+      "words": [
+        [
+          "constraint",
+          "A rule the database enforces on your data."
+        ],
+        [
+          "NOT NULL",
+          "A rule saying a column must always have a value."
+        ],
+        [
+          "UNIQUE",
+          "A rule saying no two rows may have the same value in the column."
+        ],
+        [
+          "CHECK",
+          "A rule that tests a condition, like age must be above zero."
+        ]
       ]
     }
   },
@@ -2770,7 +2870,7 @@
     "level": 1,
     "week": "Week 3",
     "title": "SQL vs NoSQL",
-    "tagline": "Choose by access pattern and consistency need, not by hype.",
+    "tagline": "Choose a database by how you will use the data, not by what is popular.",
     "explain": [
       "'SQL or NoSQL?' is not a contest. Each is a set of trade-offs, and good engineers choose by looking at the data and the access pattern. The default for most business applications is a relational database, and you move away from it when a specific need justifies it.",
       "## What relational (SQL) gives you",
@@ -3191,6 +3291,24 @@
           "Every entry must balance",
           "Transactions and constraints"
         ]
+      ],
+      "words": [
+        [
+          "relational database",
+          "Data in tables with rows and columns, linked by keys. SQL databases are relational."
+        ],
+        [
+          "NoSQL",
+          "Databases that store data in other shapes, like documents or key and value pairs."
+        ],
+        [
+          "schema",
+          "The planned layout of your data: which tables and columns exist."
+        ],
+        [
+          "access pattern",
+          "How your app reads and writes data, such as 'fetch one user by ID'."
+        ]
       ]
     }
   },
@@ -3200,7 +3318,7 @@
     "level": 2,
     "week": "Week 4",
     "title": "Query Execution Plans (EXPLAIN)",
-    "tagline": "Stop guessing why a query is slow — read the plan.",
+    "tagline": "See how the database plans to run your query, so you can find out why it is slow.",
     "explain": [
       "When a query is slow, guessing is useless. EXPLAIN shows the plan the database chose: how it will find the rows, in what order, and with what cost. EXPLAIN ANALYZE also runs the query and reports what really happened, including real timings. Reading plans is the core skill of query tuning.",
       "## How to read a plan",
@@ -3622,6 +3740,24 @@
           "Looking at your friend's plan",
           "Reading the EXPLAIN output"
         ]
+      ],
+      "words": [
+        [
+          "query plan",
+          "The steps the database chooses to run your query."
+        ],
+        [
+          "scan",
+          "Reading the rows of a table one after another to find what you need."
+        ],
+        [
+          "index scan",
+          "Using an index to jump to the rows you need."
+        ],
+        [
+          "cost",
+          "The database's own estimate of how much work a step takes."
+        ]
       ]
     }
   },
@@ -3631,7 +3767,7 @@
     "level": 2,
     "week": "Week 5",
     "title": "Indexing",
-    "tagline": "Trade storage and write cost for fast lookups and orderings.",
+    "tagline": "Make searches fast with an index, and know what it costs you.",
     "explain": [
       "An index is a separate, sorted structure that lets the database find rows without reading the whole table, like the index at the back of a book. It makes reads faster and writes slower, so you create indexes for the queries you actually run, not for every column.",
       "## How a B-tree index works",
@@ -4111,6 +4247,24 @@
           "Updating the index when pages change",
           "Extra cost on every write"
         ]
+      ],
+      "words": [
+        [
+          "index",
+          "A separate sorted list that lets the database find rows quickly."
+        ],
+        [
+          "B-tree",
+          "The usual index shape: a sorted tree that is quick to search."
+        ],
+        [
+          "composite index",
+          "An index built on two or more columns together."
+        ],
+        [
+          "selectivity",
+          "How well a value narrows down the rows. A very selective value matches only a few rows."
+        ]
       ]
     }
   },
@@ -4120,7 +4274,7 @@
     "level": 3,
     "week": "Week 6",
     "title": "ACID Properties",
-    "tagline": "All-or-nothing, rule-preserving, isolated, durable.",
+    "tagline": "A bank transfer happens fully or not at all, and stays saved even after a crash.",
     "explain": [
       "ACID is the promise a transactional database makes about a group of statements that must succeed or fail together. A transaction is that group. The classic example is a bank transfer: subtract from A and add to B must either both happen or neither happen.",
       "## The four properties",
@@ -4681,6 +4835,24 @@
           "'Done' still true after a restart",
           "Durability"
         ]
+      ],
+      "words": [
+        [
+          "transaction",
+          "A group of steps treated as one unit that fully happens or does not happen."
+        ],
+        [
+          "atomicity",
+          "All steps happen, or none of them do."
+        ],
+        [
+          "durability",
+          "Once saved, the data stays saved even if the power fails."
+        ],
+        [
+          "rollback",
+          "Undoing every step of a transaction."
+        ]
       ]
     }
   },
@@ -4690,7 +4862,7 @@
     "level": 3,
     "week": "Week 7",
     "title": "Isolation Levels",
-    "tagline": "Which concurrent effects can your transaction observe?",
+    "tagline": "What can one person see of another person's unfinished work when both use the database together?",
     "explain": [
       "Isolation answers a question: when two transactions run at the same time, what is each one allowed to see of the other? Perfect isolation is slow, so databases offer levels, and each level allows some specific anomalies in exchange for speed.",
       "## The anomalies, defined",
@@ -5151,6 +5323,24 @@
           "Everyone working at once",
           "A looser, faster level"
         ]
+      ],
+      "words": [
+        [
+          "isolation level",
+          "A setting that decides how much of other people's unfinished work you can see."
+        ],
+        [
+          "dirty read",
+          "Reading data that another person has changed but not yet saved for good."
+        ],
+        [
+          "phantom read",
+          "Running the same query twice and getting new rows the second time."
+        ],
+        [
+          "repeatable read",
+          "A level where rows you already read do not change under you."
+        ]
       ]
     }
   },
@@ -5160,7 +5350,7 @@
     "level": 3,
     "week": "Week 7",
     "title": "Concurrency Control: Locks and MVCC",
-    "tagline": "Readers never block writers — but writers still conflict.",
+    "tagline": "How a database lets many people read and write at the same time without a mess.",
     "explain": [
       "Concurrency control is how a database lets many transactions run at once without corrupting each other. There are two main tools: locks, which make others wait, and MVCC, which gives each transaction its own consistent view of the data so readers rarely wait at all.",
       "## MVCC: multi-version concurrency control",
@@ -5677,6 +5867,24 @@
           "Two people editing the same line",
           "A write conflict"
         ]
+      ],
+      "words": [
+        [
+          "lock",
+          "A claim that stops others from changing or reading the same row for a while."
+        ],
+        [
+          "MVCC",
+          "Keeping several versions of a row so readers see an old version while a writer makes a new one."
+        ],
+        [
+          "deadlock",
+          "Two transactions each waiting for the other, so neither can move."
+        ],
+        [
+          "snapshot",
+          "A frozen view of the data as it was at one moment."
+        ]
       ]
     }
   },
@@ -5686,7 +5894,7 @@
     "level": 4,
     "week": "Week 8",
     "title": "Replication",
-    "tagline": "Copies for availability and read scale — not a backup.",
+    "tagline": "Keep copies of your data on more machines, so more people can read it and one failure does not stop you.",
     "explain": [
       "Replication means keeping copies of the same database on several machines. You do it for three reasons: availability (another copy takes over if one dies), read scaling (spread read queries across copies), and safety (a copy survives losing a machine or a data centre). It does not make writes faster.",
       "## The usual setup: primary and replicas",
@@ -6368,6 +6576,24 @@
           "All copies have the same mistake",
           "Why replication is not a backup"
         ]
+      ],
+      "words": [
+        [
+          "replica",
+          "A copy of the database kept on another machine."
+        ],
+        [
+          "primary",
+          "The copy that accepts changes."
+        ],
+        [
+          "replication lag",
+          "The delay before a change on the primary shows up on a replica."
+        ],
+        [
+          "failover",
+          "Switching to a spare machine when the main one fails."
+        ]
       ]
     }
   },
@@ -6377,7 +6603,7 @@
     "level": 4,
     "week": "Week 9",
     "title": "Sharding",
-    "tagline": "Split rows across nodes — the last resort, not the first.",
+    "tagline": "Split one huge database into smaller parts on different machines. Try this last.",
     "explain": [
       "Sharding splits one large dataset across several database servers, so each server holds only a part, called a shard. Replication copies the same data to many machines; sharding divides different data between machines. You shard when a single primary can no longer handle the write volume or the data size, even after you have optimized queries, added indexes, and added replicas.",
       "## Try these first",
@@ -6967,6 +7193,20 @@
           "One branch much busier than others",
           "A hot shard"
         ]
+      ],
+      "words": [
+        [
+          "shard",
+          "One part of a database that has been split across machines."
+        ],
+        [
+          "shard key",
+          "The column that decides which shard a row goes to."
+        ],
+        [
+          "hot shard",
+          "A shard that gets far more traffic than the others."
+        ]
       ]
     }
   },
@@ -6976,7 +7216,7 @@
     "level": 4,
     "week": "Week 9",
     "title": "Consistency Models",
-    "tagline": "State the guarantee each feature actually needs.",
+    "tagline": "How up to date must the data be for each feature? Decide that feature by feature.",
     "explain": [
       "Consistency models describe what a reader is guaranteed to see when data is stored on more than one machine, or both in a database and in a cache. Strong guarantees are easier to reason about and cost latency and availability. Weak guarantees are fast and available and push complexity onto you.",
       "## The main models",
@@ -7492,6 +7732,24 @@
           "Balance must always be right",
           "Strong consistency"
         ]
+      ],
+      "words": [
+        [
+          "strong consistency",
+          "Everyone always sees the latest write."
+        ],
+        [
+          "eventual consistency",
+          "Copies may differ for a short while, but they will agree later."
+        ],
+        [
+          "read-your-writes",
+          "After you change something, you always see your own change."
+        ],
+        [
+          "stale",
+          "Out of date."
+        ]
       ]
     }
   },
@@ -7501,7 +7759,7 @@
     "level": 5,
     "week": "Week 10",
     "title": "Django ORM in Depth",
-    "tagline": "Lazy querysets, N+1, F/Q, annotate, and safe migrations: what Django interviews probe first.",
+    "tagline": "Use Python instead of SQL with Django, and avoid the slow mistakes it makes easy.",
     "explain": [
       "The ORM lets you write database queries as Python. It is convenient, and it hides the SQL, which is where most Django performance bugs come from. The goal of this lesson is to always know what SQL your code produces and how many queries it runs.",
       "## QuerySets are lazy",
@@ -8037,6 +8295,24 @@
           "Telling the assistant exactly what you need",
           "Writing the queryset carefully"
         ]
+      ],
+      "words": [
+        [
+          "ORM",
+          "A tool that lets you use Python objects instead of writing SQL."
+        ],
+        [
+          "queryset",
+          "A Django description of a database query that runs only when needed."
+        ],
+        [
+          "N+1",
+          "One query to get a list, then one more query for each item in it."
+        ],
+        [
+          "migration",
+          "A saved step that changes the database layout."
+        ]
       ]
     }
   },
@@ -8046,7 +8322,7 @@
     "level": 5,
     "week": "Week 10",
     "title": "Django REST Framework & API Design",
-    "tagline": "Serializers, viewsets, permissions, pagination, and idempotent writes.",
+    "tagline": "Build the menu that other programs use to talk to your app.",
     "explain": [
       "Django REST Framework (DRF) turns Django models into HTTP APIs. It is built from a few layers, and knowing what each layer does lets you drop down a level when the magic gets in your way.",
       "## Serializers",
@@ -8591,6 +8867,24 @@
           "Polite 'we do not have that'",
           "A proper error and status code"
         ]
+      ],
+      "words": [
+        [
+          "API",
+          "A set of addresses other programs can call to get or change data."
+        ],
+        [
+          "serializer",
+          "Code that turns your data into JSON and checks incoming JSON."
+        ],
+        [
+          "viewset",
+          "A class that groups the actions for one kind of thing, like list, create and delete."
+        ],
+        [
+          "pagination",
+          "Returning a long list in pages instead of all at once."
+        ]
       ]
     }
   },
@@ -8600,7 +8894,7 @@
     "level": 5,
     "week": "Week 11",
     "title": "Celery & Background Jobs",
-    "tagline": "Move slow work out of the request, and survive retries, crashes and the on_commit race.",
+    "tagline": "Do slow jobs in the background so the user is not kept waiting.",
     "explain": [
       "Anything slow or unreliable, such as sending email, calling a payment API, generating a PDF or resizing an image, should not run inside the web request. The user waits, a slow third party ties up your web workers, and a failure becomes a failed page. Celery moves that work out of the request into a background worker.",
       "## How it fits together",
@@ -9130,6 +9424,24 @@
           "Two cooks making the same order by mistake",
           "A job that runs twice, so it must be safe to repeat"
         ]
+      ],
+      "words": [
+        [
+          "task",
+          "A job you hand to a background worker."
+        ],
+        [
+          "worker",
+          "A separate process that picks up tasks and runs them."
+        ],
+        [
+          "broker",
+          "The middleman that stores waiting tasks, such as Redis or RabbitMQ."
+        ],
+        [
+          "idempotent",
+          "Safe to run twice: the second run changes nothing more."
+        ]
       ]
     }
   },
@@ -9139,7 +9451,7 @@
     "level": 5,
     "week": "Week 12",
     "title": "Web Security for Django APIs",
-    "tagline": "What Django protects by default, how people switch it off, and the bug that is not in the framework: access control.",
+    "tagline": "The common ways websites get hacked, and how to stop them.",
     "explain": [
       "Django is secure by default in several places, if you do not switch the protection off. Most real vulnerabilities come from stepping outside those defaults. Learn what is protected for you and what is not.",
       "## What Django protects by default",
@@ -9608,6 +9920,24 @@
           "Checking the card on every door",
           "Checking access on every request"
         ]
+      ],
+      "words": [
+        [
+          "authentication",
+          "Proving who you are."
+        ],
+        [
+          "authorization",
+          "Deciding what you are allowed to do."
+        ],
+        [
+          "CSRF",
+          "A trick where another site makes your browser send a request you did not mean to send."
+        ],
+        [
+          "SQL injection",
+          "Sneaking harmful SQL into an input so the database runs it."
+        ]
       ]
     }
   },
@@ -9617,7 +9947,7 @@
     "level": 5,
     "week": "Week 12",
     "title": "Database System Design Interviews",
-    "tagline": "Turn a vague product into numbers, a schema and a scaling story, out loud, in 45 minutes.",
+    "tagline": "Plan a big product out loud in 45 minutes: first the numbers, then the tables, then how it grows.",
     "viz": "stage",
     "hours": 8,
     "priority": 2,
@@ -10104,6 +10434,24 @@
           "Choosing the school plan",
           "Choosing tables and servers that fit the numbers"
         ]
+      ],
+      "words": [
+        [
+          "requirements",
+          "What the system must do and how well it must do it."
+        ],
+        [
+          "scale",
+          "How big the system must grow, in users or data."
+        ],
+        [
+          "bottleneck",
+          "The slowest part that limits everything else."
+        ],
+        [
+          "trade-off",
+          "Getting one good thing by giving up another."
+        ]
       ]
     }
   },
@@ -10113,7 +10461,7 @@
     "level": 5,
     "week": "Week 12",
     "title": "Running Databases in Production",
-    "tagline": "Connection pools, schema changes without downtime, backups you can restore, and what to watch.",
+    "tagline": "Keep a real database healthy: connections, safe changes, backups and warning signs.",
     "viz": "stage",
     "hours": 6,
     "priority": 2,
@@ -10631,6 +10979,20 @@
           "Checking the spare tank is really full",
           "Test restoring a backup"
         ]
+      ],
+      "words": [
+        [
+          "connection pool",
+          "A set of ready database connections that your app shares."
+        ],
+        [
+          "downtime",
+          "A period when the service is not working."
+        ],
+        [
+          "backup",
+          "A saved copy of your data that you can restore."
+        ]
       ]
     }
   },
@@ -10640,7 +11002,7 @@
     "level": 14,
     "week": "Core",
     "title": "Big-O and Choosing a Data Structure",
-    "tagline": "Predict how code slows down as data grows, and pick the structure that keeps it fast.",
+    "tagline": "Know how your code slows down as data grows, and pick the right container for your data.",
     "viz": "stage",
     "hours": 4,
     "priority": 1,
@@ -11256,6 +11618,24 @@
           "Jumping straight to a page using a tab",
           "O(1): a dictionary lookup"
         ]
+      ],
+      "words": [
+        [
+          "Big-O",
+          "A way to say how the work grows as the amount of data grows."
+        ],
+        [
+          "time complexity",
+          "How the running time grows with the data size."
+        ],
+        [
+          "hash map",
+          "A container that finds a value from its key almost instantly."
+        ],
+        [
+          "data structure",
+          "A way of arranging data in memory, such as a list or a dictionary."
+        ]
       ]
     }
   },
@@ -11265,7 +11645,7 @@
     "level": 14,
     "week": "Core",
     "title": "Coding Patterns That Solve Most Interview Problems",
-    "tagline": "Binary search, two pointers, sliding window and BFS: recognise the signal, apply the template.",
+    "tagline": "A few ideas solve most coding questions. Learn to spot which one fits.",
     "viz": "stage",
     "hours": 8,
     "priority": 1,
@@ -11874,6 +12254,24 @@
           "Reading the recipe and spotting the method",
           "Spotting the pattern in the question"
         ]
+      ],
+      "words": [
+        [
+          "pattern",
+          "A repeated way of solving a type of problem."
+        ],
+        [
+          "binary search",
+          "Finding something in sorted data by repeatedly looking at the middle."
+        ],
+        [
+          "two pointers",
+          "Using two positions that move through the data together."
+        ],
+        [
+          "sliding window",
+          "A section of the data that you slide along one step at a time."
+        ]
       ]
     }
   },
@@ -11883,7 +12281,7 @@
     "level": 6,
     "week": "Core",
     "title": "Behavioral Interviews and STAR Stories",
-    "tagline": "Turn your real work into five stories that answer almost any 'tell me about a time' question.",
+    "tagline": "Prepare five true stories from your work that can answer almost any 'tell me about a time' question.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -12532,6 +12930,20 @@
           "How it ended, ideally with a number",
           "Result"
         ]
+      ],
+      "words": [
+        [
+          "STAR",
+          "A story shape: Situation, Task, Action, Result."
+        ],
+        [
+          "behavioral question",
+          "A question about what you did in the past, like 'tell me about a time you disagreed with someone'."
+        ],
+        [
+          "ownership",
+          "Taking responsibility for a problem, not only your own small part."
+        ]
       ]
     }
   },
@@ -12541,7 +12953,7 @@
     "level": 7,
     "week": "Core",
     "title": "Python Internals Interviewers Ask About",
-    "tagline": "Names and objects, the mutable-default trap, generators, decorators and what the GIL really does.",
+    "tagline": "How Python really works: names and objects, the list trap, generators, decorators and the GIL.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -13491,6 +13903,24 @@
           "Changing what is inside the box",
           "Mutating the object"
         ]
+      ],
+      "words": [
+        [
+          "mutable",
+          "Can be changed after it is made, like a list."
+        ],
+        [
+          "generator",
+          "A function that gives values one at a time instead of building the whole list."
+        ],
+        [
+          "decorator",
+          "A function that wraps another function to add behaviour."
+        ],
+        [
+          "GIL",
+          "A lock in standard Python that lets only one thread run Python code at a time."
+        ]
       ]
     }
   },
@@ -13500,7 +13930,7 @@
     "level": 7,
     "week": "Core",
     "title": "The Django Request Cycle and Middleware",
-    "tagline": "Follow one request from the server through middleware, URL routing and the view, and back out.",
+    "tagline": "Follow one web request from the moment it arrives until the reply goes back.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -14236,6 +14666,20 @@
           "The reply leaving through the gate",
           "The response passing back through middleware"
         ]
+      ],
+      "words": [
+        [
+          "middleware",
+          "Code that every request and response passes through, like a checkpoint."
+        ],
+        [
+          "URL routing",
+          "Matching the address in the request to the right view."
+        ],
+        [
+          "view",
+          "The function or class that creates the reply."
+        ]
       ]
     }
   },
@@ -14245,7 +14689,7 @@
     "level": 7,
     "week": "Core",
     "title": "Authentication: Sessions, Tokens and JWT",
-    "tagline": "Who are you and how do I remember you? Compare cookies, DRF tokens and JWTs, and know when to pick each.",
+    "tagline": "How a website knows who you are, and remembers you on the next request.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -14905,6 +15349,24 @@
           "A stamped wristband that checks itself",
           "A JWT"
         ]
+      ],
+      "words": [
+        [
+          "session",
+          "Server-side memory that you are logged in, found using a cookie."
+        ],
+        [
+          "token",
+          "A string you send with each request to prove who you are."
+        ],
+        [
+          "JWT",
+          "A signed token that carries your details, so the server can check it without a lookup."
+        ],
+        [
+          "cookie",
+          "A small piece of data the browser stores and sends back to the same site."
+        ]
       ]
     }
   },
@@ -14914,7 +15376,7 @@
     "level": 8,
     "week": "Core",
     "title": "Git Workflow: Branches, Merge vs Rebase and Undoing Mistakes",
-    "tagline": "Work in branches, keep history readable, and know the safe way to undo each kind of mistake.",
+    "tagline": "Work on branches, keep history clean, and know how to undo each kind of mistake.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -15966,6 +16428,24 @@
           "Going back to the last good draft",
           "Undoing a change"
         ]
+      ],
+      "words": [
+        [
+          "commit",
+          "A saved snapshot of your changes with a message."
+        ],
+        [
+          "branch",
+          "A separate line of work that does not disturb the main one."
+        ],
+        [
+          "merge",
+          "Joining the changes from one branch into another."
+        ],
+        [
+          "rebase",
+          "Replaying your commits on top of another branch to keep history in a straight line."
+        ]
       ]
     }
   },
@@ -15975,7 +16455,7 @@
     "level": 8,
     "week": "Core",
     "title": "Docker and Containers for Django",
-    "tagline": "Package the app and its dependencies once, order the layers for fast rebuilds, and run the whole stack with Compose.",
+    "tagline": "Pack your app and everything it needs into one box that runs the same everywhere.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -16680,6 +17160,24 @@
           "Packing a box the same way each time",
           "An image"
         ]
+      ],
+      "words": [
+        [
+          "container",
+          "A packaged, isolated box that runs your app with everything it needs."
+        ],
+        [
+          "image",
+          "The saved template a container is started from."
+        ],
+        [
+          "Dockerfile",
+          "A text file with the steps for building an image."
+        ],
+        [
+          "layer",
+          "One saved step in an image. Unchanged layers are reused to build faster."
+        ]
       ]
     }
   },
@@ -16689,7 +17187,7 @@
     "level": 8,
     "week": "Core",
     "title": "CI/CD and Deploying Django: Nginx, Gunicorn and Production Settings",
-    "tagline": "Test every push automatically, then run the app behind a real web server with safe settings.",
+    "tagline": "Test every change automatically, then run the app on a real server with safe settings.",
     "viz": "stage",
     "hours": 6,
     "priority": 2,
@@ -17336,6 +17834,24 @@
           "Truck taking it to the shop",
           "Deploying to production"
         ]
+      ],
+      "words": [
+        [
+          "CI",
+          "Continuous integration: tests run automatically on every change."
+        ],
+        [
+          "CD",
+          "Continuous delivery: passed changes are released automatically."
+        ],
+        [
+          "Gunicorn",
+          "A server program that runs Django apps for real traffic."
+        ],
+        [
+          "Nginx",
+          "A web server placed in front of the app to handle connections and files."
+        ]
       ]
     }
   },
@@ -17345,7 +17861,7 @@
     "level": 7,
     "week": "Core",
     "title": "DRF Internals: Serializers, ViewSets, Routers and Permissions",
-    "tagline": "How a JSON request becomes a validated object, which method handles it, and where access checks really run.",
+    "tagline": "How a request becomes data, gets checked, and where the access checks really happen.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -18401,6 +18917,24 @@
           "Which counter handles it",
           "The viewset and router"
         ]
+      ],
+      "words": [
+        [
+          "serializer",
+          "Code that turns objects to JSON and back, and checks the data."
+        ],
+        [
+          "validation",
+          "Checking that incoming data is acceptable."
+        ],
+        [
+          "router",
+          "Code that creates the URLs for a viewset."
+        ],
+        [
+          "permission class",
+          "A rule that decides whether a request is allowed."
+        ]
       ]
     }
   },
@@ -18410,7 +18944,7 @@
     "level": 7,
     "week": "Core",
     "title": "Testing Django Applications",
-    "tagline": "What a TestCase really does, how to test a whole request, and how to keep tests fast and trustworthy.",
+    "tagline": "Write small checks that tell you when a change has broken something.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -19016,6 +19550,20 @@
           "Finding out before customers do",
           "Catching bugs early"
         ]
+      ],
+      "words": [
+        [
+          "TestCase",
+          "A group of tests that share the same set-up. Django gives you a ready-made class for it."
+        ],
+        [
+          "test client",
+          "A fake browser that sends requests to your app inside a test."
+        ],
+        [
+          "mock",
+          "A stand-in object that replaces something real during a test."
+        ]
       ]
     }
   },
@@ -19025,7 +19573,7 @@
     "level": 16,
     "week": "Core",
     "title": "HTTP and Networking Basics",
-    "tagline": "What happens between typing a URL and seeing a page: DNS, TCP, TLS, requests, status codes and caching.",
+    "tagline": "What happens between typing a web address and seeing the page.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -20179,6 +20727,24 @@
           "'Not found' note",
           "Status code 404"
         ]
+      ],
+      "words": [
+        [
+          "DNS",
+          "The directory that turns a name like example.com into a computer's address."
+        ],
+        [
+          "TCP",
+          "The way two computers make a reliable connection and send data in order."
+        ],
+        [
+          "TLS",
+          "The coding that keeps a connection private. It is what makes HTTPS secure."
+        ],
+        [
+          "status code",
+          "A number in the reply that says what happened, like 200 for ok and 404 for not found."
+        ]
       ]
     }
   },
@@ -20188,7 +20754,7 @@
     "level": 8,
     "week": "Core",
     "title": "Cloud Basics: Regions, Zones, Managed Services and Access",
-    "tagline": "What a region and an availability zone are, why a managed database helps, and how least privilege keeps accounts safe.",
+    "tagline": "What the cloud is: renting computers in big data centres, and giving each person only the access they need.",
     "viz": "stage",
     "hours": 4,
     "priority": 3,
@@ -20996,6 +21562,24 @@
           "Keys only for the rooms you need",
           "Least privilege access"
         ]
+      ],
+      "words": [
+        [
+          "region",
+          "A place in the world where a cloud company has data centres."
+        ],
+        [
+          "availability zone",
+          "One separate data centre building inside a region."
+        ],
+        [
+          "managed service",
+          "A tool the cloud company runs for you, like a database, so you do not look after the machines."
+        ],
+        [
+          "least privilege",
+          "Giving each person or program only the access they need."
+        ]
       ]
     }
   },
@@ -21005,7 +21589,7 @@
     "level": 9,
     "week": "Core",
     "title": "JavaScript: the Event Loop, Promises and async/await",
-    "tagline": "One thread, one job at a time: why setTimeout(0) runs last and why a long loop freezes the page.",
+    "tagline": "JavaScript does one job at a time. This explains why some code runs later and why a long loop freezes the page.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -21707,6 +22291,24 @@
           "One customer taking forever at the counter",
           "A long loop freezing the page"
         ]
+      ],
+      "words": [
+        [
+          "event loop",
+          "The part that keeps picking the next waiting job and running it."
+        ],
+        [
+          "callback",
+          "A function you give so that it can be called later."
+        ],
+        [
+          "promise",
+          "An object that stands for a result that will arrive later."
+        ],
+        [
+          "async/await",
+          "A way to write waiting code so that it reads like normal top-to-bottom code."
+        ]
       ]
     }
   },
@@ -21716,7 +22318,7 @@
     "level": 9,
     "week": "Core",
     "title": "React: Rendering, State Snapshots, Keys and Effects",
-    "tagline": "Why a component re-renders, why setState seems to lag, why keys matter and what useEffect is for.",
+    "tagline": "Why React redraws the screen, why a change seems to arrive late, and what keys and effects are for.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -22571,6 +23173,24 @@
           "The scoreboard value",
           "State"
         ]
+      ],
+      "words": [
+        [
+          "render",
+          "Working out what a component should look like on screen."
+        ],
+        [
+          "state",
+          "Data a component remembers, which makes it redraw when it changes."
+        ],
+        [
+          "key",
+          "A label that helps React tell the items of a list apart."
+        ],
+        [
+          "effect",
+          "Code that runs after a render to do something outside the screen, like loading data."
+        ]
       ]
     }
   },
@@ -22580,7 +23200,7 @@
     "level": 9,
     "week": "Core",
     "title": "Web Performance and Accessibility",
-    "tagline": "The three Core Web Vitals, how to improve each, and the four principles that make a page usable by everyone.",
+    "tagline": "Make pages fast, steady and quick to respond, and usable by everyone.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -23311,6 +23931,20 @@
           "A ramp and clear signs",
           "Accessibility"
         ]
+      ],
+      "words": [
+        [
+          "Core Web Vitals",
+          "Three measures Google uses for page quality: loading, stability and response."
+        ],
+        [
+          "layout shift",
+          "Page content jumping around while the page loads."
+        ],
+        [
+          "accessibility",
+          "Making a page usable by people with different needs, such as screen reader users."
+        ]
       ]
     }
   },
@@ -23320,7 +23954,7 @@
     "level": 10,
     "week": "Core",
     "title": "Analytical SQL: Window Functions and CTEs",
-    "tagline": "Rank, running totals and month-over-month change without collapsing your rows, and queries you can read top to bottom.",
+    "tagline": "Rank rows, add running totals and compare months, without losing your rows.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -24063,6 +24697,24 @@
           "Running total",
           "SUM() OVER (ORDER BY ...)"
         ]
+      ],
+      "words": [
+        [
+          "window function",
+          "A calculation across related rows that keeps every row in the result."
+        ],
+        [
+          "CTE",
+          "A named, temporary result at the top of a query that makes it easier to read."
+        ],
+        [
+          "partition",
+          "A group of rows treated together in a window function."
+        ],
+        [
+          "running total",
+          "A total that grows row by row."
+        ]
       ]
     }
   },
@@ -24072,7 +24724,7 @@
     "level": 10,
     "week": "Core",
     "title": "Data Pipelines: Idempotency, Batch vs Streaming and Quality",
-    "tagline": "Load data so that a re-run changes nothing, choose between batch and streams, and stop bad data at the door.",
+    "tagline": "Move data so that running the job twice changes nothing, choose batch or live, and stop bad data early.",
     "viz": "stage",
     "hours": 6,
     "priority": 2,
@@ -24977,6 +25629,24 @@
           "Ignoring a number already seen",
           "Running the job again changes nothing"
         ]
+      ],
+      "words": [
+        [
+          "pipeline",
+          "A series of steps that moves and cleans data."
+        ],
+        [
+          "batch",
+          "Processing data in big chunks at set times."
+        ],
+        [
+          "streaming",
+          "Processing data continuously as it arrives."
+        ],
+        [
+          "data quality",
+          "Whether the data is correct, complete and on time."
+        ]
       ]
     }
   },
@@ -24986,7 +25656,7 @@
     "level": 11,
     "week": "Core",
     "title": "Observability, SLIs, SLOs and Error Budgets",
-    "tagline": "See what a service is doing, decide how reliable it must be, and page people only for problems users feel.",
+    "tagline": "See what a service is doing, decide how reliable it must be, and wake people only for real problems.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -25834,6 +26504,24 @@
           "How many slips you can afford",
           "The error budget"
         ]
+      ],
+      "words": [
+        [
+          "metric",
+          "A number measured over time, like requests per second."
+        ],
+        [
+          "SLI",
+          "A measure of how well the service is doing, such as the share of successful requests."
+        ],
+        [
+          "SLO",
+          "The target you promise for that measure, such as 99.9 percent."
+        ],
+        [
+          "error budget",
+          "How much failure the target still allows."
+        ]
       ]
     }
   },
@@ -25843,7 +26531,7 @@
     "level": 11,
     "week": "Core",
     "title": "Incident Management and Blameless Postmortems",
-    "tagline": "Declare early, split the roles, keep a live document, and learn from every outage without blaming anyone.",
+    "tagline": "When something breaks: call it early, share the roles, keep notes, and learn without blaming anyone.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -26598,6 +27286,24 @@
           "Meeting afterwards without blame",
           "A blameless postmortem"
         ]
+      ],
+      "words": [
+        [
+          "incident",
+          "An event where the service is broken or badly slowed."
+        ],
+        [
+          "on-call",
+          "Being the person who must respond when an alert comes."
+        ],
+        [
+          "postmortem",
+          "A write-up after an incident about what happened and how to prevent it."
+        ],
+        [
+          "blameless",
+          "Looking for what in the system went wrong, not who to blame."
+        ]
       ]
     }
   },
@@ -26607,7 +27313,7 @@
     "level": 11,
     "week": "Core",
     "title": "Infrastructure as Code with Terraform",
-    "tagline": "Describe servers, networks and databases in files, preview every change, and make environments reproducible.",
+    "tagline": "Write your servers and networks as files, preview each change, and rebuild them the same way every time.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -27418,6 +28124,24 @@
           "Checking what will change first",
           "terraform plan"
         ]
+      ],
+      "words": [
+        [
+          "Terraform",
+          "A tool that builds servers and networks from files you write."
+        ],
+        [
+          "state file",
+          "Terraform's record of what it has built."
+        ],
+        [
+          "plan",
+          "A preview of what a change will add, change or remove."
+        ],
+        [
+          "drift",
+          "When the real setup no longer matches the files."
+        ]
       ]
     }
   },
@@ -27427,7 +28151,7 @@
     "level": 10,
     "week": "Core",
     "title": "Batch Processing with Spark",
-    "tagline": "Why Spark transformations are lazy, why a shuffle is expensive, and when caching actually helps.",
+    "tagline": "Why Spark waits before it works, why moving data between machines is slow, and when saving results helps.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -28445,6 +29169,24 @@
           "Writing down what to count before counting",
           "Lazy transformations"
         ]
+      ],
+      "words": [
+        [
+          "partition",
+          "One slice of the data that a single machine works on."
+        ],
+        [
+          "shuffle",
+          "Moving data between machines so that related rows end up together."
+        ],
+        [
+          "lazy",
+          "Waiting to do the work until a result is really needed."
+        ],
+        [
+          "cache",
+          "Keeping a result in memory so it is not worked out again."
+        ]
       ]
     }
   },
@@ -28454,7 +29196,7 @@
     "level": 12,
     "week": "Core",
     "title": "ML Fundamentals: Splits, Overfitting, Leakage and Metrics",
-    "tagline": "Why a model that scores 100% on its training data proves nothing, and how to measure whether it will work on new data.",
+    "tagline": "Why a perfect score on data the model already saw means nothing, and how to measure real performance.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -29366,6 +30108,24 @@
           "Seeing the answers before the exam",
           "Data leakage"
         ]
+      ],
+      "words": [
+        [
+          "training set",
+          "The data the model learns from."
+        ],
+        [
+          "test set",
+          "Data kept aside to check the model fairly."
+        ],
+        [
+          "overfitting",
+          "Learning the examples so closely that the model fails on new data."
+        ],
+        [
+          "data leakage",
+          "Information from the answers sneaking into the training, which makes scores look better than they are."
+        ]
       ]
     }
   },
@@ -29375,7 +30135,7 @@
     "level": 12,
     "week": "Core",
     "title": "ML in Production: Skew, Drift, Monitoring and Rollback",
-    "tagline": "A model that was accurate in the notebook can quietly degrade in production. Learn what to log, watch and roll back.",
+    "tagline": "A model that worked in testing can slowly get worse in real use. Learn what to record, watch and undo.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -30260,6 +31020,24 @@
           "Going back to last season's plan",
           "Rolling back to the previous model"
         ]
+      ],
+      "words": [
+        [
+          "drift",
+          "The real data changing over time, so the model gets less accurate."
+        ],
+        [
+          "training-serving skew",
+          "A difference between how data looked in training and how it looks in live use."
+        ],
+        [
+          "monitoring",
+          "Watching the model's results and inputs after launch."
+        ],
+        [
+          "rollback",
+          "Going back to the previous version."
+        ]
       ]
     }
   },
@@ -30269,7 +31047,7 @@
     "level": 12,
     "week": "Core",
     "title": "ML System Design Interviews",
-    "tagline": "Frame the problem, pick a baseline, define labels and features, evaluate offline and online, and plan serving and monitoring.",
+    "tagline": "Plan a machine learning product: the goal, a simple first version, the data, how to measure, and how it runs live.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -30870,6 +31648,24 @@
           "Showing it quickly on the screen",
           "Serving"
         ]
+      ],
+      "words": [
+        [
+          "baseline",
+          "A simple first solution to compare better ones against."
+        ],
+        [
+          "feature",
+          "One piece of input information given to the model."
+        ],
+        [
+          "label",
+          "The correct answer the model learns to predict."
+        ],
+        [
+          "offline",
+          "Testing on saved data before the model goes live."
+        ]
       ]
     }
   },
@@ -30879,7 +31675,7 @@
     "level": 13,
     "week": "Core",
     "title": "Caching: Cache-Aside, Staleness and Stampedes",
-    "tagline": "Keep the answers people ask for most somewhere much faster than the database, and know what that costs you.",
+    "tagline": "Keep the most asked answers somewhere much faster than the database, and know what it costs.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -32008,6 +32804,24 @@
           "Everyone rushing when the flask is empty",
           "A cache stampede"
         ]
+      ],
+      "words": [
+        [
+          "cache",
+          "A fast store of copies of answers."
+        ],
+        [
+          "hit rate",
+          "The share of requests answered from the cache."
+        ],
+        [
+          "TTL",
+          "Time to live: how long a cached item stays before it expires."
+        ],
+        [
+          "cache stampede",
+          "Many requests all rebuilding the same expired item at once."
+        ]
       ]
     }
   },
@@ -32017,7 +32831,7 @@
     "level": 13,
     "week": "Core",
     "title": "Load Balancing and Health Checks",
-    "tagline": "One front door for many servers: how requests are spread, what happens when a server dies, and why the balancer needs a backup.",
+    "tagline": "One front door for many servers: how requests are shared, and what happens when a server dies.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -33185,6 +33999,24 @@
           "Skipping a closed counter",
           "A health check removing a failed server"
         ]
+      ],
+      "words": [
+        [
+          "load balancer",
+          "A machine that spreads requests over several servers."
+        ],
+        [
+          "health check",
+          "A regular test to see whether a server is working."
+        ],
+        [
+          "round robin",
+          "Sending requests to each server in turn."
+        ],
+        [
+          "sticky session",
+          "Sending the same user to the same server every time."
+        ]
       ]
     }
   },
@@ -33194,7 +34026,7 @@
     "level": 13,
     "week": "Core",
     "title": "Consistent Hashing: Adding Servers Without Reshuffling",
-    "tagline": "Decide which server owns a key so that adding or removing a server moves only a sliver of the data.",
+    "tagline": "Decide which server holds which data, so adding a server moves only a little of it.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -34555,6 +35387,20 @@
           "Only a few houses change depot",
           "Only a small part of the data moves"
         ]
+      ],
+      "words": [
+        [
+          "hash",
+          "Turning a value into a number using a fixed rule."
+        ],
+        [
+          "ring",
+          "A circle of positions where servers and keys are placed."
+        ],
+        [
+          "virtual node",
+          "Extra positions given to one server so that load spreads evenly."
+        ]
       ]
     }
   },
@@ -34564,7 +35410,7 @@
     "level": 13,
     "week": "Core",
     "title": "Message Queues and Background Workers",
-    "tagline": "Answer right away, do the slow work later, and never lose or double-do a job along the way.",
+    "tagline": "Reply right away, do the slow work later, and never lose a job or do it twice by mistake.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -35648,6 +36494,24 @@
           "A slip picked up twice",
           "A job delivered twice, so it must be safe to repeat"
         ]
+      ],
+      "words": [
+        [
+          "queue",
+          "A line of messages waiting to be handled in order."
+        ],
+        [
+          "producer",
+          "The part that puts messages in the queue."
+        ],
+        [
+          "consumer",
+          "The part that takes messages out and handles them."
+        ],
+        [
+          "dead-letter queue",
+          "A place for messages that keep failing, so someone can look at them."
+        ]
       ]
     }
   },
@@ -35657,7 +36521,7 @@
     "level": 13,
     "week": "Core",
     "title": "Rate Limiting: Token Buckets, Windows and 429",
-    "tagline": "Stop one noisy client from taking the service away from everyone else, without punishing normal bursts.",
+    "tagline": "Stop one noisy user from taking the service away from everyone, without blocking normal bursts.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -36500,6 +37364,24 @@
           "Bucket empty, please wait",
           "A 429 'too many requests' answer"
         ]
+      ],
+      "words": [
+        [
+          "rate limit",
+          "A cap on how many requests someone can make in a time period."
+        ],
+        [
+          "token bucket",
+          "A way to limit requests: tokens refill steadily and each request spends one."
+        ],
+        [
+          "429",
+          "The status code meaning 'too many requests'."
+        ],
+        [
+          "burst",
+          "A short spike of many requests."
+        ]
       ]
     }
   },
@@ -36509,7 +37391,7 @@
     "level": 13,
     "week": "Core",
     "title": "Timeouts, Retries and Circuit Breakers",
-    "tagline": "Remote calls fail in slow, partial and repeated ways. How to wait, try again, and stop trying without making things worse.",
+    "tagline": "Calls to other systems can be slow or fail. When to wait, when to try again and when to stop.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -37518,6 +38400,24 @@
           "Stopping when it is clearly off",
           "A circuit breaker"
         ]
+      ],
+      "words": [
+        [
+          "timeout",
+          "The longest you will wait before giving up."
+        ],
+        [
+          "retry",
+          "Trying the same call again after it failed."
+        ],
+        [
+          "backoff",
+          "Waiting longer between each retry."
+        ],
+        [
+          "circuit breaker",
+          "A switch that stops calls to a failing service for a while."
+        ]
       ]
     }
   },
@@ -37527,7 +38427,7 @@
     "level": 13,
     "week": "Core",
     "title": "Consensus and Leader Election (Raft)",
-    "tagline": "How a group of servers agrees on one leader and one history, and keeps agreeing when some of them fail.",
+    "tagline": "How a group of servers agree on one leader, and keep agreeing when some of them fail.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -38745,6 +39645,24 @@
           "Leader goes quiet, vote again",
           "A new election"
         ]
+      ],
+      "words": [
+        [
+          "consensus",
+          "A group of machines agreeing on one value or order of events."
+        ],
+        [
+          "leader",
+          "The one machine that is in charge for now."
+        ],
+        [
+          "majority",
+          "More than half of the machines, enough to make a decision."
+        ],
+        [
+          "term",
+          "A numbered period in which one leader is in charge."
+        ]
       ]
     }
   },
@@ -38754,7 +39672,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a URL Shortener",
-    "tagline": "A whole-system walkthrough: numbers, API, short codes, storage, cache, redirects, abuse and failure.",
+    "tagline": "A full example: numbers, API, short codes, storage, speed, and what happens when things fail.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -39654,6 +40572,20 @@
           "Looking it up and sending them",
           "A redirect"
         ]
+      ],
+      "words": [
+        [
+          "redirect",
+          "Sending the visitor on to a different address."
+        ],
+        [
+          "base62",
+          "Writing numbers with 62 characters (0-9, a-z, A-Z) to make short codes."
+        ],
+        [
+          "collision",
+          "Two different inputs ending up with the same code."
+        ]
       ]
     }
   },
@@ -39663,7 +40595,7 @@
     "level": 13,
     "week": "Core",
     "title": "How a Request Travels: Where the Time Goes",
-    "tagline": "Follow one page load from the address bar to the screen and find out which step costs the most.",
+    "tagline": "Follow one page load from the address bar to the screen, and find the slowest step.",
     "viz": "stage",
     "hours": 2,
     "priority": 2,
@@ -40503,6 +41435,20 @@
           "Finding the slowest step",
           "Measuring where the time goes"
         ]
+      ],
+      "words": [
+        [
+          "latency",
+          "The delay between asking and getting an answer."
+        ],
+        [
+          "round trip",
+          "One trip to the server and back."
+        ],
+        [
+          "DNS",
+          "The directory that turns a name like example.com into a computer's address."
+        ]
       ]
     }
   },
@@ -40512,7 +41458,7 @@
     "level": 13,
     "week": "Core",
     "title": "Scaling Out: Vertical, Horizontal and Stateless Servers",
-    "tagline": "Add capacity by adding machines, and the one rule that makes it work: servers must be interchangeable.",
+    "tagline": "Add more machines instead of one bigger one, and keep every server interchangeable.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -41601,6 +42547,24 @@
           "Any cook can serve you",
           "Stateless servers"
         ]
+      ],
+      "words": [
+        [
+          "vertical scaling",
+          "Making one machine bigger."
+        ],
+        [
+          "horizontal scaling",
+          "Adding more machines."
+        ],
+        [
+          "stateless",
+          "Not remembering anything between requests, so any server can handle any request."
+        ],
+        [
+          "session store",
+          "A shared place where login information is kept."
+        ]
       ]
     }
   },
@@ -41609,7 +42573,7 @@
     "level": 14,
     "week": "Core",
     "title": "Arrays and Hash Maps",
-    "tagline": "Most speed-ups are a set or a dict that stops you searching inside a loop.",
+    "tagline": "Most speed-ups come from using a set or a dictionary instead of searching inside a loop.",
     "viz": "stage",
     "hours": 6,
     "priority": 1,
@@ -42365,6 +43329,24 @@
           "Name points to a seat",
           "Key points to a value"
         ]
+      ],
+      "words": [
+        [
+          "array",
+          "A row of items stored one after another, found by position."
+        ],
+        [
+          "hash map",
+          "A container that finds a value from its key almost instantly."
+        ],
+        [
+          "set",
+          "A container that keeps each value only once and checks 'is it there' quickly."
+        ],
+        [
+          "O(1)",
+          "Takes about the same time no matter how much data there is."
+        ]
       ]
     }
   },
@@ -42373,7 +43355,7 @@
     "level": 14,
     "week": "Core",
     "title": "Stacks and Queues",
-    "tagline": "Last-in-first-out for nesting, first-in-first-out for order, and the monotonic stack trick.",
+    "tagline": "A stack gives back the last item put in. A queue gives back the first. Each suits a different job.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -42832,6 +43814,24 @@
           "Brackets inside brackets",
           "Checking matching brackets with a stack"
         ]
+      ],
+      "words": [
+        [
+          "stack",
+          "A pile where you add and remove at the top: last in, first out."
+        ],
+        [
+          "queue",
+          "A line where you add at the back and remove at the front: first in, first out."
+        ],
+        [
+          "LIFO",
+          "Last in, first out."
+        ],
+        [
+          "monotonic stack",
+          "A stack that is kept in increasing or decreasing order."
+        ]
       ]
     }
   },
@@ -42840,7 +43840,7 @@
     "level": 14,
     "week": "Core",
     "title": "Linked Lists",
-    "tagline": "Pointer discipline: traversal, fast and slow pointers, cycles, reversal.",
+    "tagline": "A chain of items that each point to the next: walking it, finding loops and reversing it.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -43398,6 +44398,24 @@
           "Following clues one by one",
           "Walking along the list"
         ]
+      ],
+      "words": [
+        [
+          "node",
+          "One item in the chain, holding a value and a pointer."
+        ],
+        [
+          "pointer",
+          "A reference that says where another item is."
+        ],
+        [
+          "cycle",
+          "A chain that loops back on itself, so it never ends."
+        ],
+        [
+          "fast and slow pointers",
+          "Two pointers moving at different speeds, used to find a loop or the middle."
+        ]
       ]
     }
   },
@@ -43406,7 +44424,7 @@
     "level": 14,
     "week": "Core",
     "title": "Sorting, Searching and Intervals",
-    "tagline": "Sort first, search the sorted data, and know one n log n sort in detail.",
+    "tagline": "Sort first, then search the sorted data fast, and know one good sorting method well.",
     "viz": "stage",
     "hours": 6,
     "priority": 2,
@@ -44023,6 +45041,24 @@
           "Putting the words in order first",
           "Sorting"
         ]
+      ],
+      "words": [
+        [
+          "binary search",
+          "Finding something in sorted data by repeatedly checking the middle."
+        ],
+        [
+          "merge sort",
+          "A sorting method that splits the data, sorts the halves and joins them."
+        ],
+        [
+          "O(n log n)",
+          "The usual speed of good sorting methods."
+        ],
+        [
+          "interval",
+          "A range with a start and an end, like a meeting from 2 to 3."
+        ]
       ]
     }
   },
@@ -44031,7 +45067,7 @@
     "level": 14,
     "week": "Core",
     "title": "Trees and Binary Search Trees",
-    "tagline": "Recursion on structure: depth-first, breadth-first, and why height decides the cost.",
+    "tagline": "A family-tree shape for data: how to walk it, and why its height decides the speed.",
     "viz": "stage",
     "hours": 6,
     "priority": 2,
@@ -44658,6 +45694,20 @@
           "Smaller left, bigger right",
           "A binary search tree"
         ]
+      ],
+      "words": [
+        [
+          "root",
+          "The top node of a tree."
+        ],
+        [
+          "BST",
+          "Binary search tree: smaller values go left and bigger values go right."
+        ],
+        [
+          "depth-first search",
+          "Going down one branch fully before trying the next."
+        ]
       ]
     }
   },
@@ -44666,7 +45716,7 @@
     "level": 14,
     "week": "Core",
     "title": "Graphs: BFS, DFS and Topological Order",
-    "tagline": "Model the problem as nodes and edges, then pick breadth-first or depth-first.",
+    "tagline": "A map of connected places: explore it wave by wave, or deep along one path.",
     "viz": "stage",
     "hours": 7,
     "priority": 2,
@@ -45253,6 +46303,24 @@
           "Following one road to the end",
           "Depth-first search"
         ]
+      ],
+      "words": [
+        [
+          "node",
+          "A point in a graph, such as a place."
+        ],
+        [
+          "edge",
+          "A line joining two nodes, such as a road."
+        ],
+        [
+          "BFS",
+          "Breadth-first search: visit everything one step away, then two steps away, and so on."
+        ],
+        [
+          "topological order",
+          "A way to line up tasks so every task comes after the ones it depends on."
+        ]
       ]
     }
   },
@@ -45261,7 +46329,7 @@
     "level": 14,
     "week": "Core",
     "title": "Heaps and Priority Queues",
-    "tagline": "Always know the smallest item: top-k, merging streams and scheduling.",
+    "tagline": "Always know the smallest item quickly: top few, merging lists and scheduling.",
     "viz": "stage",
     "hours": 5,
     "priority": 3,
@@ -45797,6 +46865,24 @@
           "Seeing the next patient",
           "Removing the top"
         ]
+      ],
+      "words": [
+        [
+          "heap",
+          "A tree-like structure that always keeps the smallest (or biggest) item on top."
+        ],
+        [
+          "priority queue",
+          "A queue where the most important item comes out first."
+        ],
+        [
+          "top-k",
+          "The k biggest or smallest items."
+        ],
+        [
+          "min-heap",
+          "A heap with the smallest item on top."
+        ]
       ]
     }
   },
@@ -45805,7 +46891,7 @@
     "level": 14,
     "week": "Core",
     "title": "Recursion and Backtracking",
-    "tagline": "Choose, explore, undo: generate subsets, permutations and combinations.",
+    "tagline": "Solve a big problem with a smaller copy of itself, and undo choices that did not work.",
     "viz": "stage",
     "hours": 6,
     "priority": 3,
@@ -46427,6 +47513,24 @@
           "Returning to the last fork",
           "Backtracking"
         ]
+      ],
+      "words": [
+        [
+          "recursion",
+          "A function that calls itself on a smaller version of the problem."
+        ],
+        [
+          "base case",
+          "The simplest case that stops the repeating."
+        ],
+        [
+          "backtracking",
+          "Trying a choice, and undoing it if it leads nowhere."
+        ],
+        [
+          "call stack",
+          "The record of functions that are currently running."
+        ]
       ]
     }
   },
@@ -46435,7 +47539,7 @@
     "level": 14,
     "week": "Core",
     "title": "Dynamic Programming",
-    "tagline": "Solve each overlapping subproblem once: state, recurrence, base case.",
+    "tagline": "Remember the answer to each small part, so you never work it out twice.",
     "viz": "stage",
     "hours": 7,
     "priority": 3,
@@ -47034,6 +48138,24 @@
           "Building the big sum from small ones",
           "A recurrence"
         ]
+      ],
+      "words": [
+        [
+          "subproblem",
+          "A smaller version of the same problem."
+        ],
+        [
+          "memoization",
+          "Saving results of calls so they are not worked out again."
+        ],
+        [
+          "recurrence",
+          "A rule that builds the answer from smaller answers."
+        ],
+        [
+          "overlapping subproblems",
+          "The same small problem showing up many times."
+        ]
       ]
     }
   },
@@ -47042,7 +48164,7 @@
     "level": 15,
     "week": "Core",
     "title": "Object-Oriented Design and SOLID",
-    "tagline": "Keep each change local: classes with one job, interfaces, and composition.",
+    "tagline": "Organise code so one change does not break many things: one job per class.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -47526,6 +48648,24 @@
           "Adding a new tool without changing the others",
           "Open for extension, closed for change"
         ]
+      ],
+      "words": [
+        [
+          "class",
+          "A blueprint for objects, with data and actions."
+        ],
+        [
+          "interface",
+          "A promise about which actions something offers, without saying how."
+        ],
+        [
+          "composition",
+          "Building something by combining smaller parts instead of inheriting."
+        ],
+        [
+          "SOLID",
+          "Five guidelines for tidy object-oriented design."
+        ]
       ]
     }
   },
@@ -47534,7 +48674,7 @@
     "level": 15,
     "week": "Core",
     "title": "Design Patterns That Come Up in Interviews",
-    "tagline": "Strategy, Factory, Observer, Decorator and State, each as a problem and its fix.",
+    "tagline": "Ready-made solutions to problems that keep coming up.",
     "viz": "stage",
     "hours": 5,
     "priority": 3,
@@ -48030,6 +49170,24 @@
           "People subscribing to a notice board",
           "The Observer pattern"
         ]
+      ],
+      "words": [
+        [
+          "design pattern",
+          "A named, reusable solution to a common design problem."
+        ],
+        [
+          "Strategy",
+          "Swapping one way of doing a job for another."
+        ],
+        [
+          "Observer",
+          "Letting many parts be told when something changes."
+        ],
+        [
+          "Factory",
+          "A place that creates objects so callers need not know the exact type."
+        ]
       ]
     }
   },
@@ -48038,7 +49196,7 @@
     "level": 15,
     "week": "Core",
     "title": "The LLD Method, Worked on a Parking Lot",
-    "tagline": "From a one-line prompt to classes, flows, extension and concurrency.",
+    "tagline": "From a one-line request to classes and flows: a method for small design questions.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -48514,6 +49672,20 @@
           "Planning on paper first",
           "Designing before coding"
         ]
+      ],
+      "words": [
+        [
+          "low-level design",
+          "Designing the classes and their methods for a small system."
+        ],
+        [
+          "concurrency",
+          "Many things happening at the same time."
+        ],
+        [
+          "class",
+          "A blueprint for objects, with their data and actions."
+        ]
       ]
     }
   },
@@ -48522,7 +49694,7 @@
     "level": 15,
     "week": "Core",
     "title": "Design an LRU Cache",
-    "tagline": "A hash map plus a doubly linked list gives O(1) get and put with eviction.",
+    "tagline": "Keep recent items handy and throw out the one unused for longest, quickly.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -49024,6 +50196,24 @@
           "Removing the bottom book",
           "Evicting the least recently used"
         ]
+      ],
+      "words": [
+        [
+          "LRU",
+          "Least recently used: the item that was used longest ago."
+        ],
+        [
+          "eviction",
+          "Removing an item to make space."
+        ],
+        [
+          "doubly linked list",
+          "A chain where each item points both forward and back."
+        ],
+        [
+          "O(1)",
+          "Takes about the same time no matter how much data there is."
+        ]
       ]
     }
   },
@@ -49032,7 +50222,7 @@
     "level": 15,
     "week": "Core",
     "title": "Design a Vending Machine: State Machines",
-    "tagline": "States, events and transitions, with the State pattern and a table-driven alternative.",
+    "tagline": "Model something that moves through steps, like a vending machine: states, events and moves.",
     "viz": "stage",
     "hours": 4,
     "priority": 3,
@@ -49512,6 +50702,24 @@
           "Moving to 'waiting for choice'",
           "A transition"
         ]
+      ],
+      "words": [
+        [
+          "state",
+          "The situation something is in right now."
+        ],
+        [
+          "event",
+          "Something that happens and may cause a change."
+        ],
+        [
+          "transition",
+          "The move from one state to another."
+        ],
+        [
+          "State pattern",
+          "Putting the behaviour of each state in its own class."
+        ]
       ]
     }
   },
@@ -49520,7 +50728,7 @@
     "level": 6,
     "week": "Core",
     "title": "How Interview Loops Are Structured, by Role",
-    "tagline": "What Amazon, Meta, Microsoft and Google loops contain, and how frontend, backend and AI roles differ.",
+    "tagline": "What the interview rounds look like at big companies, and how they differ by role.",
     "viz": "stage",
     "hours": 2,
     "priority": 2,
@@ -50092,6 +51300,20 @@
           "Personal interview",
           "A behavioral round"
         ]
+      ],
+      "words": [
+        [
+          "loop",
+          "The full set of interview rounds for one job."
+        ],
+        [
+          "screen",
+          "A short first interview that filters candidates."
+        ],
+        [
+          "system design",
+          "A round where you plan a large system out loud."
+        ]
       ]
     }
   },
@@ -50100,7 +51322,7 @@
     "level": 6,
     "week": "Core",
     "title": "How to Run a Coding Round",
-    "tagline": "A seven-step routine: clarify, example, brute force, pattern, code, test, complexity.",
+    "tagline": "A routine for coding rounds: understand, example, simple solution, better solution, code, test.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -50901,6 +52123,20 @@
           "Test drive",
           "Test your code with examples"
         ]
+      ],
+      "words": [
+        [
+          "brute force",
+          "The simple solution that tries everything."
+        ],
+        [
+          "edge case",
+          "An unusual input, like an empty list, that can break code."
+        ],
+        [
+          "complexity",
+          "How the time and memory grow with the size of the input."
+        ]
       ]
     }
   },
@@ -50909,7 +52145,7 @@
     "level": 9,
     "week": "Core",
     "title": "JavaScript Utility Functions: Debounce, Throttle, Promises",
-    "tagline": "The JavaScript coding round: closures, timers and promises in small, testable functions.",
+    "tagline": "Small JavaScript helpers that control when functions run: debounce, throttle and promises.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -51419,6 +52655,24 @@
           "Promise to deliver later",
           "A JavaScript promise"
         ]
+      ],
+      "words": [
+        [
+          "closure",
+          "A function that remembers the variables around it."
+        ],
+        [
+          "debounce",
+          "Wait until calls stop for a while, then run once."
+        ],
+        [
+          "throttle",
+          "Run at most once in a given time."
+        ],
+        [
+          "promise",
+          "An object that stands for a result that arrives later."
+        ]
       ]
     }
   },
@@ -51427,7 +52681,7 @@
     "level": 9,
     "week": "Core",
     "title": "UI Coding Round: Autocomplete, Modal, Tabs",
-    "tagline": "State, races, keyboard and ARIA: building a component the way the round expects.",
+    "tagline": "Build a search box, a pop-up or tabs that work with a keyboard and a screen reader.",
     "viz": "stage",
     "hours": 5,
     "priority": 1,
@@ -51952,6 +53206,24 @@
           "Returning you to where you were",
           "Restoring focus"
         ]
+      ],
+      "words": [
+        [
+          "component",
+          "A reusable piece of an interface, like a button or a tab."
+        ],
+        [
+          "focus",
+          "The element that receives the keyboard input right now."
+        ],
+        [
+          "ARIA",
+          "Extra labels that tell screen readers what an element is."
+        ],
+        [
+          "race",
+          "A bug where the result depends on which of two things finishes first."
+        ]
       ]
     }
   },
@@ -51960,7 +53232,7 @@
     "level": 9,
     "week": "Core",
     "title": "Frontend System Design: Feeds, Caching, Real Time",
-    "tagline": "Architect a client app: data flow, client cache, virtualisation, optimistic UI and live updates.",
+    "tagline": "Plan a web app: how it gets data, stores it, shows long lists and updates live.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -52531,6 +53803,20 @@
           "Shouting breaking news",
           "Real-time updates"
         ]
+      ],
+      "words": [
+        [
+          "client cache",
+          "Data saved in the browser so it need not be fetched again."
+        ],
+        [
+          "optimistic UI",
+          "Showing the result at once and fixing it later if the server says no."
+        ],
+        [
+          "WebSocket",
+          "A connection that stays open so the server can send updates at any time."
+        ]
       ]
     }
   },
@@ -52539,7 +53825,7 @@
     "level": 12,
     "week": "Core",
     "title": "Design an LLM Application (RAG, Evals, Cost)",
-    "tagline": "Retrieval, prompts, guardrails, cost and evaluation for an assistant over your documents.",
+    "tagline": "An AI assistant that answers from your own documents: find the pages, write the answer, check it, control the cost.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -53181,6 +54467,20 @@
           "Saying 'I did not find it'",
           "A guardrail against made-up answers"
         ]
+      ],
+      "words": [
+        [
+          "LLM",
+          "A large language model, an AI that writes text."
+        ],
+        [
+          "RAG",
+          "Retrieval-augmented generation: find relevant text first, then ask the model to answer from it."
+        ],
+        [
+          "embedding",
+          "A list of numbers that captures the meaning of a text, so similar texts are close."
+        ]
       ]
     }
   },
@@ -53189,7 +54489,7 @@
     "level": 16,
     "week": "Core",
     "title": "Operating Systems: Processes, Scheduling, Virtual Memory",
-    "tagline": "Time sharing, scheduling trade-offs, virtual memory and page replacement, with runnable simulations.",
+    "tagline": "How the computer shares time and memory between programs.",
     "viz": "stage",
     "hours": 5,
     "priority": 3,
@@ -53787,6 +55087,24 @@
           "Cupboard for old notes",
           "Swapping to disk (virtual memory)"
         ]
+      ],
+      "words": [
+        [
+          "process",
+          "A running program with its own memory."
+        ],
+        [
+          "scheduler",
+          "The part of the system that decides which program runs next."
+        ],
+        [
+          "virtual memory",
+          "A trick that gives each program its own large, private memory space."
+        ],
+        [
+          "page fault",
+          "A moment when needed data is not in memory and must be loaded."
+        ]
       ]
     }
   },
@@ -53795,7 +55113,7 @@
     "level": 16,
     "week": "Core",
     "title": "Concurrency: Threads, Locks, Deadlock, the GIL",
-    "tagline": "Races, mutual exclusion, deadlock and the Python tools: Lock, Condition, Semaphore, Queue.",
+    "tagline": "What goes wrong when many things run at once, and the tools that prevent it.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -54492,6 +55810,24 @@
           "Each waiting for the other's key",
           "A deadlock"
         ]
+      ],
+      "words": [
+        [
+          "thread",
+          "A line of work inside a program; several can run in turn or together."
+        ],
+        [
+          "race condition",
+          "A bug where the result depends on the timing of two things."
+        ],
+        [
+          "mutex",
+          "A lock that lets only one thread in at a time."
+        ],
+        [
+          "deadlock",
+          "Threads waiting for each other forever."
+        ]
       ]
     }
   },
@@ -54500,7 +55836,7 @@
     "level": 13,
     "week": "Core",
     "title": "How to Answer a System Design Question",
-    "tagline": "Requirements, entities, API, high-level design, deep dives: a routine you can run in 45 minutes.",
+    "tagline": "A routine for design questions: needs, things, API, big picture, then details.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -55000,6 +56336,24 @@
           "Going deep on the food",
           "A deep dive"
         ]
+      ],
+      "words": [
+        [
+          "functional requirement",
+          "Something the system must do, such as 'post a message'."
+        ],
+        [
+          "non-functional requirement",
+          "How well it must work, such as speed or uptime."
+        ],
+        [
+          "high-level design",
+          "The big picture of the main parts and how they connect."
+        ],
+        [
+          "deep dive",
+          "Going into detail on one important part."
+        ]
       ]
     }
   },
@@ -55008,7 +56362,7 @@
     "level": 13,
     "week": "Core",
     "title": "Back-of-the-Envelope Estimation",
-    "tagline": "Powers of two, latency numbers, QPS, storage and bandwidth, and the decision each number drives.",
+    "tagline": "Do rough sums on speed, requests and storage, and see which decision each number points to.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -55598,6 +56952,24 @@
           "Ordering the right amount",
           "Picking a design that fits"
         ]
+      ],
+      "words": [
+        [
+          "QPS",
+          "Queries per second: how many requests arrive each second."
+        ],
+        [
+          "peak",
+          "The busiest moment, which the system must still handle."
+        ],
+        [
+          "bandwidth",
+          "How much data can be sent per second."
+        ],
+        [
+          "order of magnitude",
+          "A rough size by powers of ten, like thousands or millions."
+        ]
       ]
     }
   },
@@ -55606,7 +56978,7 @@
     "level": 13,
     "week": "Core",
     "title": "Latency, Throughput and Availability",
-    "tagline": "Performance versus scalability, nines of availability, and what series and parallel redundancy do to them.",
+    "tagline": "How long one thing takes, how many things per second, and how often it works.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -56076,6 +57448,24 @@
           "Share of days it is open",
           "Availability"
         ]
+      ],
+      "words": [
+        [
+          "latency",
+          "How long one request takes."
+        ],
+        [
+          "throughput",
+          "How many requests are handled per second."
+        ],
+        [
+          "availability",
+          "The share of time the system works."
+        ],
+        [
+          "nines",
+          "A way to describe availability: 99.9 percent is three nines."
+        ]
       ]
     }
   },
@@ -56084,7 +57474,7 @@
     "level": 13,
     "week": "Core",
     "title": "CAP, Consistency Patterns and Quorums",
-    "tagline": "What to give up in a partition, how weak, eventual and strong consistency differ, and how quorums tune it.",
+    "tagline": "When the network breaks, do you stay available or stay in sync? And how voting between copies helps.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -56610,6 +58000,24 @@
           "'Go ahead, we will sort it out later'",
           "Choosing availability"
         ]
+      ],
+      "words": [
+        [
+          "partition",
+          "A break in the network between machines."
+        ],
+        [
+          "CAP theorem",
+          "During a network break you can keep either consistency or availability, not both."
+        ],
+        [
+          "quorum",
+          "More than half of the copies, enough to decide."
+        ],
+        [
+          "eventual consistency",
+          "Copies may differ for a while but will agree later."
+        ]
       ]
     }
   },
@@ -56618,7 +58026,7 @@
     "level": 13,
     "week": "Core",
     "title": "DNS, CDN and the Reverse Proxy",
-    "tagline": "How a request finds your servers, why copies live at the edge, and what sits in front of the origin.",
+    "tagline": "How a request finds your servers, why copies live near users, and what sits in front of your servers.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -57146,6 +58554,24 @@
           "The receptionist",
           "A reverse proxy"
         ]
+      ],
+      "words": [
+        [
+          "DNS",
+          "The directory that turns names into addresses."
+        ],
+        [
+          "CDN",
+          "A network of servers near users that keep copies of your files."
+        ],
+        [
+          "reverse proxy",
+          "A server in front of your servers that receives requests for them."
+        ],
+        [
+          "origin",
+          "Your real server, where the original content lives."
+        ]
       ]
     }
   },
@@ -57154,7 +58580,7 @@
     "level": 13,
     "week": "Core",
     "title": "Microservices, APIs and Communication",
-    "tagline": "Monolith first, service boundaries, discovery, REST versus RPC, TCP versus UDP and async messaging.",
+    "tagline": "Many small programs instead of one big one: where to split, and how they talk.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -57740,6 +59166,24 @@
           "Not splitting too early",
           "Start with a monolith"
         ]
+      ],
+      "words": [
+        [
+          "monolith",
+          "One program that holds the whole application."
+        ],
+        [
+          "microservice",
+          "A small program that does one job and talks to others."
+        ],
+        [
+          "REST",
+          "A style of API that uses web addresses and simple actions like GET and POST."
+        ],
+        [
+          "service discovery",
+          "Finding where a service currently runs."
+        ]
       ]
     }
   },
@@ -57748,7 +59192,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a News Feed (Twitter Timeline)",
-    "tagline": "Fan-out on write versus read, the timeline cache, and the hybrid for celebrities.",
+    "tagline": "Prepare each person's feed early or when asked, and mix both for celebrities.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -58346,6 +59790,24 @@
           "Mixing both for celebrities",
           "The hybrid approach"
         ]
+      ],
+      "words": [
+        [
+          "fan-out",
+          "Spreading one post out to many followers."
+        ],
+        [
+          "fan-out on write",
+          "Preparing each follower's feed when a post is made."
+        ],
+        [
+          "fan-out on read",
+          "Building the feed only when someone opens it."
+        ],
+        [
+          "timeline",
+          "The list of posts a person sees."
+        ]
       ]
     }
   },
@@ -58354,7 +59816,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Web Crawler",
-    "tagline": "Frontier, politeness, duplicate detection and freshness at a billion URLs.",
+    "tagline": "Visit billions of pages without repeats, without being rude, and keep them fresh.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -58956,6 +60418,24 @@
           "Not knocking every second",
           "Politeness"
         ]
+      ],
+      "words": [
+        [
+          "crawler",
+          "A program that visits web pages and follows their links."
+        ],
+        [
+          "frontier",
+          "The list of addresses still waiting to be visited."
+        ],
+        [
+          "politeness",
+          "Not sending too many requests to one site too quickly."
+        ],
+        [
+          "deduplication",
+          "Removing repeats so the same page is not handled twice."
+        ]
       ]
     }
   },
@@ -58964,7 +60444,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Distributed Key-Value Store (Dynamo)",
-    "tagline": "Partitioning, replication, quorums, hinted handoff and version vectors.",
+    "tagline": "A giant dictionary on many machines that keeps working when some fail.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -59596,6 +61076,24 @@
           "Copies in other cabinets",
           "Replication"
         ]
+      ],
+      "words": [
+        [
+          "key-value store",
+          "A database that finds a value from a key, like a giant dictionary."
+        ],
+        [
+          "partitioning",
+          "Splitting data over machines."
+        ],
+        [
+          "quorum",
+          "More than half of the copies, enough to decide."
+        ],
+        [
+          "hinted handoff",
+          "Another machine holds a message for one that is down, then passes it on later."
+        ]
       ]
     }
   },
@@ -59604,7 +61102,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Chat System",
-    "tagline": "WebSocket gateways, ordering with sortable ids, storage by conversation and time, presence and push.",
+    "tagline": "Deliver messages quickly and in order, also to people who are offline.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -60169,6 +61667,24 @@
           "Numbering each message",
           "Ordering by an increasing id"
         ]
+      ],
+      "words": [
+        [
+          "WebSocket",
+          "A connection that stays open so messages can flow both ways at any time."
+        ],
+        [
+          "presence",
+          "Whether a user is online right now."
+        ],
+        [
+          "push notification",
+          "A message sent to a phone even when the app is closed."
+        ],
+        [
+          "ordering",
+          "Making sure messages appear in the order they were sent."
+        ]
       ]
     }
   },
@@ -60177,7 +61693,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Notification System",
-    "tagline": "Queues per channel, workers, retries with backoff, idempotent delivery and dead-letter queues.",
+    "tagline": "Send alerts on many channels without losing them or sending them twice.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -60786,6 +62302,24 @@
           "Keeping a record of what was sent",
           "Idempotent delivery"
         ]
+      ],
+      "words": [
+        [
+          "channel",
+          "A way to reach someone, like SMS, email or app."
+        ],
+        [
+          "retry",
+          "Trying again after a failure."
+        ],
+        [
+          "idempotent",
+          "Safe to do twice: the second time changes nothing."
+        ],
+        [
+          "dead-letter queue",
+          "A place for messages that keep failing."
+        ]
       ]
     }
   },
@@ -60794,7 +62328,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design Search Autocomplete (Typeahead)",
-    "tagline": "A trie with precomputed top-k lists, hot-prefix caching and an offline build pipeline.",
+    "tagline": "Suggest words as people type, very fast.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -61284,6 +62818,24 @@
           "The most typed words kept handy",
           "Caching hot prefixes"
         ]
+      ],
+      "words": [
+        [
+          "trie",
+          "A tree where each step is a letter, so words with the same start share a path."
+        ],
+        [
+          "prefix",
+          "The first letters of a word."
+        ],
+        [
+          "top-k",
+          "The k best or most popular results."
+        ],
+        [
+          "precompute",
+          "Work things out ahead of time instead of when asked."
+        ]
       ]
     }
   },
@@ -61292,7 +62844,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a File Sync Service (Dropbox)",
-    "tagline": "Content-addressed blocks, the need-blocks commit, metadata versus block storage and sync across devices.",
+    "tagline": "Keep files in sync on all devices by sending only the pieces that changed.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -61833,6 +63385,24 @@
           "The receiver listing the pages he has",
           "Metadata that tracks versions"
         ]
+      ],
+      "words": [
+        [
+          "block",
+          "A small piece of a file."
+        ],
+        [
+          "hash",
+          "A short fingerprint made from data, used to tell whether it changed."
+        ],
+        [
+          "metadata",
+          "Information about a file, such as its name and version."
+        ],
+        [
+          "sync",
+          "Making the files match on every device."
+        ]
       ]
     }
   },
@@ -61841,7 +63411,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Video Streaming Service (YouTube)",
-    "tagline": "Chunked upload, transcoding into bitrates and segments, manifests, CDN delivery and adaptive playback.",
+    "tagline": "Upload, convert to many qualities, and play smoothly on any connection.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -62395,6 +63965,24 @@
           "Nearby kitchens",
           "A CDN"
         ]
+      ],
+      "words": [
+        [
+          "transcoding",
+          "Converting a video to other sizes and qualities."
+        ],
+        [
+          "bitrate",
+          "How much data per second a video uses; higher means better quality."
+        ],
+        [
+          "segment",
+          "A short piece of a video, a few seconds long."
+        ],
+        [
+          "adaptive streaming",
+          "Switching video quality up or down to match your connection."
+        ]
       ]
     }
   },
@@ -62403,7 +63991,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Proximity Service (Uber, Nearby)",
-    "tagline": "Grid cells (H3, geohash), a live location index, neighbour queries and dense-area sharding.",
+    "tagline": "Find nearby places or drivers fast by dividing the map into squares.",
     "viz": "stage",
     "hours": 3,
     "priority": 2,
@@ -62941,6 +64529,24 @@
           "A list of what is in each block",
           "A location index"
         ]
+      ],
+      "words": [
+        [
+          "geohash",
+          "A short code that names a small square of the map."
+        ],
+        [
+          "cell",
+          "One square of a map that has been divided into squares."
+        ],
+        [
+          "index",
+          "A structure that makes finding things fast."
+        ],
+        [
+          "sharding",
+          "Splitting data over machines."
+        ]
       ]
     }
   },
@@ -62949,7 +64555,7 @@
     "level": 13,
     "week": "Core",
     "title": "Design a Payment System",
-    "tagline": "Idempotency keys, a payment state machine, a double-entry ledger and reconciliation.",
+    "tagline": "Never charge twice, and keep exact records that always add up.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -63544,6 +65150,24 @@
           "Checking the books against the bank",
           "Reconciliation"
         ]
+      ],
+      "words": [
+        [
+          "idempotency key",
+          "A unique ID sent with a request so repeating it does not charge twice."
+        ],
+        [
+          "ledger",
+          "A record of every money movement."
+        ],
+        [
+          "double-entry",
+          "Writing each movement twice: once out of one account, once into another."
+        ],
+        [
+          "reconciliation",
+          "Checking your records against the bank's records."
+        ]
       ]
     }
   },
@@ -63552,7 +65176,7 @@
     "level": 12,
     "week": "Core",
     "title": "Generalization, Cross-Validation and Regularization",
-    "tagline": "Overfitting, validation, leakage, and how Ridge and Lasso control variance.",
+    "tagline": "Make a model learn the pattern, not the examples, and test it fairly.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -64194,6 +65818,24 @@
           "'Explain it simply'",
           "Regularisation (Ridge, Lasso)"
         ]
+      ],
+      "words": [
+        [
+          "generalization",
+          "How well a model works on data it has not seen."
+        ],
+        [
+          "overfitting",
+          "Learning the examples so closely that new data goes badly."
+        ],
+        [
+          "cross-validation",
+          "Testing several times, each time on a different slice kept aside."
+        ],
+        [
+          "regularization",
+          "A penalty that keeps a model simple so it does not overfit."
+        ]
       ]
     }
   },
@@ -64202,7 +65844,7 @@
     "level": 12,
     "week": "Core",
     "title": "ML Metrics and A/B Testing",
-    "tagline": "Precision, recall, thresholds and AUC, and how to run an experiment without fooling yourself.",
+    "tagline": "Pick the right score for a model, and test changes without fooling yourself.",
     "viz": "stage",
     "hours": 5,
     "priority": 2,
@@ -64823,6 +66465,24 @@
           "Comparing on similar houses",
           "An A/B test"
         ]
+      ],
+      "words": [
+        [
+          "precision",
+          "Of the things the model flagged, how many were right."
+        ],
+        [
+          "recall",
+          "Of all the real cases, how many the model found."
+        ],
+        [
+          "AUC",
+          "A score for how well a model separates the two classes at any threshold."
+        ],
+        [
+          "A/B test",
+          "Showing two versions to different people and comparing the results."
+        ]
       ]
     }
   },
@@ -64831,7 +66491,7 @@
     "level": 12,
     "week": "Core",
     "title": "Design a Recommender System",
-    "tagline": "Candidate generation, scoring and re-ranking, with embeddings and the cold start problem.",
+    "tagline": "Suggest things people will like: pick a short list, then rank it.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -65448,6 +67108,24 @@
           "A customer he knows nothing about",
           "The cold start problem"
         ]
+      ],
+      "words": [
+        [
+          "candidate generation",
+          "Picking a short list of items that might suit the person."
+        ],
+        [
+          "ranking",
+          "Putting the short list in the best order."
+        ],
+        [
+          "embedding",
+          "A list of numbers that captures meaning, so similar things are close."
+        ],
+        [
+          "cold start",
+          "Not having any history for a new user or item."
+        ]
       ]
     }
   },
@@ -65456,7 +67134,7 @@
     "level": 9,
     "week": "Core",
     "title": "CSS Layout: Box Model, Flexbox, Grid, Responsive",
-    "tagline": "How sizes add up, how flexbox and grid share space, and how to make one layout work on every screen.",
+    "tagline": "How sizes add up, how rows and grids share space, and how one page fits every screen.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -66124,6 +67802,24 @@
           "Rearranging for a small room",
           "Responsive design with media queries"
         ]
+      ],
+      "words": [
+        [
+          "box model",
+          "Every element is a box: content, padding, border and margin."
+        ],
+        [
+          "flexbox",
+          "A way to lay items out in a row or column and share the space."
+        ],
+        [
+          "grid",
+          "A way to lay items out in rows and columns."
+        ],
+        [
+          "media query",
+          "A rule that applies only on screens of a certain size."
+        ]
       ]
     }
   },
@@ -66132,7 +67828,7 @@
     "level": 9,
     "week": "Core",
     "title": "React State: Structure, Lifting, Reducers and Context",
-    "tagline": "Shape state so bugs are impossible, give each piece one owner, and share it without prop drilling.",
+    "tagline": "Decide where each piece of data lives so bugs cannot happen, and share it without passing it down every level.",
     "viz": "stage",
     "hours": 4,
     "priority": 2,
@@ -66785,6 +68481,24 @@
         [
           "Adding to the list",
           "Updating state in one place"
+        ]
+      ],
+      "words": [
+        [
+          "state",
+          "Data a component remembers, which makes it redraw when it changes."
+        ],
+        [
+          "lifting state up",
+          "Moving state to a shared parent so several children can use it."
+        ],
+        [
+          "reducer",
+          "A function that takes the old state and an action and gives the new state."
+        ],
+        [
+          "context",
+          "A way to share a value with many components without passing it down every level."
         ]
       ]
     }
