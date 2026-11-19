@@ -22,6 +22,8 @@ afterEach(() => { cleanup(); localStorage.clear() })
 const IGNORED = /not wrapped in act|ReactDOMTestUtils/
 
 /** Click the stage's own Next button n times. */
+/** The first button with this name that is not part of the lesson's own step bar or Back/Continue bar. */
+const pick = (name: RegExp | string) => screen.getAllByRole('button', { name }).filter((b) => !b.closest('nav.lesson-steps, .lesson-nav'))[0]
 const stageNext = (c: HTMLElement, n: number) => {
   for (let i = 0; i < n; i++) {
     const b = c.querySelector<HTMLButtonElement>('.stage-nav .primary')
@@ -32,6 +34,8 @@ const stageNext = (c: HTMLElement, n: number) => {
 const inLab = (c: HTMLElement) => { const d = c.querySelector('details.lab') as HTMLDetailsElement; d.open = true; return within(d) }
 
 async function visit(path: string, expectText: RegExp) {
+  // A lesson opens on its first step (the story). Tests that look at the animation open the Watch step directly.
+  if (/^\/concept\/[^?#]+(#.*)?$/.test(path) && /Interactive/.test(String(expectText))) path = path.replace(/^([^#]+)/, '$1?s=watch')
   window.history.pushState({}, '', path)
   const errors: string[] = []
   const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => {
@@ -43,6 +47,10 @@ async function visit(path: string, expectText: RegExp) {
     await waitFor(() => expect(container.textContent).toMatch(expectText), { timeout: 15000 })
     // Lazy chunks load in any order. Wait for the main animation so "first Next-step button" means that one.
     if (/Interactive/.test(String(expectText))) await waitFor(() => expect(container.querySelector('section.viz')?.textContent).not.toMatch(/Loading animation/), { timeout: 15000 })
+    // The old widget in the lab loads in its own chunk: wait for it too, or a quick test clicks before it exists.
+    if (/Interactive/.test(String(expectText))) await waitFor(() => { const lab = container.querySelector('details.lab'); if (lab) expect(lab.textContent).not.toMatch(/Loading/) }, { timeout: 15000 })
+    // Visuals inside the text load in their own chunks: wait until no "Loading" placeholder is left.
+    await waitFor(() => expect(container.textContent).not.toMatch(/Loading visual…|Loading animation…/), { timeout: 15000 })
     expect(container.querySelector('[role=alert]'), 'error boundary is showing').toBeNull()
     expect(errors, 'console errors').toEqual([])
     return container
@@ -70,9 +78,11 @@ describe('every concept page renders', () => {
   const slugs = ['er-modelling', 'keys', 'normalization', 'denormalization', 'data-types', 'constraints', 'sql-vs-nosql', 'explain', 'indexing',
     'acid', 'isolation', 'locks-mvcc', 'replication', 'sharding', 'consistency', 'django-orm', 'drf-api', 'celery-async', 'web-security']
   it.each(slugs)('/concept/%s', async (slug) => {
-    const c = await visit(`/concept/${slug}`, /Why this priority\?/)
+    const c = await visit(`/concept/${slug}?s=finish`, /Why this priority\?/)
     expect(c.textContent).toMatch(/Read & refer/)
-    expect(c.textContent).toMatch(/interview questions/i)
+    cleanup()
+    const q = await visit(`/concept/${slug}?s=check`, /interview questions/i)
+    expect(q.textContent).toMatch(/interview questions/i)
   })
 })
 
@@ -94,7 +104,7 @@ describe('personal roadmap with a saved profile', () => {
 })
 
 describe('animations respond to interaction', () => {
-  const click = (name: RegExp) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp) => fireEvent.click(pick(name))
 
   it('N+1: switching strategy changes the query count', async () => {
     const c = await visit('/concept/django-orm', /Interactive/)
@@ -203,7 +213,7 @@ describe('every concept has an animation', () => {
 })
 
 describe('new animations respond to interaction', () => {
-  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp | string) => fireEvent.click(pick(name))
   const steps = (n: number) => { for (let i = 0; i < n; i++) click(/next step/i) }
 
   it('er: junction table rejects a duplicate pairing', async () => {
@@ -320,14 +330,14 @@ describe('new animations respond to interaction', () => {
 })
 
 describe('visuals embedded in lessons', () => {
-  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp | string) => fireEvent.click(pick(name))
   /** Work inside one embedded visual (pages also contain older animations with their own buttons). */
   const fig = async (label: string) => within(await screen.findByLabelText(label))
   const press = (f: ReturnType<typeof within>, name: RegExp | string, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(f.getByRole('button', { name })) }
   const next = (f: ReturnType<typeof within>, n: number) => press(f, /next step/i, n)
 
   it('er: all four embedded visuals render, and each one responds', async () => {
-    const c = await visit('/concept/er-modelling', /Interactive/)
+    const c = await visit('/concept/er-modelling?s=read', /Understand it/)
     for (const t of [/What each part of an ER drawing becomes/, /Read crow's-foot notation/, 'Where does the foreign key go?', /Design a schema step by step/]) {
       await screen.findByLabelText(t)
     }
@@ -340,27 +350,27 @@ describe('visuals embedded in lessons', () => {
     expect(c.textContent).toMatch(/book_authors/)
   })
   it('keys: each join type keeps different rows', async () => {
-    const c = await visit('/concept/keys', /Interactive/)
+    const c = await visit('/concept/keys?s=read', /Understand it/)
     await screen.findByLabelText(/See which rows each JOIN keeps/)
     await waitFor(() => expect(c.textContent).toMatch(/Result: 2 rows/))
     click('LEFT JOIN'); await waitFor(() => expect(c.textContent).toMatch(/Result: 3 rows/))
     click('FULL JOIN'); await waitFor(() => expect(c.textContent).toMatch(/Result: 4 rows/))
   })
   it('normalization: flat table decomposes and the update touches one row', async () => {
-    const c = await visit('/concept/normalization', /Interactive/)
+    const c = await visit('/concept/normalization?s=read', /Understand it/)
     next(await fig('Normalize a flat table, step by step'), 4)
     await waitFor(() => expect(c.textContent).toMatch(/Asha moves to Mumbai/))
     expect(c.textContent).toMatch(/→ 1 row/)
   })
   it('indexing: a query that skips the first column cannot use the composite index', async () => {
-    const c = await visit('/concept/indexing', /Interactive/)
+    const c = await visit('/concept/indexing?s=read', /Understand it/)
     await screen.findByLabelText(/leftmost-prefix rule/)
     await waitFor(() => expect(c.textContent).toMatch(/Index range scan/))
     click("status = 'paid'")
     await waitFor(() => expect(c.textContent).toMatch(/Full index scan/))
   })
   it('locks: MVCC steps through to VACUUM, deadlock ends in an abort', async () => {
-    const c = await visit('/concept/locks-mvcc', /Interactive/)
+    const c = await visit('/concept/locks-mvcc?s=read', /Understand it/)
     await screen.findByLabelText(/MVCC: how readers and writers avoid each other/)
     next(await fig('MVCC: how readers and writers avoid each other'), 5)
     await waitFor(() => expect(c.textContent).toMatch(/VACUUM removes dead versions/))
@@ -369,29 +379,29 @@ describe('visuals embedded in lessons', () => {
     await waitFor(() => expect(c.textContent).toMatch(/deadlock detected/))
   })
   it('sharding: consistent hashing moves fewer keys than modulo', async () => {
-    const c = await visit('/concept/sharding', /Interactive/)
+    const c = await visit('/concept/sharding?s=read', /Understand it/)
     await screen.findByLabelText(/Consistent hashing: add a server/)
     click('Add server D')
     await waitFor(() => expect(c.textContent).toMatch(/Consistent hashing \(ring\)2/))
     expect(c.textContent).toMatch(/hash\(key\) mod N9/)
   })
   it('celery, wal and cache-aside visuals render and step', async () => {
-    let c = await visit('/concept/celery-async', /Interactive/)
+    let c = await visit('/concept/celery-async?s=read', /Understand it/)
     const f1 = await fig('What happens to a Celery task'); press(f1, 'Worker crashes mid-task'); next(f1, 5)
     await waitFor(() => expect(c.textContent).toMatch(/emails sent: 2/))
     cleanup()
-    c = await visit('/concept/acid', /Interactive/)
+    c = await visit('/concept/acid?s=read', /Understand it/)
     const f2 = await fig('Crash recovery with the write-ahead log'); next(f2, 6)
     await waitFor(() => expect(c.textContent).toMatch(/That is Durability/))
     cleanup()
-    c = await visit('/concept/consistency', /Interactive/)
+    c = await visit('/concept/consistency?s=read', /Understand it/)
     const f3 = await fig('Cache-aside: hit, miss and invalidation'); press(f3, 'Write: invalidate'); next(f3, 4)
     await waitFor(() => expect(c.textContent).toMatch(/cache: product:7 = v2/))
   })
 })
 
 describe('system design and production-ops lessons', () => {
-  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp | string) => fireEvent.click(pick(name))
   const fig = async (label: string) => within(await screen.findByLabelText(label))
   const press = (f: ReturnType<typeof within>, name: RegExp | string, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(f.getByRole('button', { name })) }
 
@@ -406,7 +416,7 @@ describe('system design and production-ops lessons', () => {
     expect(c.querySelector('.archbox.on')).not.toBeNull()
   })
   it('sd-framework: six steps end at trade-offs', async () => {
-    const c = await visit('/concept/system-design', /Interactive/)
+    const c = await visit('/concept/system-design?s=read', /Understand it/)
     const f = await fig('Answer a design question in six steps')
     press(f, /next step/i, 6)
     await waitFor(() => expect(c.textContent).toMatch(/Step 6: State trade-offs and failure modes/))
@@ -423,7 +433,7 @@ describe('system design and production-ops lessons', () => {
     expect(c.textContent).toMatch(/Done with zero errors/)
   })
   it('pool: too many instances exhaust connections, a pool caps them', async () => {
-    const c = await visit('/concept/prod-ops', /Interactive/)
+    const c = await visit('/concept/prod-ops?s=read', /Understand it/)
     const f = await fig('Connection pools: why 3 servers can break a database')
     fireEvent.change(f.getByLabelText('App instances'), { target: { value: '12' } })
     await waitFor(() => expect(c.textContent).toMatch(/too many clients already/))
@@ -433,7 +443,7 @@ describe('system design and production-ops lessons', () => {
 })
 
 describe('tracks and the new lessons', () => {
-  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp | string) => fireEvent.click(pick(name))
   const next = (n: number) => { for (let i = 0; i < n; i++) click(/next step/i) }
 
   it('home groups lessons into tracks', async () => {
@@ -446,11 +456,12 @@ describe('tracks and the new lessons', () => {
     expect(c.textContent).toMatch(/Behavioral Interviews and STAR Stories/)
   })
   it('lessons without SQL do not show an SQL section', async () => {
-    const c = await visit('/concept/behavioral-star', /Interactive/)
+    const c = await visit('/concept/behavioral-star?s=check', /Check yourself: interview questions/)
     expect(c.textContent).not.toMatch(/In SQL/)
     expect(c.querySelector('#sql')).toBeNull()
     expect(c.querySelector('#django')).toBeNull()
     expect(c.querySelector('#interview')).not.toBeNull()
+    expect(c.querySelector('nav.lesson-steps')?.textContent).not.toMatch(/SQL|Code/)
   })
   it('bigo: growth table and the list-vs-set comparison', async () => {
     const c = await visit('/concept/big-o-structures', /Interactive/)
@@ -504,7 +515,7 @@ describe('tracks and the new lessons', () => {
 })
 
 describe('every track has working lessons', () => {
-  const click = (name: RegExp | string) => fireEvent.click(screen.getAllByRole('button', { name })[0])
+  const click = (name: RegExp | string) => fireEvent.click(pick(name))
   const next = (n: number) => { for (let i = 0; i < n; i++) click(/next step/i) }
 
   it('the profile page offers every background', async () => {
@@ -546,9 +557,8 @@ describe('every track has working lessons', () => {
     }
   })
   it('non-database lessons never show an SQL heading unless they have SQL', async () => {
-    const c = await visit('/concept/infrastructure-as-code', /Interactive/)
+    const c = await visit('/concept/infrastructure-as-code?s=code', /Try it in code/)
     expect(c.textContent).not.toMatch(/In SQL/)
-    expect(c.textContent).toMatch(/Try it in code/)
   })
 })
 
@@ -565,7 +575,7 @@ describe('data structures, low-level design and interview-skills lessons', () =>
     const errors: string[] = []
     const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { const m = a.map(String).join(' '); if (!IGNORED.test(m)) errors.push(m) })
     try {
-      const c = await visit(`/concept/${slug}`, /Why this priority\?/)
+      const c = await visit(`/concept/${slug}?s=watch`, /Interactive/)
       await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull())
       const rail = () => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
       const n = rail().length
@@ -579,8 +589,13 @@ describe('data structures, low-level design and interview-skills lessons', () =>
         seen.add(c.querySelector('.stage-text h4')!.textContent!)
       }
       expect(seen.size).toBe(n)
-      expect(c.textContent).toMatch(/interview questions/i)
-      expect(c.textContent).toMatch(/Read & refer/)
+      // the rest of the lesson is on its own steps: questions on "Check yourself", sources on "Finish"
+      const stepTo = async (label: RegExp, text: RegExp) => {
+        fireEvent.click(within(c.querySelector('nav.lesson-steps') as HTMLElement).getByRole('button', { name: label }))
+        await waitFor(() => expect(c.textContent).toMatch(text))
+      }
+      await stepTo(/Check yourself/, /interview questions/i)
+      await stepTo(/Finish/, /Read & refer/)
       expect(errors).toEqual([])
     } finally { spy.mockRestore() }
   })
@@ -767,7 +782,7 @@ describe('problem bank, step links and problem links', () => {
   })
 
   it('a data structures lesson links to its problems', async () => {
-    const c = await visit('/concept/arrays-hashing', /Why this priority\?/)
+    const c = await visit('/concept/arrays-hashing?s=practice', /Common mistakes/)
     await waitFor(() => expect(c.textContent).toMatch(/Practice in the problem bank/))
     expect(c.querySelector('a[href="/problems/two-sum"]')).not.toBeNull()
   })
@@ -804,12 +819,68 @@ describe('no deadline', () => {
 })
 
 describe('everyday examples', () => {
-  it('every lesson page opens with an everyday story and a table of what each part stands for', async () => {
+  it('every lesson opens with a plain sentence, a story, a table of what each part means, and the hard words', async () => {
     for (const slug of ['caching-at-scale', 'arrays-hashing', 'keys']) {
-      const c = await visit(`/concept/${slug}`, /In everyday life/)
-      const box = c.querySelector('.everyday')!
-      expect(box.textContent).toMatch(/In plain words/)
-      expect(box.querySelectorAll('tbody tr').length).toBeGreaterThanOrEqual(2)
+      const c = await visit(`/concept/${slug}`, /Picture it first/)
+      expect(c.querySelector('p.plain')?.textContent?.length).toBeGreaterThan(20)
+      expect(c.textContent).toMatch(/What each part of the story means/)
+      expect(c.querySelectorAll('.everyday tbody tr').length).toBeGreaterThanOrEqual(2)
+      expect(c.textContent).toMatch(/Words you will meet/)
+      expect(c.querySelectorAll('dl.words dt').length).toBeGreaterThanOrEqual(3)
+      cleanup()
     }
+  })
+})
+
+describe('a lesson is a short course', () => {
+  it('opens on the story, shows where you are, and Continue moves one step at a time', async () => {
+    const c = await visit('/concept/acid', /Picture it first/)
+    expect(c.textContent).toMatch(/Step 1 of \d/)
+    expect(c.querySelector('nav.lesson-steps li.cur')?.textContent).toMatch(/Picture it/)
+    // only the story is on screen: no animation, no explanation, no quiz yet
+    expect(c.querySelector('.stage')).toBeNull()
+    expect(c.textContent).not.toMatch(/Understand it/)
+    fireEvent.click(within(c).getByRole('button', { name: /^Continue: Watch it/ }))
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull(), { timeout: 15000 })
+    expect(c.textContent).toMatch(/Step 2 of \d/)
+    expect(window.location.search).toBe('?s=watch')
+    fireEvent.click(within(c).getByRole('button', { name: /^Continue: Read/ }))
+    await waitFor(() => expect(c.textContent).toMatch(/Understand it/))
+    expect(c.querySelector('.stage')).toBeNull()
+    fireEvent.click(within(c).getByRole('button', { name: /← Back/ }))
+    await waitFor(() => expect(c.querySelector('.stage')).not.toBeNull(), { timeout: 15000 })
+  })
+
+  it('a step can be linked to, and the last step offers the next lesson', async () => {
+    const c = await visit('/concept/acid?s=finish', /Why this priority\?/)
+    expect(c.querySelector('nav.lesson-steps li.cur')?.textContent).toMatch(/Finish/)
+    expect(within(c).getByRole('link', { name: /Next lesson/ })).toBeTruthy()
+  })
+
+  it('lessons without code skip the Code step', async () => {
+    const c = await visit('/concept/behavioral-star', /Picture it first/)
+    expect(c.querySelector('nav.lesson-steps')?.textContent).not.toMatch(/Code|SQL/)
+  })
+})
+
+describe('appearance: colour and font', () => {
+  it('the top bar offers palettes and fonts, applies the choice and remembers it', async () => {
+    localStorage.removeItem('intervio.look')
+    const c = await visit('/', /Learn how it really works/)
+    expect(document.documentElement.dataset.palette).toBe('ocean')
+    expect(document.documentElement.dataset.font).toBe('jakarta')
+    fireEvent.click(within(c).getByRole('button', { name: /Appearance/ }))
+    const dialog = await within(c).findByRole('dialog', { name: /Colour and font/ })
+    for (const name of [/Ocean/, /Sage/, /Lavender/, /Paper/, /Plus Jakarta Sans/, /Atkinson Hyperlegible/, /Source Serif/, /DM Sans/]) {
+      expect(within(dialog).getByRole('button', { name })).toBeTruthy()
+    }
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Lavender/ }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /Atkinson Hyperlegible/ }))
+    await waitFor(() => expect(document.documentElement.dataset.palette).toBe('lavender'))
+    expect(document.documentElement.dataset.font).toBe('atkinson')
+    expect(JSON.parse(localStorage.getItem('intervio.look') ?? '{}')).toEqual({ palette: 'lavender', font: 'atkinson' })
+    localStorage.removeItem('intervio.look')
+    document.documentElement.dataset.palette = 'ocean'
+    document.documentElement.dataset.font = 'jakarta'
   })
 })
