@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useContent, useProgress } from '../context'
 import type { ProblemRow } from '../types'
@@ -49,13 +49,17 @@ function Prose({ block }: { block: string }) {
   return <p>{block}</p>
 }
 
-const words = (...parts: (string | string[])[]) => parts.flat().join(' ').split(/\s+/).filter(Boolean).length
+type StepId = 'picture' | 'watch' | 'read' | 'code' | 'practice' | 'check' | 'finish'
 
 export default function ConceptPage() {
   const { slug } = useParams()
   const { content } = useContent()
   const { isDone, toggle } = useProgress()
+  const [params, setParams] = useSearchParams()
   const [sqlTab, setSqlTab] = useState(0)
+  const wanted = params.get('s')
+  // Scroll to the top whenever the learner moves to another step or another lesson.
+  useEffect(() => { window.scrollTo(0, 0) }, [wanted, slug])
   if (!content) return null
 
   const i = content.concepts.findIndex((c) => c.slug === slug)
@@ -69,44 +73,71 @@ export default function ConceptPage() {
   const isDb = level?.track === 'database'
   const hasDjango = Boolean(c.django?.code)
 
-  const readMin = Math.max(1, Math.round(words(c.explain, c.key_points, c.pitfalls, c.exercise) / 200))
-  const steps = [
-    ...(c.viz ? [{ id: 'play', label: 'Play with it' }] : []),
+  // A lesson is a short course: one thing on each screen, in the order a beginner needs it.
+  const steps: { id: StepId; label: string }[] = [
+    ...(c.everyday?.story ? [{ id: 'picture' as const, label: 'Picture it' }] : []),
+    ...(c.viz ? [{ id: 'watch' as const, label: 'Watch it' }] : []),
     { id: 'read', label: 'Read' },
-    ...(c.sql.length ? [{ id: 'sql', label: isDb ? 'SQL' : 'Code' }] : []),
-    ...(hasDjango ? [{ id: 'django', label: 'Django' }] : []),
+    ...(c.sql.length || hasDjango ? [{ id: 'code' as const, label: isDb ? 'SQL' : 'Code' }] : []),
     { id: 'practice', label: 'Practice' },
-    { id: 'interview', label: 'Check yourself' },
+    { id: 'check', label: 'Check yourself' },
+    { id: 'finish', label: 'Finish' },
   ]
+  const found = steps.findIndex((s) => s.id === wanted)
+  const cur = found < 0 ? 0 : found
+  const step = steps[cur]
+  const last = steps.length - 1
+  const go = (n: number) => setParams({ s: steps[Math.max(0, Math.min(last, n))].id })
 
   return (
-    <article className="concept">
-      <p className="crumbs"><Link to="/">Roadmap</Link> / {track?.title} / Level {c.level}: {level?.title} / {c.week}</p>
+    <article className="concept study">
+      <p className="crumbs"><Link to="/">Roadmap</Link> / {track?.title} / {level?.title}</p>
       <h1><span className="num">{c.n}</span> {c.title}</h1>
       <p className="lead">{c.tagline}</p>
-      <p className="readtime">About {readMin} min to read{c.viz ? ' + 3–5 min with the animation' : ''}. Suggested order: play first, then read.</p>
 
-      <nav className="stepbar" aria-label="Lesson steps">
-        {steps.map((s, n) => <a key={s.id} href={`#${s.id}`}><span className="n">{n + 1}</span>{s.label}</a>)}
+      <nav className="lesson-steps" aria-label="Lesson steps">
+        <p className="lesson-count">Step {cur + 1} of {steps.length}</p>
+        <ol>
+          {steps.map((s, n) => (
+            <li key={s.id} className={n < cur ? 'past' : n === cur ? 'cur' : ''}>
+              <button onClick={() => go(n)} aria-current={n === cur ? 'step' : undefined}>
+                <span className="dotn">{n < cur ? '✓' : n + 1}</span>
+                <span className="lname">{s.label}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
       </nav>
 
-      {c.everyday?.story && (
-        <section className="everyday" aria-label="In everyday life">
-          <h2>In everyday life</h2>
-          <p className="plain"><b>In plain words:</b> {c.everyday.plain}</p>
+      {step.id === 'picture' && c.everyday && (
+        <section id="picture" className="lesson-body" aria-label="In everyday life">
+          <h2>Picture it first</h2>
+          <p className="plain">{c.everyday.plain}</p>
           <p>{c.everyday.story}</p>
           {c.everyday.maps.length > 0 && (
-            <table>
-              <thead><tr><th>In the story</th><th>In this lesson</th></tr></thead>
-              <tbody>{c.everyday.maps.map(([a, b]) => <tr key={a}><td>{a}</td><td>{b}</td></tr>)}</tbody>
-            </table>
+            <div className="everyday">
+              <h3>What each part of the story means</h3>
+              <table>
+                <thead><tr><th>In the story</th><th>In this lesson</th></tr></thead>
+                <tbody>{c.everyday.maps.map(([a, b]) => <tr key={a}><td>{a}</td><td>{b}</td></tr>)}</tbody>
+              </table>
+            </div>
           )}
-          <p className="muted small">A comparison to help you picture it. Real systems are more detailed, and the lesson below gives the exact version.</p>
+          {c.everyday.words && c.everyday.words.length > 0 && (
+            <div className="everyday">
+              <h3>Words you will meet</h3>
+              <dl className="words">
+                {c.everyday.words.map(([term, meaning]) => <div key={term}><dt>{term}</dt><dd>{meaning}</dd></div>)}
+              </dl>
+            </div>
+          )}
+          <p className="muted small">A comparison to help you picture it. Real systems are more detailed, and the next steps give the exact version.</p>
         </section>
       )}
 
-      {c.viz && (
-        <div id="play">
+      {step.id === 'watch' && c.viz && (
+        <div id="play" className="lesson-wide">
+          <p className="muted">Use the Next button on the animation to go one small step at a time. Each step tells you what just changed.</p>
           <Visualizer id={c.viz} scenes={c.scenes} />
           {c.lab && (
             <details className="lab">
@@ -117,67 +148,85 @@ export default function ConceptPage() {
         </div>
       )}
 
-      <section id="read">
-        <h2>Understand it</h2>
-        {c.viz && <p className="muted">You have just seen it happen. Here is the idea behind what you saw.</p>}
-        {c.explain.map((p, idx) => <Prose key={idx} block={p} />)}
-        <div className="callout"><h4>Remember this</h4><ul>{c.key_points.map((k) => <li key={k}>{k}</li>)}</ul></div>
-      </section>
+      {step.id === 'read' && (
+        <section id="read" className="lesson-body">
+          <h2>Understand it</h2>
+          {c.explain.map((p, idx) => <Prose key={idx} block={p} />)}
+          <div className="callout"><h4>Remember this</h4><ul>{c.key_points.map((k) => <li key={k}>{k}</li>)}</ul></div>
+        </section>
+      )}
 
-      {c.sql.length > 0 && (
-        <section id="sql">
-          <h2>{isDb ? 'In SQL' : 'Try it in code'}</h2>
-          {c.sql.length > 1 && (
-            <div className="seg">{c.sql.map((s, idx) => <button key={s.title} className={idx === sqlTab ? 'on' : ''} onClick={() => setSqlTab(idx)}>{s.title}</button>)}</div>
+      {step.id === 'code' && (
+        <div className="lesson-body">
+          {c.sql.length > 0 && (
+            <section id="sql">
+              <h2>{isDb ? 'In SQL' : 'Try it in code'}</h2>
+              {c.sql.length > 1 && (
+                <div className="seg">{c.sql.map((s, idx) => <button key={s.title} className={idx === sqlTab ? 'on' : ''} onClick={() => setSqlTab(idx)}>{s.title}</button>)}</div>
+              )}
+              <CodeBlock code={sql.code} lang={(sql.lang ?? 'sql') as 'sql' | 'py' | 'sh' | 'js'} title={sql.title} />
+            </section>
           )}
-          <CodeBlock code={sql.code} lang={(sql.lang ?? 'sql') as 'sql' | 'py' | 'sh' | 'js'} title={sql.title} />
-        </section>
-      )}
-
-      {hasDjango && (
-        <section id="django">
-          <h2>In Django <span className="tag">your day job</span></h2>
-          <CodeBlock code={c.django.code} lang="py" title={c.django.title} />
-          {c.django.note && <p className="callout">{c.django.note}</p>}
-        </section>
-      )}
-
-      <section id="practice">
-        <h2>Practice</h2>
-        <p className="exercise">{c.exercise}</p>
-        <RelatedProblems slug={c.slug} />
-        <h3>Common pitfalls</h3>
-        <ul className="pitfalls">{c.pitfalls.map((p) => <li key={p}>{p}</li>)}</ul>
-      </section>
-
-      <section id="interview">
-        <h2>Check yourself: interview questions</h2>
-        {c.interview.map((x) => <QA key={x.id} q={x.q} a={x.a} />)}
-        <p className="muted small">Say your answer out loud first, then reveal. Aim for 30–60 seconds with an example.</p>
-      </section>
-
-      <section id="refer">
-        <h2>Read &amp; refer</h2>
-        <p className="muted small">Official sources, about {c.hours} h for a beginner{c.priority === 1 ? ' · interview-critical topic' : ''}.</p>
-        <ul className="refs">
-          {c.references.map((r) => <li key={r.url}><a href={r.url} target="_blank" rel="noreferrer noopener">{r.title}</a> <span className="muted small">· {r.kind}</span></li>)}
-        </ul>
-      </section>
-
-      <section id="why">
-        <h2>Why this priority?</h2>
-        <p>{c.basis} <Cite keys={c.sources} /></p>
-        <p className="muted small">{content.notes['basis-note']}</p>
-      </section>
-
-      <div className="complete">
-        <button className={`btn ${isDone(key) ? 'ghost' : 'primary'}`} onClick={() => toggle(key)}>
-          {isDone(key) ? '✓ Completed — undo' : 'Mark concept complete'}
-        </button>
-        <div className="pager">
-          {prev ? <Link to={`/concept/${prev.slug}`}>← {prev.title}</Link> : <span />}
-          {next ? <Link to={`/concept/${next.slug}`}>{next.title} →</Link> : <Link to="/interview">Drill interviews →</Link>}
+          {hasDjango && (
+            <section id="django">
+              <h2>In Django <span className="tag">your day job</span></h2>
+              <CodeBlock code={c.django.code} lang="py" title={c.django.title} />
+              {c.django.note && <p className="callout">{c.django.note}</p>}
+            </section>
+          )}
         </div>
+      )}
+
+      {step.id === 'practice' && (
+        <section id="practice" className="lesson-body">
+          <h2>Practice</h2>
+          <p className="exercise">{c.exercise}</p>
+          <RelatedProblems slug={c.slug} />
+          <h3>Common mistakes</h3>
+          <ul className="pitfalls">{c.pitfalls.map((p) => <li key={p}>{p}</li>)}</ul>
+        </section>
+      )}
+
+      {step.id === 'check' && (
+        <section id="interview" className="lesson-body">
+          <h2>Check yourself: interview questions</h2>
+          <p className="muted">Say your answer out loud first, then open it. Aim for 30 to 60 seconds with an example.</p>
+          {c.interview.map((x) => <QA key={x.id} q={x.q} a={x.a} />)}
+        </section>
+      )}
+
+      {step.id === 'finish' && (
+        <div className="lesson-body">
+          <section id="refer">
+            <h2>Read &amp; refer</h2>
+            <p className="muted small">Official sources, about {c.hours} h for a beginner{c.priority === 1 ? ' · interview-critical topic' : ''}.</p>
+            <ul className="refs">
+              {c.references.map((r) => <li key={r.url}><a href={r.url} target="_blank" rel="noreferrer noopener">{r.title}</a> <span className="muted small">· {r.kind}</span></li>)}
+            </ul>
+          </section>
+          <section id="why">
+            <h2>Why this priority?</h2>
+            <p>{c.basis} <Cite keys={c.sources} /></p>
+            <p className="muted small">{content.notes['basis-note']}</p>
+          </section>
+          <div className="complete">
+            <button className={`btn ${isDone(key) ? 'ghost' : 'primary'}`} onClick={() => toggle(key)}>
+              {isDone(key) ? '✓ Completed — undo' : 'Mark concept complete'}
+            </button>
+            <div className="pager">
+              {prev ? <Link to={`/concept/${prev.slug}`}>← {prev.title}</Link> : <span />}
+              {next ? <Link to={`/concept/${next.slug}`}>{next.title} →</Link> : <Link to="/interview">Drill interviews →</Link>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="lesson-nav" role="navigation" aria-label="Move through the lesson">
+        <button className="btn ghost" onClick={() => go(cur - 1)} disabled={cur === 0}>← Back</button>
+        <span className="lesson-nav-mid">{step.label}</span>
+        {cur < last
+          ? <button className="btn primary" onClick={() => go(cur + 1)}>Continue: {steps[cur + 1].label} →</button>
+          : next ? <Link className="btn primary" to={`/concept/${next.slug}`}>Next lesson →</Link> : <Link className="btn primary" to="/interview">Drill interviews →</Link>}
       </div>
     </article>
   )

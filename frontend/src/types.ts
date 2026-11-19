@@ -13,7 +13,7 @@ export interface Concept {
   tagline: string
   explain: string[]
   /** A plain-words opener: one sentence, an everyday story, and what each part of the story stands for. */
-  everyday?: { plain: string; story: string; maps: [string, string][] }
+  everyday?: { plain: string; story: string; maps: [string, string][]; words?: [string, string][] }
   key_points: string[]
   sql: { title: string; code: string; lang?: string }[]
   django: { title: string; code: string; note?: string }
