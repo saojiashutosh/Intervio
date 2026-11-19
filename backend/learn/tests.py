@@ -1039,6 +1039,19 @@ class EverydayExampleTests(TestCase):
             for sentence in re.split(r"(?<=[.!?])\s+", e["plain"] + " " + e["story"]):
                 self.assertLessEqual(len(sentence.split()), 40, f"{c.slug}: keep sentences short and plain: {sentence[:60]}")
 
+    def test_every_lesson_explains_its_hard_words_and_they_appear_in_the_lesson(self):
+        import json, re
+        norm = lambda t: re.sub(r"[\s\-_/]+", " ", t.lower())
+        for c in Concept.objects.all():
+            words = c.everyday.get("words", [])
+            self.assertGreaterEqual(len(words), 3, f"{c.slug}: explain at least three hard words")
+            text = [c.title, c.exercise, *c.explain, *c.key_points, *c.pitfalls, json.dumps(c.scenes), json.dumps(c.sql)]
+            text += [q.q + " " + q.a for q in c.questions.all()]
+            text = norm(" ".join(text))
+            for term, meaning in words:
+                self.assertIn(norm(term), text, f"{c.slug}: '{term}' does not appear in the lesson")
+                self.assertLessEqual(len(meaning.split()), 30, f"{c.slug}: keep the meaning of '{term}' short")
+
     def test_api_returns_it(self):
         r = APIClient().get("/api/content/")
         self.assertEqual(r.status_code, 200)
