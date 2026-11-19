@@ -27,7 +27,7 @@ npm install
 npm run dev                               # http://localhost:5173  (proxies /api to Django)
 ```
 
-Tests: `cd backend; .venv\Scripts\python manage.py test` (89 tests) · Type-check + build: `cd frontend; npm run build` · Render and interaction test of every page and animation: `cd frontend; npm test` (163 tests, needs the Django server running; on Windows run it from PowerShell, because Git Bash picks a different Node)
+Tests: `cd backend; .venv\Scripts\python manage.py test` (90 tests) · Type-check + build: `cd frontend; npm run build` · Render and interaction test of every page and animation: `cd frontend; npm test` (167 tests, needs the Django server running; on Windows run it from PowerShell, because Git Bash picks a different Node)
 
 ## Use PostgreSQL instead of SQLite
 
@@ -223,11 +223,33 @@ Each of these lessons has a stepped diagram with predict questions, a full writt
 
 **Weights.** In an SDE plan, system design is now about a quarter of the time (measured at 9 to 12 weeks, 2 h a day, 6 days a week, 1.5 years of experience: data structures and algorithms 40 to 44%, system design 26 to 27%, low-level design 11 to 13%, database 11 to 13%, behavioral 5 to 7%). With design lessons core, a full SDE plan now needs about 9 weeks at 2 hours a day; shorter plans cut and say so. These shares are my judgment from the shape of the loops, not a published standard.
 
+## The look: soft, rounded, and yours to choose
+
+The interface is built to feel calm for long study sessions. Shapes are rounded (pill buttons and tabs, round icon buttons, large corner radii), shadows are soft, and borders are thin and light. The page has a gentle background: a soft colour glow in the corners and a faint dot pattern, tinted by the chosen palette.
+
+**Appearance button (top bar).** Each learner picks what they like to study with, and the choice is remembered in the browser:
+
+- **Colour:** Ocean (calm blue, the default), Sage (soft green), Lavender (gentle violet) and Paper (warm, easy on the eyes). Each has a light and a dark version, and the dark/light toggle works with all of them.
+- **Font:** Plus Jakarta Sans (the default), Atkinson Hyperlegible (designed to be easy to read), Source Serif (book-style text for the long reading, with the rest of the interface staying in a sans font) and DM Sans. Only code uses a monospace font (JetBrains Mono). Fonts come from Google Fonts, with system fonts as the fallback.
+
+**Logo.** An isometric cube in the chosen colours, the same shape the lesson diagrams are built from, next to a plain "Intervio" wordmark. It follows the palette, and the browser tab icon matches the default.
+
+The colours live as tokens at the top of `styles.css` and in the "Colour palettes and fonts" block at the end; the "Soft theme" block holds the shape overrides. The isometric diagrams keep their cube shapes on purpose; their labels use the chosen font.
+
+## A lesson is a short course, one screen at a time
+
+A lesson used to be one long page (about 8 screens). It is now a short course with one thing on each screen, in the order a beginner needs it: **Picture it** (the everyday story and the hard words), **Watch it** (the animation), **Read** (the explanation and "remember this"), **Code** (only for lessons that have code), **Practice**, **Check yourself** (interview questions) and **Finish** (sources, why this priority, mark complete, next lesson).
+
+- A progress bar at the top shows "Step 3 of 7" and lets you jump to any step.
+- A Back and Continue bar is pinned to the bottom of the screen, so you never scroll to move on.
+- The step is in the address (`/concept/acid?s=read`), so a link opens at that step and a reload keeps your place. The animation keeps its own step in the `#scene=..&step=..` part.
+- Body text uses a normal reading font at a comfortable size and line length. Only code stays monospace. Colours are quieter: plain cards instead of green boxes.
+
 ## In everyday life: a plain-words opener on every lesson
 
 Every one of the 99 lessons now starts with a short card, before the animation: one sentence in plain words, a small real-life story (a tea stall for caching, a school roll number for keys, a courier tray for queues), and a table that says what each part of the story stands for in the lesson. The idea is that you can picture the topic before you meet the technical words. The comparisons are my own and are only meant to help you picture the idea; the card says so, and the lesson below it gives the exact version.
 
-It is stored in the `everyday` field of each lesson in `concepts.json` (`plain`, `story`, `maps`). A test (`EverydayExampleTests`) fails if a lesson has no story, a story under 30 words, fewer than two table rows, or any sentence over 40 words. The longer technical text of each lesson was not rewritten.
+It is stored in the `everyday` field of each lesson in `concepts.json` (`plain`, `story`, `maps`). A test (`EverydayExampleTests`) fails if a lesson has no story, a story under 30 words, fewer than two table rows, or any sentence over 40 words. Each card also has a "Words in this lesson" box (3 to 5 hard words per lesson, 379 in all, each explained in one plain sentence), and the one-line summary under every lesson title was rewritten in plain words. A test checks that every explained word really appears in its lesson. The longer technical text of each lesson was not rewritten.
 
 ## Animation on every lesson
 
