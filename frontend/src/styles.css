@@ -686,3 +686,288 @@ kbd { font: 600 .68rem var(--font); padding: .08rem .4rem; border: 1px solid var
 .everyday table { width: 100%; border-collapse: collapse; margin: .6rem 0; font-size: .9rem; }
 .everyday th, .everyday td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 .everyday th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+.everyday h3 { margin: 1rem 0 .3rem; font-size: .95rem; }
+.words { margin: 0 0 .6rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .5rem .9rem; }
+.words > div { padding: .45rem .7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.words dt { font-weight: 700; margin: 0 0 .1rem; }
+.words dd { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--text); }
+
+/* =====================================================================
+   Study-friendly lesson page: one screen at a time, readable type, calm colour.
+   Body text uses a normal reading font. Only code stays monospace.
+   ===================================================================== */
+:root { --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+body { font-size: 16px; line-height: 1.7; }
+code, kbd, pre { font-family: var(--mono); }
+.editor { font-family: var(--mono); }
+h1, h2, h3, h4 { letter-spacing: -.01em; }
+
+.study .crumbs { font-size: .82rem; }
+.study h1 { margin: .3rem 0 .4rem; }
+.study .lead { font-size: 1.08rem; line-height: 1.6; color: var(--muted); max-width: 46rem; margin: 0 0 1rem; }
+
+/* progress: where am I, and what is next */
+.lesson-steps { margin: 0 0 1.4rem; padding: .6rem 0 .8rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.lesson-count { margin: 0 0 .5rem; font-size: .8rem; color: var(--muted); }
+.lesson-steps ol { display: flex; list-style: none; margin: 0; padding: 0; overflow-x: auto; }
+.lesson-steps li { position: relative; flex: 1 0 84px; text-align: center; }
+.lesson-steps li::before { content: ""; position: absolute; top: 13px; left: -50%; right: 50%; height: 2px; background: var(--line); }
+.lesson-steps li:first-child::before { display: none; }
+.lesson-steps li.past::before, .lesson-steps li.cur::before { background: var(--accent); }
+.lesson-steps button { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: .3rem; background: none; border: 0; padding: 0 .2rem; color: var(--muted); font: inherit; cursor: pointer; }
+.lesson-steps .dotn { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line-strong, var(--line)); background: var(--bg); font-size: .8rem; font-weight: 700; color: var(--muted); }
+.lesson-steps .past .dotn { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.lesson-steps .cur .dotn { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.lesson-steps .lname { font-size: .78rem; line-height: 1.25; }
+.lesson-steps .cur .lname { color: var(--text); font-weight: 700; }
+
+/* reading pages: one calm column */
+.lesson-body { max-width: 46rem; }
+.lesson-body h2 { font-size: 1.55rem; margin: 0 0 .8rem; }
+.lesson-body h3, .lesson-body .lesson-h { font-size: 1.15rem; margin: 1.6rem 0 .5rem; }
+.lesson-body p, .lesson-body li { font-size: 1.05rem; line-height: 1.8; }
+.lesson-body p { margin: .8rem 0; }
+.lesson-body .muted, .lesson-body .small { font-size: .9rem; }
+.lesson-body .plain { font-size: 1.28rem; line-height: 1.55; font-weight: 600; margin: 0 0 1rem; }
+.lesson-body ul, .lesson-body ol { padding-left: 1.3rem; }
+.lesson-body li { margin: .35rem 0; }
+.lesson-wide { max-width: none; }
+.lesson-wide > .muted { max-width: 46rem; }
+
+/* "Picture it" cards: plain and quiet */
+.lesson-body .everyday { margin: 1.4rem 0; padding: 1rem 1.2rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.lesson-body .everyday h3 { margin: 0 0 .6rem; font-size: 1rem; }
+.lesson-body .everyday table { width: 100%; border-collapse: collapse; }
+.lesson-body .everyday th, .lesson-body .everyday td { font-size: .98rem; line-height: 1.5; text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lesson-body .everyday th { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.lesson-body .everyday tr:last-child td { border-bottom: 0; }
+.lesson-body .words { display: block; margin: 0; }
+.lesson-body .words > div { display: block; padding: .6rem 0; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.lesson-body .words > div:last-child { border-bottom: 0; }
+.lesson-body .words dt { font-weight: 700; margin: 0; font-size: 1rem; }
+.lesson-body .words dd { margin: .1rem 0 0; font-size: 1rem; line-height: 1.6; color: var(--text); }
+
+/* calmer notes */
+.study .callout { background: var(--surface2); border-left: 3px solid var(--line-strong, var(--line)); border-radius: 0 10px 10px 0; padding: .9rem 1.1rem; margin: 1.6rem 0; }
+.study .callout h4 { margin: 0 0 .3rem; font-size: 1rem; }
+.study .example { margin: 1rem 0; }
+
+/* the animation has its own Back and Next at the top, so the extra pair under it is hidden here */
+.study .stage-nav { display: none; }
+
+/* Back and Continue stay at the bottom of the screen: no scrolling to move on */
+.lesson-nav { position: sticky; bottom: 0; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 2rem; padding: .75rem 0; background: var(--bg); border-top: 1px solid var(--line); }
+.lesson-nav-mid { flex: 1; text-align: center; font-size: .85rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lesson-nav .btn { font-size: .98rem; padding: .6rem 1.1rem; white-space: nowrap; text-decoration: none; }
+@media (max-width: 760px) { .lesson-nav-mid { display: none; } .lesson-nav .btn { flex: 1; text-align: center; } .lesson-steps .lname { font-size: .7rem; } }
+
+/* keep the logo in its own typeface */
+.logo-text { font-family: var(--mono); }
+
+/* =====================================================================
+   Soft theme: rounded shapes, gentle shadows, a friendly font.
+   Replaces the old boxy look (hard offset shadows, thick dark borders).
+   Loaded last so it wins over the earlier rules.
+   ===================================================================== */
+:root {
+  --bg: #faf8f4; --surface: #ffffff; --surface2: #f3efe8; --line: #e9e3d9; --line-strong: #d8d0c3;
+  --text: #24211d; --muted: #6f675c; --accent: #2a8a57; --accent2: #6a4fb3; --accent-soft: #e2f1e7; --accent-soft-2: #cfe7d8;
+  --good: #26804d; --bad: #c0432f; --warn: #a2620c; --code-bg: #f4f0e9; --on-accent: #ffffff;
+  --drop: var(--line-strong);
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(60, 45, 20, .05), 0 10px 28px -14px rgba(60, 45, 20, .22);
+  --pop: 0 1px 2px rgba(60, 45, 20, .08);
+  --font: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+:root[data-theme="dark"] {
+  --bg: #17171a; --surface: #202024; --surface2: #29292e; --line: #34343a; --line-strong: #45454d;
+  --text: #ececf0; --muted: #a0a0aa; --accent: #6fd39a; --accent2: #b9a2ee; --accent-soft: #23372c; --accent-soft-2: #2c4636;
+  --good: #7fd88f; --bad: #ff8a7a; --warn: #e8b45a; --code-bg: #1c1c20; --on-accent: #0f2417;
+  --drop: var(--line-strong);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  --pop: 0 1px 2px rgba(0, 0, 0, .35);
+}
+body { font-family: var(--font); letter-spacing: 0; }
+h1, h2, h3, h4 { font-family: var(--font); font-weight: 700; letter-spacing: -.02em; }
+button, input, select, textarea { font-family: var(--font); }
+
+/* ---- logo: a round badge and a plain wordmark ---- */
+.logo { display: inline-flex; align-items: center; gap: .55rem; text-decoration: none; color: var(--text); }
+.logo:hover { text-decoration: none; }
+.logo-mark { display: block; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--accent) 70%, transparent); }
+.logo-mark svg { display: block; width: 34px; height: 34px; }
+.logo-text { font-family: var(--font); font-weight: 800; font-size: 1.28rem; letter-spacing: -.03em; color: var(--text); }
+.logo-text mark { background: none; color: var(--accent); padding: 0; }
+
+/* ---- top bar and tabs ---- */
+.topbar { background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.tab { border: 0; border-radius: 999px; padding: .45rem .9rem; font-weight: 500; }
+.tab:hover { background: var(--surface2); text-decoration: none; }
+.tab.active { background: var(--accent-soft); color: var(--accent); border: 0; box-shadow: none; font-weight: 700; }
+.search { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: .5rem .95rem; }
+.search:hover { border-color: var(--line-strong); }
+kbd { border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); }
+.iconbtn { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); }
+.iconbtn:hover { border-color: var(--line-strong); background: var(--surface2); }
+.pillbtn { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: .45rem 1rem; font-weight: 600; }
+.pillbtn:hover { border-color: var(--line-strong); background: var(--surface2); }
+
+/* ---- course sidebar ---- */
+.sidebar { background: var(--bg); border-right: 1px solid var(--line); }
+.lesson { border: 0; border-radius: 12px; padding: .42rem .6rem; font-size: .85rem; }
+.lesson:hover { background: var(--surface2); }
+.lesson.active { background: var(--accent-soft); color: var(--accent); border: 0; box-shadow: none; font-weight: 700; }
+.lesson-dot { border: 1.5px solid var(--line-strong); }
+.lesson.done .lesson-dot { background: var(--accent); border-color: var(--accent); }
+.tr-head { border-radius: 12px; }
+.side-progress { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+
+/* ---- buttons ---- */
+.btn { border-radius: 999px; font-weight: 600; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: none; padding: .55rem 1.1rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary, .stage-nav .primary, .stage-top .primary, .lesson-nav .btn.primary {
+  background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); border-radius: 999px;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--accent) 80%, transparent); font-weight: 700;
+}
+.btn.primary:hover, .stage-nav .primary:hover, .stage-top .primary:hover, .lesson-nav .btn.primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn.ghost, .ghost { border-radius: 999px; }
+.stage-tools button, .stage-nav button, .stage-top button, .seg button, .linklike { border-radius: 999px; }
+.stage-top .primary { max-width: 55%; }
+.seg { border-radius: 999px; }
+.seg button.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; box-shadow: none; }
+button.danger, .danger { border-radius: 999px; }
+
+/* ---- cards, notes and inputs ---- */
+.card, .qa, .example, .results, details.lab, .stage-card, .problem-list li { border-radius: 16px; }
+.card { border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--surface); }
+.qa { border: 1px solid var(--line); background: var(--surface); box-shadow: none; }
+.qa.open { border-color: var(--accent); }
+.qa button { border-radius: 16px; }
+.callout, .scallout, .callout.note, .note { border-radius: 14px; }
+.study .callout { border-left: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.stage-canvas { border-radius: 22px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+.stage { --st-bg: var(--surface); }
+.stage-rail .dotn, .lesson-steps .dotn { border-width: 2px; }
+.code { border-radius: 14px; overflow: hidden; }
+.codebox, .editor, pre { border-radius: 14px; }
+input, select, textarea { border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); }
+input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 1px; border-color: var(--accent); }
+.tag, .diff, .stag, .kbadge { border-radius: 999px; }
+.palette { border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .35); }
+.palette-input { border-radius: 22px 22px 0 0; }
+.palette-list button { border-radius: 12px; border: 0; }
+.palette-list button.on { background: var(--accent-soft); border: 0; }
+.track, .rel-card, .plan-card, .week, .day { border-radius: 16px; }
+
+/* ---- the lesson page ---- */
+.lesson-steps { border-top: 0; border-bottom: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: .8rem 1rem 1rem; box-shadow: var(--shadow); }
+.lesson-steps .dotn { border: 2px solid var(--line-strong); background: var(--surface); }
+.lesson-steps .past .dotn { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.lesson-steps .cur .dotn { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.lesson-steps li.past::before, .lesson-steps li.cur::before { background: var(--accent); }
+.lesson-nav { border-top: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(8px); }
+.lesson-body .everyday { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: none; }
+.lesson-body .plain { font-weight: 700; }
+.num { border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+/* ---- diagram labels use the same friendly font ---- */
+.node-text, .dot-text, .zone-text, .pill-text, .link text, .hud-v, .stage-legend, .sg, .big-num, .result { font-family: var(--font); }
+.pill-bg { rx: 12px; }
+.screen { rx: 4px; }
+
+:root[data-theme="dark"] .stage { --st-bg: #1c1c20; --st-grid: rgba(255, 255, 255, .06); --st-link: #b5b5c0; --st-ink: #0c0c0e; }
+
+/* the older button rules use !important, so the soft buttons need to as well */
+.btn, button.ghost, button.primary, button.danger, a.btn { border-radius: 999px; border: 1px solid var(--line-strong); font-weight: 600; padding: .55rem 1.1rem; box-shadow: none; }
+.btn:hover:not(.primary), button.ghost:hover:not(:disabled) { border-color: var(--accent); }
+.primary, button.primary, .btn.primary, .stage-nav .primary, .stage-top .primary, .lesson-nav .btn.primary {
+  background: var(--accent) !important; color: var(--on-accent) !important; border: 1px solid var(--accent) !important;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--accent) 75%, transparent) !important; font-weight: 700;
+}
+.primary:hover:not(:disabled) { background: var(--accent) !important; filter: brightness(1.08); }
+
+/* the animation panel: rounded stat boxes and bars */
+.hud { border-radius: 14px; box-shadow: none; }
+.stage-top, .stage-hud + .stage-canvas { border-radius: 14px; }
+.stage-top { padding: .5rem .6rem; }
+.stage-card { border-left-width: 1px; border-radius: 14px; }
+.stage-panel { border-radius: 16px; }
+.changes li, .learn li { border-radius: 10px; }
+.sg { border-radius: 8px; }
+.swatch { border-radius: 50%; }
+
+/* profile form: the checkbox sits next to its words */
+.form-grid label.check, label.check { flex-direction: row; align-items: center; justify-content: flex-start; gap: .6rem; color: var(--text); text-align: left; }
+label.check input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+.note { border-radius: 14px; }
+
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 18px; height: 18px; }
+
+/* =====================================================================
+   Colour palettes and fonts. Ocean and Plus Jakarta Sans are the defaults;
+   the Appearance button in the top bar lets each learner change them.
+   ===================================================================== */
+:root[data-theme="light"][data-palette="ocean"] { --bg: #f4f7fc; --surface: #ffffff; --surface2: #edf1f9; --line: #e3e9f3; --line-strong: #cdd6e6; --text: #1b2333; --muted: #5f6b82; --accent: #3563e9; --accent2: #7a5cf0; --accent-soft: #e5ecff; --accent-soft-2: #d3dffd; --code-bg: #eef2fa; --on-accent: #ffffff; }
+:root[data-theme="dark"][data-palette="ocean"] { --bg: #0f1420; --surface: #171d2c; --surface2: #1f2638; --line: #2a3347; --line-strong: #3a4660; --text: #e8edf7; --muted: #97a3bc; --accent: #7aa2ff; --accent2: #b39cff; --accent-soft: #1d2a4d; --accent-soft-2: #24366a; --code-bg: #121827; --on-accent: #0b1530; }
+:root[data-theme="light"][data-palette="sage"] { --bg: #f5f8f4; --surface: #ffffff; --surface2: #edf2ea; --line: #e2e9de; --line-strong: #cbd6c5; --text: #1f261e; --muted: #5f6d5c; --accent: #2f7d57; --accent2: #3f8f9a; --accent-soft: #e1f1e7; --accent-soft-2: #cfe6d8; --code-bg: #eef3ea; --on-accent: #ffffff; }
+:root[data-theme="dark"][data-palette="sage"] { --bg: #131814; --surface: #1b221c; --surface2: #232c25; --line: #2e3930; --line-strong: #3f4d42; --text: #e6efe6; --muted: #9aab9c; --accent: #7fd6a3; --accent2: #8fd0c0; --accent-soft: #213a2b; --accent-soft-2: #2a4a37; --code-bg: #101510; --on-accent: #0c2417; }
+:root[data-theme="light"][data-palette="lavender"] { --bg: #f8f6fd; --surface: #ffffff; --surface2: #f0ecfa; --line: #e6e0f4; --line-strong: #d3caea; --text: #231f33; --muted: #6a6384; --accent: #7050e0; --accent2: #d0508a; --accent-soft: #ece6ff; --accent-soft-2: #ded3ff; --code-bg: #f2eefb; --on-accent: #ffffff; }
+:root[data-theme="dark"][data-palette="lavender"] { --bg: #15121f; --surface: #1d192b; --surface2: #262137; --line: #322c47; --line-strong: #443c61; --text: #ece8f7; --muted: #a49cc0; --accent: #b49cff; --accent2: #ff8fbf; --accent-soft: #2c2450; --accent-soft-2: #382d68; --code-bg: #120f1b; --on-accent: #1a1033; }
+:root[data-theme="light"][data-palette="paper"] { --bg: #f7f1e6; --surface: #fffdf8; --surface2: #efe7d7; --line: #e4d9c4; --line-strong: #d2c4aa; --text: #2b241b; --muted: #7a6e5c; --accent: #b4552d; --accent2: #3e7c8a; --accent-soft: #f6e2d6; --accent-soft-2: #efd2c1; --code-bg: #f1e9d9; --on-accent: #ffffff; }
+:root[data-theme="dark"][data-palette="paper"] { --bg: #1d1913; --surface: #262017; --surface2: #2f281d; --line: #3b3326; --line-strong: #51473a; --text: #f0e7d6; --muted: #b0a38d; --accent: #f09a6e; --accent2: #7fc0cc; --accent-soft: #4a2e20; --accent-soft-2: #5c3a28; --code-bg: #181410; --on-accent: #2a1408; }
+:root { --bg: #f4f7fc; --surface: #ffffff; --surface2: #edf1f9; --line: #e3e9f3; --line-strong: #cdd6e6; --text: #1b2333; --muted: #5f6b82; --accent: #3563e9; --accent2: #7a5cf0; --accent-soft: #e5ecff; --accent-soft-2: #d3dffd; --code-bg: #eef2fa; --on-accent: #ffffff; }
+
+:root { --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --read-font: var(--font); }
+:root[data-font="jakarta"] { --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --read-font: var(--font); }
+:root[data-font="atkinson"] { --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --read-font: var(--font); }
+:root[data-font="dmsans"] { --font: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --read-font: var(--font); }
+:root[data-font="serif"] { --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; --read-font: "Source Serif 4", Georgia, "Times New Roman", serif; }
+body { font-family: var(--font); }
+/* long reading text uses the reading font (the same as the main font unless the serif is chosen) */
+.study .lead, .study .lesson-body p, .study .lesson-body li, .study .lesson-body dd, .study .lesson-body td, .qa p, .study .exercise, .stage-text p, .stage-text li, .study .muted { font-family: var(--read-font); }
+.study .lesson-body .plain { font-family: var(--read-font); }
+.node-text, .dot-text, .zone-text, .pill-text, .link text, .hud-v, .stage-legend, .sg, .big-num { font-family: var(--font); }
+:root[data-theme="dark"] .stage { --st-bg: color-mix(in srgb, var(--surface) 92%, #000); }
+
+/* ---- the Appearance menu ---- */
+.look { position: relative; }
+.look-pop { position: absolute; right: 0; top: calc(100% + 12px); z-index: 60; width: min(340px, 92vw); padding: 1rem 1.1rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .35); }
+.look-h { margin: .2rem 0 .5rem; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.look-colours { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: 1rem; }
+.look-fonts { display: grid; gap: .45rem; }
+.look-colours button, .look-fonts button { display: flex; align-items: center; gap: .65rem; text-align: left; padding: .55rem .75rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--text); cursor: pointer; font-size: .9rem; }
+.look-colours button:hover, .look-fonts button:hover { border-color: var(--line-strong); background: var(--surface2); }
+.look-colours button.on, .look-fonts button.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+.look-colours b, .look-fonts b { display: block; font-weight: 700; font-size: .9rem; }
+.look-colours small, .look-fonts small { display: block; color: var(--muted); font-size: .74rem; line-height: 1.3; }
+.look-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55); }
+.look-aa { flex: none; width: 34px; text-align: center; font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+@media (max-width: 700px) { .look-pop { position: fixed; left: 4vw; right: 4vw; top: 64px; width: auto; } }
+
+/* ---------- the logo is just the cube now ---------- */
+.logo-mark { box-shadow: none; border-radius: 0; background: none; width: 34px; height: 34px; filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--accent) 35%, transparent)); }
+
+/* ---------- A soft background: a colour glow in the corners and a faint dot pattern, tinted by the palette ---------- */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 520px at 6% -6%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 62%),
+    radial-gradient(820px 500px at 104% 2%, color-mix(in srgb, var(--accent2) 13%, transparent), transparent 58%),
+    radial-gradient(700px 420px at 60% 112%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%),
+    radial-gradient(color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.3px);
+  background-size: auto, auto, auto, 24px 24px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-attachment: fixed;
+}
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(900px 520px at 6% -6%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%),
+    radial-gradient(820px 500px at 104% 2%, color-mix(in srgb, var(--accent2) 14%, transparent), transparent 58%),
+    radial-gradient(700px 420px at 60% 112%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1.3px);
+}
+.sidebar { background: color-mix(in srgb, var(--surface) 55%, transparent); backdrop-filter: blur(6px); }
+.stage-top { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(8px); }
+.lesson-nav { background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(10px); }
+.topbar { background: color-mix(in srgb, var(--bg) 80%, transparent); }

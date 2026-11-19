@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useContent, useProgress } from '../context'
 import { IconInline } from '../viz/stage/icons'
-import { useTheme } from '../theme'
+import { FONTS, PALETTES, useLook, useTheme } from '../theme'
 
 const TABS = [
   { to: '/', label: 'Learn', icon: 'book', end: true },
@@ -15,7 +15,20 @@ const TABS = [
 ]
 
 /** Lessons grouped by track, in the order the content lists them. */
-export function useCourse() {
+/** An isometric cube in the chosen colours: the same shape the lesson diagrams are built from. */
+function LogoMark() {
+  return (
+    <svg viewBox="0 0 34 34" aria-hidden="true" focusable="false">
+      <g strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round">
+        <polygon points="5,10 17,17 17,31 5,24" style={{ fill: 'var(--accent)', stroke: 'var(--accent)' }} />
+        <polygon points="29,10 17,17 17,31 29,24" style={{ fill: 'var(--accent2)', stroke: 'var(--accent2)' }} />
+        <polygon points="17,3 29,10 17,17 5,10" style={{ fill: 'color-mix(in srgb, var(--accent) 38%, #fff)', stroke: 'color-mix(in srgb, var(--accent) 38%, #fff)' }} />
+      </g>
+    </svg>
+  )
+}
+
+function useCourse() {
   const { content } = useContent()
   return useMemo(() => {
     if (!content) return []
@@ -26,13 +39,54 @@ export function useCourse() {
   }, [content])
 }
 
+/** Colour and font: the learner chooses what feels good to study with. The choice is remembered in this browser. */
+function AppearanceMenu() {
+  const { look, update } = useLook()
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const down = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', down); document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) }
+  }, [open])
+  return (
+    <div className="look" ref={box}>
+      <button className="iconbtn" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Appearance: colour and font" title="Colour and font">
+        <IconInline name="palette" size={18} />
+      </button>
+      {open && (
+        <div className="look-pop" role="dialog" aria-label="Colour and font">
+          <p className="look-h">Colour</p>
+          <div className="look-colours">
+            {PALETTES.map((p) => (
+              <button key={p.id} className={look.palette === p.id ? 'on' : ''} aria-pressed={look.palette === p.id} onClick={() => update({ palette: p.id })}>
+                <span className="look-dot" style={{ background: p.swatch }} /><span><b>{p.label}</b><small>{p.note}</small></span>
+              </button>
+            ))}
+          </div>
+          <p className="look-h">Font</p>
+          <div className="look-fonts">
+            {FONTS.map((f) => (
+              <button key={f.id} className={look.font === f.id ? 'on' : ''} aria-pressed={look.font === f.id} onClick={() => update({ font: f.id })} style={{ fontFamily: f.family }}>
+                <span className="look-aa">Aa</span><span><b>{f.label}</b><small>{f.note}</small></span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
   const { user, signOut } = useAuth()
   const { theme, toggle } = useTheme()
   return (
     <header className="topbar">
       <button className="iconbtn menu-btn" onClick={onMenu} aria-label="Open the course menu"><IconInline name="menu" size={20} /></button>
-      <Link to="/" className="logo" aria-label="Intervio home"><span className="logo-mark"><IconInline name="logo" size={20} /></span><span className="logo-text">Inter<mark>vio</mark></span></Link>
+      <Link to="/" className="logo" aria-label="Intervio home"><span className="logo-mark"><LogoMark /></span><span className="logo-text">Intervio</span></Link>
       <nav className="tabs" aria-label="Main">
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className="tab"><IconInline name={t.icon} size={16} /><span>{t.label}</span></NavLink>
@@ -41,6 +95,7 @@ export function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
       <button className="search" onClick={onSearch} aria-label="Search the course">
         <IconInline name="search" size={16} /><span className="search-text">Search lessons &amp; concepts…</span><kbd>Ctrl K</kbd>
       </button>
+      <AppearanceMenu />
       <button className="iconbtn" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title="Theme">
         <IconInline name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
       </button>
