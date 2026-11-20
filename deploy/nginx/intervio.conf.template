@@ -1,0 +1,66 @@
+# Template for the REAL config, which lives on the server (not applied from the repo automatically).
+#
+# One-time setup on the server:
+#   sudo apt install -y nginx certbot python3-certbot-nginx
+#   sudo cp deploy/nginx/intervio.conf.template /etc/nginx/sites-available/intervio
+#   sudo ln -s /etc/nginx/sites-available/intervio /etc/nginx/sites-enabled/intervio
+#   sudo rm -f /etc/nginx/sites-enabled/default
+#   bash run.sh deploy-frontend                 # builds the app into /var/www/intervio
+#   sudo nginx -t && sudo systemctl reload nginx
+#   sudo certbot --nginx -d api.intervio.co.in -d app.intervio.co.in
+#
+# certbot adds the HTTPS settings and the HTTP->HTTPS redirect to the file in /etc/nginx and renews on its own.
+# From then on, edit /etc/nginx/sites-available/intervio on the server and run: sudo nginx -t && sudo systemctl reload nginx
+
+# Backend API: proxied to gunicorn, which is published on localhost only
+server {
+    listen 80;
+    listen [::]:80;
+    server_name api.intervio.co.in;
+
+    client_max_body_size 5m;
+    gzip on;
+    gzip_types application/json text/css application/javascript;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}
+
+# Frontend: static build served from /var/www/intervio
+server {
+    listen 80;
+    listen [::]:80;
+    server_name app.intervio.co.in;
+
+    root /var/www/intervio;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    # Hashed build files can be cached for a long time.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri =404;
+    }
+
+    # Single-page app: unknown paths load index.html so client-side routes work.
+    location / {
+        add_header Cache-Control "no-cache";
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        try_files $uri $uri/ /index.html;
+    }
+}

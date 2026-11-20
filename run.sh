@@ -23,6 +23,7 @@ Usage: bash run.sh <command>
   start-prod          build and start the prod stack (gunicorn) in the background
   interactive-prod    open a Django python shell in the prod containers
   stop-prod           stop the prod stack (data kept; add --volumes to wipe the DB)
+  deploy-frontend     build the frontend (in Docker) and copy it to /var/www/intervio (server)
   migrations          dev: makemigrations + migrate (new files land in backend/)
 USAGE
 }
@@ -42,7 +43,7 @@ case "$cmd" in
   start-prod)
     need_env
     "${PROD[@]}" up --build -d "$@"
-    echo "Prod stack running. Logs: docker compose -p intervio-prod logs -f
+    echo "Prod stack running. Logs: docker compose -p intervio-prod logs -f"
     ;;
   interactive-prod)
     need_env
@@ -51,6 +52,17 @@ case "$cmd" in
   stop-prod)
     need_env
     "${PROD[@]}" down "$@"
+    ;;
+  deploy-frontend)
+    # Builds with Node in a throwaway container, so Node is not needed on the server.
+    API_URL="${VITE_API_URL:-https://api.intervio.co.in}"
+    docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e VITE_API_URL="$API_URL" \
+      -v "$PWD/frontend":/app -w /app node:22-slim \
+      sh -c "npm install --no-package-lock --no-audit --no-fund && npm run build"
+    sudo mkdir -p /var/www/intervio
+    sudo rm -rf /var/www/intervio/*
+    sudo cp -r frontend/dist/. /var/www/intervio/
+    echo "Frontend deployed to /var/www/intervio (API: $API_URL)"
     ;;
   migrations)
     "${DEV[@]}" run --rm --build backend sh -c "python manage.py makemigrations && python manage.py migrate" "$@"

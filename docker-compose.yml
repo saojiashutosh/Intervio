@@ -1,4 +1,5 @@
-# Production stack. Backend settings live in backend/.env (copy backend/.env.example).
+# Production stack: the backend only. nginx runs on the host and proxies to 127.0.0.1:8000.
+# Backend settings live in backend/.env (copy backend/.env.example).
 # The database is external (Neon), set via DATABASE_URL in that file.
 services:
   backend:
@@ -7,20 +8,6 @@ services:
     env_file: ./backend/.env
     environment:
       DJANGO_DEBUG: "0"
-    expose:
-      - "8000"
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      API_DOMAIN: api.intervio.co.in
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      # Certificates created by certbot on the host
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Localhost only: reachable by the host's nginx, not from the internet.
+      - "127.0.0.1:8000:8000"
