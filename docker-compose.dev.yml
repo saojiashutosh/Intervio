@@ -1,0 +1,37 @@
+# Development stack: Django runserver with auto-reload, source mounted from ./backend.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: intervio
+      POSTGRES_USER: intervio
+      POSTGRES_PASSWORD: intervio-dev
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intervio -d intervio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    # Root so makemigrations can write migration files into the bind mount.
+    user: root
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_content && exec python manage.py runserver 0.0.0.0:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_DEBUG: "1"
+      POSTGRES_DB: intervio
+      POSTGRES_USER: intervio
+      POSTGRES_PASSWORD: intervio-dev
+      POSTGRES_HOST: db
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata-dev:
