@@ -1,5 +1,8 @@
 import type { Card, CardStats, Content, ProblemFull, ProblemRow, Profile, Roadmap } from './types'
 
+// Empty in dev (Vite proxies /api). In production set VITE_API_URL=https://api.intervio.co.in at build time.
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+
 const TOKEN_KEY = 'intervio.token'
 const USER_KEY = 'intervio.user'
 
@@ -17,7 +20,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (store.token) headers.Authorization = `Token ${store.token}`
-  const res = await fetch(`/api${path}`, { ...init, headers })
+  const res = await fetch(`${API_BASE}/api${path}`, { ...init, headers })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
     if (res.status === 401) store.clear()
