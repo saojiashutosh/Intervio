@@ -1,18 +1,18 @@
 # Intervio
 
-An interview-prep portal for software engineers. It teaches 99 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
+An interview-prep portal for software engineers. It teaches 120 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
 
 ## What it does
 
 | Track | Lessons |
 |---|---|
 | Database engineering (with the Django ORM angle) | 21 |
-| Python and Django core | 5 |
+| Python and Django core | 12 |
 | Behavioral and interview skills | 3 |
 | Data structures and algorithms | 11 |
-| Low-level design (object-oriented) | 5 |
-| Computer science fundamentals | 3 |
-| Scaling and distributed systems (system design) | 26 |
+| Low-level design (object-oriented) | 9 |
+| Computer science fundamentals | 4 |
+| Scaling and distributed systems (system design) | 35 |
 | Git, containers and deployment | 4 |
 | Frontend engineering | 8 |
 | Data engineering | 3 |

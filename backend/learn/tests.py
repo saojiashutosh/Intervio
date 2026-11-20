@@ -90,7 +90,7 @@ class ApiTests(TestCase):
 
 
 class RoadmapTests(TestCase):
-    BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 44,
+    BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 52,
             "hours_per_day": 2, "days_per_week": 6, "start_date": "2026-11-16"}
 
     @classmethod
@@ -235,7 +235,7 @@ class SourcesAndDomainsTests(TestCase):
 
 class DjangoTrackTests(TestCase):
     SLUGS = ["django-orm", "drf-api", "celery-async", "web-security"]
-    BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 44,
+    BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 52,
             "hours_per_day": 2, "days_per_week": 6, "start_date": "2026-11-16"}
 
     @classmethod
@@ -414,7 +414,7 @@ class TrackTests(TestCase):
                                 self.assertEqual(len(b["tones"]), len(b["rows"]), f"{c.slug}: table '{b['title']}' tones length")
 
     def test_new_track_lessons_reach_the_roadmap(self):
-        r = APIClient().post("/api/roadmap/", {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 44,
+        r = APIClient().post("/api/roadmap/", {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 52,
                                                "hours_per_day": 2, "days_per_week": 6, "start_date": "2026-11-16"}, format="json").data
         slugs = {x["slug"] for x in r["reading"]}
         for s in ("python-internals", "coding-patterns", "git-workflow", "ci-cd-deploy"):
@@ -1056,5 +1056,5 @@ class EverydayExampleTests(TestCase):
         r = APIClient().get("/api/content/")
         self.assertEqual(r.status_code, 200)
         concepts = r.json()["concepts"]
-        self.assertEqual(len(concepts), 99)
+        self.assertEqual(len(concepts), Concept.objects.count())
         self.assertTrue(all(row.get("everyday", {}).get("story") for row in concepts))
