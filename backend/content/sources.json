@@ -1322,6 +1322,339 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Reducers keep handlers short, prop drilling, putting state and dispatch in context in three steps."
+    },
+    {
+      "key": "django-models",
+      "title": "Django docs: Models",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/db/models/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Fields, null vs blank, choices, default and db_default, relationships and through models, Meta, managers, abstract, multi-table and proxy inheritance. The inheritance and method details were read from a model summary of the second half of the page."
+    },
+    {
+      "key": "django-meta-options",
+      "title": "Django docs: Model Meta options",
+      "url": "https://docs.djangoproject.com/en/5.2/ref/models/options/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "ordering (and its cost), indexes, constraints, unique_together replaced by UniqueConstraint, db_table defaults, managed, order_with_respect_to."
+    },
+    {
+      "key": "django-cbv-intro",
+      "title": "Django docs: Introduction to class-based views",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/class-based-views/intro/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "View, as_view, setup, dispatch, method handlers, mixins, form-handling view, decorating class-based views."
+    },
+    {
+      "key": "django-forms",
+      "title": "Django docs: Working with forms",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/forms/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Form and ModelForm, bound and unbound, is_valid and cleaned_data, the GET and POST pattern, csrf_token, rendering errors."
+    },
+    {
+      "key": "django-async",
+      "title": "Django docs: Asynchronous support",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/async/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Async views, ASGI vs WSGI, sync_to_async and async_to_sync, thread_sensitive, async ORM methods, transactions not yet async, SynchronousOnlyOperation, middleware cost."
+    },
+    {
+      "key": "django-signals",
+      "title": "Django docs: Signals",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/signals/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "receiver and connect, weak references, AppConfig.ready, dispatch_uid, send and send_robust, async receivers, the warning about hard-to-follow code."
+    },
+    {
+      "key": "django-transactions",
+      "title": "Django docs: Database transactions",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/db/transactions/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Autocommit, ATOMIC_REQUESTS, atomic and savepoints, catching exceptions inside atomic, on_commit."
+    },
+    {
+      "key": "django-deploy-checklist",
+      "title": "Django docs: Deployment checklist",
+      "url": "https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "check --deploy, SECRET_KEY, DEBUG, ALLOWED_HOSTS, CACHES, STATIC_ROOT, secure cookies, CONN_MAX_AGE, error reporting."
+    },
+    {
+      "key": "nginx-reverse-proxy",
+      "title": "NGINX docs: Reverse proxy",
+      "url": "https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/",
+      "publisher": "NGINX",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "proxy_pass, how the URI is passed, proxy_set_header and the default Host and Connection headers, buffering. The page does not mention X-Forwarded-For."
+    },
+    {
+      "key": "pg-partitioning",
+      "title": "PostgreSQL docs: Table partitioning",
+      "url": "https://www.postgresql.org/docs/current/ddl-partitioning.html",
+      "publisher": "PostgreSQL Global Development Group",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Range, list and hash partitioning, partition pruning, benefits, limits on unique keys, what happens with no matching partition. The last section was read from a model summary."
+    },
+    {
+      "key": "pg-hot-standby",
+      "title": "PostgreSQL docs: Hot standby",
+      "url": "https://www.postgresql.org/docs/current/hot-standby.html",
+      "publisher": "PostgreSQL Global Development Group",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Read-only queries on a standby, what is rejected, eventual consistency, query conflicts and cancellation, max_standby_streaming_delay, hot_standby_feedback."
+    },
+    {
+      "key": "pg-explicit-locking",
+      "title": "PostgreSQL docs: Explicit locking",
+      "url": "https://www.postgresql.org/docs/current/explicit-locking.html",
+      "publisher": "PostgreSQL Global Development Group",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Row-level lock modes FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE, FOR KEY SHARE, deadlock detection and prevention. NOWAIT and SKIP LOCKED are not on this page."
+    },
+    {
+      "key": "mongo-shard-key",
+      "title": "MongoDB docs: Shard keys",
+      "url": "https://www.mongodb.com/docs/manual/core/sharding-shard-key/",
+      "publisher": "MongoDB",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Cardinality, frequency, monotonic keys, hashed vs ranged sharding, hot spots, jumbo chunks, scatter-gather queries, refining or resharding a key. Read from the overview and five linked sub-pages."
+    },
+    {
+      "key": "microservices-saga",
+      "title": "microservices.io: Saga pattern",
+      "url": "https://microservices.io/patterns/data/saga.html",
+      "publisher": "Chris Richardson",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Saga definition, choreography vs orchestration, compensating transactions, lack of isolation, publishing events atomically."
+    },
+    {
+      "key": "mdn-idempotent",
+      "title": "MDN glossary: Idempotent",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Definition of idempotent methods, which methods are, and the caveats about side effects and differing responses."
+    },
+    {
+      "key": "mdn-safe",
+      "title": "MDN glossary: Safe (HTTP methods)",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Safe/HTTP",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Safe methods are read-only; all safe methods are idempotent but not the reverse."
+    },
+    {
+      "key": "rfc9110-idempotent",
+      "title": "RFC 9110 section 9.2.2: Idempotent methods",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods",
+      "publisher": "IETF",
+      "kind": "standard",
+      "checked": "read",
+      "used_for": "Definition, PUT and DELETE, retry rules, and that a proxy must not automatically retry non-idempotent requests."
+    },
+    {
+      "key": "mdn-429",
+      "title": "MDN: 429 Too Many Requests",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Meaning of 429 and the Retry-After header."
+    },
+    {
+      "key": "mdn-http-caching",
+      "title": "MDN: HTTP caching",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "max-age, no-cache vs no-store, private and public, immutable, ETag and If-None-Match, 304 Not Modified. The second half was read from a model summary."
+    },
+    {
+      "key": "py-asyncio-task",
+      "title": "Python docs: Coroutines and tasks",
+      "url": "https://docs.python.org/3/library/asyncio-task.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Coroutines, create_task, TaskGroup, gather, timeout, wait_for, cancellation, shield, to_thread. The end of the page was read from a model summary."
+    },
+    {
+      "key": "py-asyncio-dev",
+      "title": "Python docs: Developing with asyncio",
+      "url": "https://docs.python.org/3/library/asyncio-dev.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Debug mode, slow callbacks over 100 ms, never-awaited coroutines, blocking code and executors."
+    },
+    {
+      "key": "mdn-tls",
+      "title": "MDN: Transport Layer Security",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Transport_Layer_Security",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "What TLS provides, the handshake in outline, versions, certificates, mixed content, HSTS."
+    },
+    {
+      "key": "rg-command",
+      "title": "Refactoring Guru: Command",
+      "url": "https://refactoring.guru/design-patterns/command",
+      "publisher": "Refactoring Guru",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Intent, participants, undo with a history stack, pros and cons, relation to Strategy."
+    },
+    {
+      "key": "rg-factory-method",
+      "title": "Refactoring Guru: Factory Method",
+      "url": "https://refactoring.guru/design-patterns/factory-method",
+      "publisher": "Refactoring Guru",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Intent, participants, when to use it, pros and cons."
+    },
+    {
+      "key": "snowflake-readme",
+      "title": "Twitter Snowflake (archived README, snowflake-2010)",
+      "url": "https://github.com/twitter-archive/snowflake/tree/snowflake-2010",
+      "publisher": "Twitter",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "ID layout of 41 bits time, 10 bits machine id, 12 bits sequence; roughly time ordered; behaviour on a backwards clock."
+    },
+    {
+      "key": "redis-locks",
+      "title": "Redis docs: Distributed locks with Redis",
+      "url": "https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/",
+      "publisher": "Redis",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "SET NX PX, random value and safe release, Redlock steps, failover race, fencing token advice."
+    },
+    {
+      "key": "kleppmann-locking",
+      "title": "Martin Kleppmann: How to do distributed locking",
+      "url": "https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html",
+      "publisher": "Martin Kleppmann",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Efficiency vs correctness locks, process pauses, fencing tokens, why Redlock is criticised."
+    },
+    {
+      "key": "django-security",
+      "title": "Django docs: Security in Django",
+      "url": "https://docs.djangoproject.com/en/5.2/topics/security/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "HTTPS settings (SECURE_SSL_REDIRECT, SECURE_PROXY_SSL_HEADER and its warning, secure cookies, HSTS setting names), Host header, XSS, CSRF, SQL injection, clickjacking."
+    },
+    {
+      "key": "django-asgi-deploy",
+      "title": "Django docs: How to deploy with ASGI",
+      "url": "https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "asgi.py, the application path, Uvicorn, Daphne and Hypercorn commands, Gunicorn with a Uvicorn worker. Read together with the three linked server pages."
+    },
+    {
+      "key": "django-gunicorn",
+      "title": "Django docs: How to use Django with Gunicorn",
+      "url": "https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/gunicorn/",
+      "publisher": "Django Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "gunicorn myproject.wsgi, one process with one thread on 127.0.0.1:8000 by default; no worker advice on the page."
+    },
+    {
+      "key": "mdn-websocket-servers",
+      "title": "MDN: Writing WebSocket servers",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The Upgrade handshake, status 101, Sec-WebSocket-Key and Accept, frame header and masking, ping and pong, close, secure connections and port caveats."
+    },
+    {
+      "key": "mdn-http-methods",
+      "title": "MDN: HTTP request methods",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The table of safe, idempotent and cacheable for GET, HEAD, OPTIONS, PUT, DELETE, POST, PATCH and others, and what each method is for."
+    },
+    {
+      "key": "mdn-http-status",
+      "title": "MDN: HTTP response status codes",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The five status classes and the meaning of 101, 200, 201, 204, 301, 304, 400, 401, 403, 404, 409, 422, 429, 500 and 503."
+    },
+    {
+      "key": "mdn-http-evolution",
+      "title": "MDN: Evolution of HTTP",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Evolution_of_HTTP",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "HTTP/0.9 to HTTP/3: headers and status lines, connection reuse, HTTP/2 multiplexing, HTTP/3 over QUIC. Read from the part before the page was cut."
+    },
+    {
+      "key": "mdn-http1-connections",
+      "title": "MDN: Connection management in HTTP/1.x",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Connection_management_in_HTTP_1.x",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Short-lived and persistent connections, keep-alive, pipelining and head-of-line blocking, six connections per domain. Read from the part before the page was cut."
+    },
+    {
+      "key": "mdn-tcp-handshake",
+      "title": "MDN glossary: TCP handshake",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/TCP_handshake",
+      "publisher": "Mozilla",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The three-way SYN, SYN-ACK, ACK handshake, where it sits between DNS and TLS, and the four-way close."
+    },
+    {
+      "key": "rfc9562-uuid",
+      "title": "RFC 9562: Universally Unique IDentifiers (UUIDs)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9562.html",
+      "publisher": "IETF",
+      "kind": "standard",
+      "checked": "read",
+      "used_for": "128-bit size, version 4 random layout with 122 random bits, version 1 time layout, poor index locality of non-time-ordered versions. The UUIDv7 layout and sortability came from a summary of the truncated page."
     }
   ],
   "levels": [
