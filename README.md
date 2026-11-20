@@ -29,6 +29,15 @@ npm run dev                               # http://localhost:5173  (proxies /api
 
 Tests: `cd backend; .venv\Scripts\python manage.py test` (90 tests) · Type-check + build: `cd frontend; npm run build` · Render and interaction test of every page and animation: `cd frontend; npm test` (167 tests, needs the Django server running; on Windows run it from PowerShell, because Git Bash picks a different Node)
 
+## Run it with Docker (local Postgres, no accounts)
+
+```bash
+bash run.sh start-dev     # Django on :8000 with its own Postgres container
+bash run.sh stop-dev
+```
+
+This uses `docker-compose.dev.yml`, which starts a throwaway Postgres, so you never need a hosted database or a `DATABASE_URL`. `docker-compose.yml` and `backend/.env.example` are for the maintainer's production server only. Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Use PostgreSQL instead of SQLite
 
 Set these before `migrate` / `runserver`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`.
