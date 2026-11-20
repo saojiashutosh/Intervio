@@ -25,6 +25,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -51,9 +52,28 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = "config.wsgi.application"
 
-# SQLite by default for zero-setup dev. Set POSTGRES_DB to use PostgreSQL
+# SQLite by default for zero-setup dev. Set DATABASE_URL (managed Postgres) or POSTGRES_DB to use PostgreSQL
 # (the whole point of this project), e.g. via docker compose.
-if os.environ.get("POSTGRES_DB"):
+if os.environ.get("DATABASE_URL"):
+    # Managed Postgres (e.g. Neon): postgresql://user:pass@host/dbname?sslmode=require
+    from urllib.parse import parse_qsl, unquote, urlparse
+
+    _u = urlparse(os.environ["DATABASE_URL"])
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": unquote(_u.path.lstrip("/")),
+            "USER": unquote(_u.username or ""),
+            "PASSWORD": unquote(_u.password or ""),
+            "HOST": _u.hostname,
+            "PORT": _u.port or 5432,
+            "CONN_MAX_AGE": 60,
+            # Neon's pooled endpoint is PgBouncer in transaction mode: no server-side cursors.
+            "DISABLE_SERVER_SIDE_CURSORS": True,
+            "OPTIONS": dict(parse_qsl(_u.query)),
+        }
+    }
+elif os.environ.get("POSTGRES_DB"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -66,6 +86,8 @@ if os.environ.get("POSTGRES_DB"):
         }
     }
 else:
+    if not DEBUG:
+        raise RuntimeError("Set DATABASE_URL (or POSTGRES_DB) when DJANGO_DEBUG=0")
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -78,6 +100,12 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Behind a TLS-terminating proxy (Render, Fly, nginx, ...) trust its forwarded scheme.
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
