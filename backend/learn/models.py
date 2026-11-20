@@ -22,8 +22,8 @@ class Level(models.Model):
     level = models.PositiveSmallIntegerField(unique=True)
     title = models.CharField(max_length=100)
     weeks = models.CharField(max_length=40)
-    blurb = models.CharField(max_length=200)
-    project = models.CharField(max_length=200)
+    blurb = models.CharField(max_length=300)
+    project = models.CharField(max_length=300)
     project_goals = models.JSONField(default=list)
     acceptance = models.JSONField(default=list)
 
@@ -36,7 +36,7 @@ class Level(models.Model):
 
 class Concept(models.Model):
     slug = models.SlugField(unique=True)
-    n = models.PositiveSmallIntegerField(unique=True)
+    n = models.PositiveIntegerField(unique=True)
     level = models.ForeignKey(Level, on_delete=models.PROTECT, related_name="concepts")
     week = models.CharField(max_length=40)
     title = models.CharField(max_length=200)
