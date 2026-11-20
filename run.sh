@@ -21,6 +21,7 @@ Usage: bash run.sh <command>
   interactive-dev     open a Django python shell in the dev containers
   stop-dev            stop the dev stack (data kept; add --volumes to wipe the DB)
   start-prod          build and start the prod stack (gunicorn) in the background
+  seed-prod           load/refresh learning content into the prod database (start-prod does this too)
   interactive-prod    open a Django python shell in the prod containers
   stop-prod           stop the prod stack (data kept; add --volumes to wipe the DB)
   deploy-frontend     build the frontend (in Docker) and copy it to /var/www/intervio (server)
@@ -44,6 +45,14 @@ case "$cmd" in
     need_env
     "${PROD[@]}" up --build -d "$@"
     echo "Prod stack running. Logs: docker compose -p intervio-prod logs -f"
+    # The API is already serving; refresh content afterwards so a slow or failed seed never takes it down.
+    echo "Seeding content (the API stays up meanwhile)..."
+    "${PROD[@]}" run --rm backend python manage.py seed_content \
+      || echo "WARNING: seeding failed; the API is up with the previous content. Retry: bash run.sh seed-prod" >&2
+    ;;
+  seed-prod)
+    need_env
+    "${PROD[@]}" run --rm backend python manage.py seed_content
     ;;
   interactive-prod)
     need_env

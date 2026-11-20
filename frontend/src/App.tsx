@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
-import { Providers, useContent } from './context'
+import { Providers, useContent, useProgress } from './context'
 import { SearchPalette, Sidebar, TopBar } from './components/Chrome'
 import Home from './pages/Home'
 import ConceptPage from './pages/Concept'
@@ -24,6 +24,7 @@ function ScrollTop() {
 
 function Shell() {
   const { content, error } = useContent()
+  const { notice, dismissNotice } = useProgress()
   const [menu, setMenu] = useState(false)
   const [search, setSearch] = useState(false)
   const { pathname } = useLocation()
@@ -42,7 +43,20 @@ function Shell() {
       <div className="layout">
         <Sidebar open={menu} onClose={() => setMenu(false)} />
       <main className="container"><ErrorBoundary>
-        {error && <div className="card"><h3>Can’t load content</h3><p>{error}</p><p className="muted small">Start the API: <code>cd backend &amp;&amp; .venv\Scripts\python manage.py runserver</code></p></div>}
+        {notice && (
+          <div className="card" role="alert" style={{ display: 'flex', gap: '.8rem', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{notice}</span>
+            <button className="btn ghost" onClick={dismissNotice}>Dismiss</button>
+          </div>
+        )}
+        {error && (
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+            <div style={{ fontSize: '3rem' }} aria-hidden="true">🙏</div>
+            <h3>Sorry, the service is down right now</h3>
+            <p className="muted">We’re working on it and will be back soon. Please try again in a few minutes.</p>
+            <button className="btn" onClick={() => window.location.reload()}>Try again</button>
+          </div>
+        )}
         {!content && !error && <p className="muted">Loading…</p>}
         <Routes>
           <Route path="/" element={<Home />} />

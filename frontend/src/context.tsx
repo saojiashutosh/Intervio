@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, store } from './api'
+import { api, ApiError, store } from './api'
 import type { Content, Profile, Roadmap } from './types'
 
 /* ---------- Content ---------- */
@@ -17,8 +17,8 @@ const AuthCtx = createContext<AuthState>({ user: null, signIn: () => {}, signOut
 export const useAuth = () => useContext(AuthCtx)
 
 /* ---------- Progress: server when signed in, localStorage otherwise ---------- */
-interface ProgressState { done: Set<string>; toggle: (key: string) => void; clearPrefix: (prefix: string) => void; isDone: (key: string) => boolean }
-const ProgressCtx = createContext<ProgressState>({ done: new Set(), toggle: () => {}, clearPrefix: () => {}, isDone: () => false })
+interface ProgressState { done: Set<string>; toggle: (key: string) => void; clearPrefix: (prefix: string) => void; isDone: (key: string) => boolean; notice: string | null; dismissNotice: () => void }
+const ProgressCtx = createContext<ProgressState>({ done: new Set(), toggle: () => {}, clearPrefix: () => {}, isDone: () => false, notice: null, dismissNotice: () => {} })
 export const useProgress = () => useContext(ProgressCtx)
 
 /* ---------- Profile + generated roadmap ---------- */
@@ -36,7 +36,9 @@ const PROFILE_KEY = 'intervio.profile'
 const readLocalProfile = (): Profile | null => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') } catch { return null } }
 const writeLocalProfile = (p: Profile) => { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)) } catch { /* private mode */ } }
 
-const LOCAL_KEY = 'intervio.progress'
+const clearLocalProfile = () => { try { localStorage.removeItem(PROFILE_KEY) } catch { /* private mode */ } }
+
+const LOCAL_KEY ='intervio.progress'
 const readLocal = (): string[] => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') } catch { return [] } }
 const writeLocal = (keys: string[]) => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(keys)) } catch { /* private mode */ } }
 
@@ -45,17 +47,21 @@ export function Providers({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<string | null>(store.token ? store.user : null)
   const [done, setDone] = useState<Set<string>>(() => new Set(store.token ? [] : readLocal()))
+  const [notice, setNotice] = useState<string | null>(null)
+  const dismissNotice = useCallback(() => setNotice(null), [])
 
   useEffect(() => {
-    api.content().then(setContent).catch((e) => setError(e.message || 'Could not reach the API. Is the Django server running?'))
+    api.content().then(setContent).catch((e) => { console.error('Content load failed:', e); setError('unavailable') })
   }, [])
 
   useEffect(() => {
     if (!user) { setDone(new Set(readLocal())); return }
-    api.progress().then((r) => setDone(new Set(r.keys))).catch(() => { setUser(null) })
+    // Sign out only when the token is rejected (401). An outage must not log everyone out.
+    api.progress().then((r) => setDone(new Set(r.keys))).catch((e) => { if (e instanceof ApiError && e.status === 401) setUser(null) })
   }, [user])
 
-  const [profile, setProfile] = useState<Profile | null>(readLocalProfile)
+  // Signed in: the database is the only copy (loaded below). Signed out: kept in this browser until they sign up.
+  const [profile, setProfile] = useState<Profile | null>(() => (store.token ? null : readLocalProfile()))
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [roadmapError, setRoadmapError] = useState<string | null>(null)
 
@@ -63,8 +69,10 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return
     api.getProfile().then((r) => {
-      if (r.profile) { setProfile(r.profile); writeLocalProfile(r.profile) }
-      else { const local = readLocalProfile(); if (local) api.saveProfile(local).catch(() => {}) }
+      if (r.profile) { setProfile(r.profile); clearLocalProfile(); return }
+      // None in the database yet: move the one entered while signed out into the account, then drop the browser copy.
+      const local = readLocalProfile()
+      if (local) api.saveProfile(local).then(() => clearLocalProfile()).catch(() => setNotice('Could not save your profile. Please try again.'))
     }).catch(() => {})
   }, [user])
 
@@ -89,13 +97,14 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [profile])
 
   const saveProfile = useCallback(async (p: Profile) => {
-    writeLocalProfile(p)
+    if (user) await api.saveProfile(p)   // database first: if this throws, nothing is shown as saved
+    else writeLocalProfile(p)
     setProfile(p)
-    if (user) await api.saveProfile(p)
   }, [user])
 
   const signIn = useCallback((token: string, name: string) => { store.set(token, name); setUser(name) }, [])
-  const signOut = useCallback(() => { store.clear(); setUser(null) }, [])
+  // The profile belongs to the account: drop it from memory and this browser so the next person never sees it.
+  const signOut = useCallback(() => { store.clear(); clearLocalProfile(); setProfile(null); setUser(null) }, [])
 
   const toggle = useCallback((key: string) => {
     // optimistic update, then reconcile with the server
@@ -110,7 +119,15 @@ export function Providers({ children }: { children: ReactNode }) {
         const next = new Set(prev)
         if (r.done) next.add(key); else next.delete(key)
         return next
-      })).catch(() => api.progress().then((r) => setDone(new Set(r.keys))).catch(() => {}))
+      })).catch(() => {
+        // Not saved: undo the optimistic change so the screen never shows progress the server does not have.
+        setDone((prev) => {
+          const next = new Set(prev)
+          if (next.has(key)) next.delete(key); else next.add(key)
+          return next
+        })
+        setNotice('Could not save your progress. Please check your connection and try again.')
+      })
     }
   }, [user])
 
@@ -125,14 +142,14 @@ export function Providers({ children }: { children: ReactNode }) {
 
   /** Delete the profile and the roadmap tick-marks. Concept completion is kept. */
   const clearProfile = useCallback(async () => {
-    try { localStorage.removeItem(PROFILE_KEY) } catch { /* private mode */ }
+    if (user) await api.deleteProfile()   // database first: if this throws, the profile is still shown
+    clearLocalProfile()
     setProfile(null)
     clearPrefix('rm:')
-    if (user) await api.deleteProfile()
   }, [user, clearPrefix])
 
   const plan = useMemo<PlanState>(() => ({ profile, roadmap, roadmapError, saveProfile, clearProfile }), [profile, roadmap, roadmapError, saveProfile, clearProfile])
-  const progress = useMemo<ProgressState>(() => ({ done, toggle, clearPrefix, isDone: (k) => done.has(k) }), [done, toggle, clearPrefix])
+  const progress = useMemo<ProgressState>(() => ({ done, toggle, clearPrefix, isDone: (k) => done.has(k), notice, dismissNotice }), [done, toggle, clearPrefix, notice, dismissNotice])
   const auth = useMemo<AuthState>(() => ({ user, signIn, signOut }), [user, signIn, signOut])
 
   return (
