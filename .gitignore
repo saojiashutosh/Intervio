@@ -8,3 +8,6 @@ db.sqlite3
 .env
 *.tsbuildinfo
 _tmp_ts/
+staticfiles/
+.env.*
+!.env.example
