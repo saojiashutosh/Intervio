@@ -1,6 +1,6 @@
 # Intervio
 
-An interview-prep portal for software engineers. It teaches 120 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
+An interview-prep portal for software engineers. It teaches 126 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
 
 ## What it does
 
@@ -22,7 +22,7 @@ An interview-prep portal for software engineers. It teaches 120 lessons in 12 tr
 - **A lesson is a short course, one screen at a time:** Picture it (a plain-words story and the hard words), Watch it (the animation), Read, Code (only if the lesson has code), Practice, Check yourself (interview questions) and Finish (sources, mark complete, next lesson). The step is in the URL (`/concept/acid?s=read`), so links and reloads keep your place.
 - **Animated diagrams:** every lesson has isometric step-through diagrams with live metrics, packets travelling along links, and prediction questions on selected steps. Keyboard: click the diagram, then `←` `→` to step, `R` to replay, `Space` to pause. Reduced-motion settings are respected.
 - **Personal roadmap** (`/my-plan`): enter your background, goal, experience, weeks, hours per day and days per week, and get a day-by-day schedule that says what it cut and why.
-- **Problem bank** (`/problems`): 39 data structures and algorithms problems (easy, medium, hard). You write Python in the page and run the tests. Code runs in your browser (Pyodide in a Web Worker), so nothing you type is sent to the server. Solved marks and drafts stay in your browser.
+- **Problem bank** (`/problems`): 60 data structures and algorithms problems (easy, medium, hard). You write Python in the page and run the tests. Code runs in your browser (Pyodide in a Web Worker), so nothing you type is sent to the server. Solved marks and drafts stay in your browser.
 - **Practice** (`/practice`): SQL drills and exercises. Signed-in learners also get flashcards with Leitner spaced repetition. Also: a 12-week plan, interview questions, projects, and a sources page listing what each lesson rests on.
 - **Comfortable to study with:** a search palette (`Ctrl K`), light and dark themes, an Appearance menu (four colour palettes, four fonts), and a layout that works on phones.
 - **Works without an account:** progress is saved in the browser; signing in syncs it to the server.
