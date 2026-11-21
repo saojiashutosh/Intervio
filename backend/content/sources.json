@@ -1655,6 +1655,60 @@
       "kind": "standard",
       "checked": "read",
       "used_for": "128-bit size, version 4 random layout with 122 random bits, version 1 time layout, poor index locality of non-time-ordered versions. The UUIDv7 layout and sortability came from a summary of the truncated page."
+    },
+    {
+      "key": "redis-sorted-sets",
+      "title": "Redis sorted sets",
+      "url": "https://redis.io/docs/latest/develop/data-types/sorted-sets/",
+      "publisher": "Redis",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Definition (unique members ordered by score), ZADD, ZRANK, ZREVRANK and ZINCRBY at O(log N), ZRANGE at O(log N + M), ZSCORE and ZCARD at O(1), the skip list plus hash table implementation, and leaderboards as a named use."
+    },
+    {
+      "key": "princeton-union-find",
+      "title": "Algorithms, 4th ed.: 1.5 Case Study: Union-Find",
+      "url": "https://algs4.cs.princeton.edu/15uf/",
+      "publisher": "Princeton University (Sedgewick and Wayne)",
+      "kind": "book",
+      "checked": "read",
+      "used_for": "Quick-find, quick-union, weighted quick-union (depth at most lg n), path compression, and the near-constant amortized cost."
+    },
+    {
+      "key": "wikipedia-trie",
+      "title": "Trie (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Trie",
+      "publisher": "Wikipedia",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Definition, search in O(m) for a key of length m, use in autocomplete, the space trade-off against other structures, and radix trees. Part of the page was read from a summary."
+    },
+    {
+      "key": "wikipedia-interval-scheduling",
+      "title": "Interval scheduling (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Interval_scheduling",
+      "publisher": "Wikipedia",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "The earliest-finish-time greedy algorithm, that it is optimal, that earliest-start and shortest-first are not, and the O(n log n) cost."
+    },
+    {
+      "key": "amazon-leadership-principles",
+      "title": "Amazon Leadership Principles",
+      "url": "https://www.amazon.jobs/content/en/our-workplace/leadership-principles",
+      "publisher": "Amazon",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The names of the leadership principles that behavioural questions map to (the page redirected to an internal A to Z copy with the same list)."
+    },
+    {
+      "key": "elastic-full-text",
+      "title": "Full-text search in Elasticsearch",
+      "url": "https://www.elastic.co/docs/solutions/search/full-text",
+      "publisher": "Elastic",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Full-text (lexical) search definition, that text fields are analyzed and indexed, and that results are ranked by relevance. The page does not describe inverted indexes or BM25 formulas."
     }
   ],
   "levels": [
