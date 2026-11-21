@@ -1803,5 +1803,1074 @@
   "solution": "def max_area(heights):\n    l, r, best = 0, len(heights) - 1, 0\n    while l < r:\n        best = max(best, (r - l) * min(heights[l], heights[r]))\n        if heights[l] < heights[r]:\n            l += 1\n        else:\n            r -= 1\n    return best\n",
   "notes": "Two pointers: O(n) time, O(1) space.",
   "prelude": ""
+ },
+ {
+  "slug": "valid-anagram",
+  "concept": "arrays-hashing",
+  "title": "Valid Anagram",
+  "difficulty": "easy",
+  "statement": "Given two strings s and t, return True if t is an anagram of s (the same letters with the same counts, in any order), otherwise False.",
+  "examples": [
+   {
+    "input": "s = \"anagram\", t = \"nagaram\"",
+    "output": "True",
+    "note": ""
+   },
+   {
+    "input": "s = \"rat\", t = \"car\"",
+    "output": "False",
+    "note": ""
+   }
+  ],
+  "starter": "def is_anagram(s, t):\n    pass\n",
+  "cases": [
+   {
+    "name": "anagram",
+    "code": "assert is_anagram(\"anagram\", \"nagaram\") is True"
+   },
+   {
+    "name": "different letters",
+    "code": "assert is_anagram(\"rat\", \"car\") is False"
+   },
+   {
+    "name": "different length",
+    "code": "assert is_anagram(\"ab\", \"abc\") is False"
+   },
+   {
+    "name": "repeated letters matter",
+    "code": "assert is_anagram(\"aab\", \"abb\") is False"
+   },
+   {
+    "name": "empty strings",
+    "code": "assert is_anagram(\"\", \"\") is True"
+   },
+   {
+    "name": "long input is fast",
+    "code": "assert is_anagram(\"ab\" * 100000, \"ba\" * 100000) is True"
+   }
+  ],
+  "hints": [
+   "If the lengths differ the answer is already False.",
+   "Count each letter. Two strings are anagrams exactly when the counts are equal."
+  ],
+  "solution": "from collections import Counter\n\ndef is_anagram(s, t):\n    return len(s) == len(t) and Counter(s) == Counter(t)\n",
+  "notes": "Counting: O(n) time, O(k) space for k distinct characters. Sorting both strings is O(n log n) and needs no extra structure. Ask whether the input is only lowercase ASCII (a 26-slot array) or Unicode (a hash map).",
+  "prelude": ""
+ },
+ {
+  "slug": "product-except-self",
+  "concept": "arrays-hashing",
+  "title": "Product of Array Except Self",
+  "difficulty": "medium",
+  "statement": "Given a list of integers nums, return a list answer where answer[i] is the product of every element of nums except nums[i]. Do not use division, and aim for O(n) time.",
+  "examples": [
+   {
+    "input": "nums = [1, 2, 3, 4]",
+    "output": "[24, 12, 8, 6]",
+    "note": ""
+   },
+   {
+    "input": "nums = [-1, 1, 0, -3, 3]",
+    "output": "[0, 0, 9, 0, 0]",
+    "note": "a zero makes every other product zero"
+   }
+  ],
+  "starter": "def product_except_self(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert product_except_self([1, 2, 3, 4]) == [24, 12, 8, 6]"
+   },
+   {
+    "name": "one zero",
+    "code": "assert product_except_self([-1, 1, 0, -3, 3]) == [0, 0, 9, 0, 0]"
+   },
+   {
+    "name": "two zeros",
+    "code": "assert product_except_self([0, 0, 2]) == [0, 0, 0]"
+   },
+   {
+    "name": "two items",
+    "code": "assert product_except_self([3, 5]) == [5, 3]"
+   },
+   {
+    "name": "input is not changed",
+    "code": "xs = [2, 3, 4]\nassert product_except_self(xs) == [12, 8, 6]\nassert xs == [2, 3, 4]"
+   },
+   {
+    "name": "100,000 items must be fast",
+    "code": "assert product_except_self([1] * 100000) == [1] * 100000"
+   }
+  ],
+  "hints": [
+   "The product to the left of i times the product to the right of i is the answer.",
+   "Fill the answer with left products in one pass, then multiply by a running right product in a second pass."
+  ],
+  "solution": "def product_except_self(nums):\n    n = len(nums)\n    out = [1] * n\n    left = 1\n    for i in range(n):\n        out[i] = left\n        left *= nums[i]\n    right = 1\n    for i in range(n - 1, -1, -1):\n        out[i] *= right\n        right *= nums[i]\n    return out\n",
+  "notes": "Prefix and suffix products: O(n) time, O(1) extra space besides the output. Dividing the total by nums[i] fails when a zero is present, which is why the problem forbids it.",
+  "prelude": ""
+ },
+ {
+  "slug": "maximum-subarray",
+  "concept": "arrays-hashing",
+  "title": "Maximum Subarray",
+  "difficulty": "medium",
+  "statement": "Given a non-empty list of integers, return the largest sum of any contiguous (touching) run of elements.",
+  "examples": [
+   {
+    "input": "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]",
+    "output": "6",
+    "note": "the run [4, -1, 2, 1]"
+   },
+   {
+    "input": "nums = [-3, -1, -2]",
+    "output": "-1",
+    "note": "all negative: take the largest single value"
+   }
+  ],
+  "starter": "def max_subarray(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) == 6"
+   },
+   {
+    "name": "all negative",
+    "code": "assert max_subarray([-3, -1, -2]) == -1"
+   },
+   {
+    "name": "single item",
+    "code": "assert max_subarray([5]) == 5"
+   },
+   {
+    "name": "all positive",
+    "code": "assert max_subarray([1, 2, 3]) == 6"
+   },
+   {
+    "name": "best run is in the middle",
+    "code": "assert max_subarray([5, -9, 6, 7, -20, 1]) == 13"
+   },
+   {
+    "name": "200,000 items must be fast",
+    "code": "assert max_subarray([1] * 200000) == 200000"
+   }
+  ],
+  "hints": [
+   "At each position decide: extend the run that ends here, or start a new run at this element.",
+   "best ending here = max(x, best ending here + x). Keep the largest value seen."
+  ],
+  "solution": "def max_subarray(nums):\n    best = cur = nums[0]\n    for x in nums[1:]:\n        cur = max(x, cur + x)\n        best = max(best, cur)\n    return best\n",
+  "notes": "Kadane's algorithm: O(n) time, O(1) space. A common mistake is to start the best at 0, which returns the wrong answer when every value is negative.",
+  "prelude": ""
+ },
+ {
+  "slug": "evaluate-rpn",
+  "concept": "stacks-queues",
+  "title": "Evaluate Reverse Polish Notation",
+  "difficulty": "medium",
+  "statement": "Evaluate an arithmetic expression given as a list of tokens in reverse Polish notation. Operators are \"+\", \"-\", \"*\" and \"/\". Division truncates toward zero. Every expression is valid.",
+  "examples": [
+   {
+    "input": "tokens = [\"2\", \"1\", \"+\", \"3\", \"*\"]",
+    "output": "9",
+    "note": "(2 + 1) * 3"
+   },
+   {
+    "input": "tokens = [\"4\", \"13\", \"5\", \"/\", \"+\"]",
+    "output": "6",
+    "note": "4 + (13 / 5) = 4 + 2"
+   }
+  ],
+  "starter": "def eval_rpn(tokens):\n    pass\n",
+  "cases": [
+   {
+    "name": "example one",
+    "code": "assert eval_rpn([\"2\", \"1\", \"+\", \"3\", \"*\"]) == 9"
+   },
+   {
+    "name": "example two",
+    "code": "assert eval_rpn([\"4\", \"13\", \"5\", \"/\", \"+\"]) == 6"
+   },
+   {
+    "name": "one number",
+    "code": "assert eval_rpn([\"7\"]) == 7"
+   },
+   {
+    "name": "order of subtraction",
+    "code": "assert eval_rpn([\"5\", \"3\", \"-\"]) == 2"
+   },
+   {
+    "name": "division truncates toward zero",
+    "code": "assert eval_rpn([\"-7\", \"2\", \"/\"]) == -3"
+   },
+   {
+    "name": "negative numbers",
+    "code": "assert eval_rpn([\"3\", \"-4\", \"*\"]) == -12"
+   }
+  ],
+  "hints": [
+   "Push numbers on a stack. An operator pops two values and pushes the result.",
+   "The first value popped is the right operand. Use int(a / b) so division truncates toward zero, not floor division."
+  ],
+  "solution": "def eval_rpn(tokens):\n    stack = []\n    for t in tokens:\n        if t in (\"+\", \"-\", \"*\", \"/\"):\n            b = stack.pop()\n            a = stack.pop()\n            if t == \"+\":\n                stack.append(a + b)\n            elif t == \"-\":\n                stack.append(a - b)\n            elif t == \"*\":\n                stack.append(a * b)\n            else:\n                stack.append(int(a / b))\n        else:\n            stack.append(int(t))\n    return stack[0]\n",
+  "notes": "One pass, O(n) time and O(n) space. Python floor division (//) rounds -3.5 down to -4, so int(a / b) is used to truncate toward zero. Ask the interviewer which rounding is expected.",
+  "prelude": ""
+ },
+ {
+  "slug": "sliding-window-maximum",
+  "concept": "stacks-queues",
+  "title": "Sliding Window Maximum",
+  "difficulty": "hard",
+  "statement": "Given a list nums and a window size k, return the maximum of every window of k consecutive elements as the window moves from the left end to the right end.",
+  "examples": [
+   {
+    "input": "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
+    "output": "[3, 3, 5, 5, 6, 7]",
+    "note": ""
+   }
+  ],
+  "starter": "def max_sliding_window(nums, k):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert max_sliding_window([1, 3, -1, -3, 5, 3, 6, 7], 3) == [3, 3, 5, 5, 6, 7]"
+   },
+   {
+    "name": "window of one",
+    "code": "assert max_sliding_window([4, 2, 9], 1) == [4, 2, 9]"
+   },
+   {
+    "name": "window is the whole list",
+    "code": "assert max_sliding_window([4, 2, 9], 3) == [9]"
+   },
+   {
+    "name": "decreasing values",
+    "code": "assert max_sliding_window([9, 8, 7, 6], 2) == [9, 8, 7]"
+   },
+   {
+    "name": "duplicates",
+    "code": "assert max_sliding_window([2, 2, 2, 2], 2) == [2, 2, 2]"
+   },
+   {
+    "name": "100,000 items must be fast (O(n))",
+    "code": "assert len(max_sliding_window(list(range(100000)), 5000)) == 95001"
+   }
+  ],
+  "hints": [
+   "Recomputing max() for every window is O(n*k), too slow.",
+   "Keep a deque of indices whose values are in decreasing order. Drop indices that left the window from the front, and smaller values from the back before adding the new one."
+  ],
+  "solution": "from collections import deque\n\ndef max_sliding_window(nums, k):\n    dq = deque()\n    out = []\n    for i, x in enumerate(nums):\n        while dq and nums[dq[-1]] <= x:\n            dq.pop()\n        dq.append(i)\n        if dq[0] <= i - k:\n            dq.popleft()\n        if i >= k - 1:\n            out.append(nums[dq[0]])\n    return out\n",
+  "notes": "Monotonic deque: each index is added and removed at most once, so O(n) time and O(k) space. A heap with lazy deletion also works in O(n log n).",
+  "prelude": ""
+ },
+ {
+  "slug": "add-two-numbers",
+  "concept": "linked-lists",
+  "title": "Add Two Numbers",
+  "difficulty": "medium",
+  "statement": "Two non-empty linked lists hold the digits of two non-negative integers in reverse order (the head is the ones digit). Return the sum as a linked list in the same format.",
+  "examples": [
+   {
+    "input": "l1 = 2 -> 4 -> 3, l2 = 5 -> 6 -> 4",
+    "output": "7 -> 0 -> 8",
+    "note": "342 + 465 = 807"
+   }
+  ],
+  "starter": "def add_two_numbers(l1, l2):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert to_list(add_two_numbers(from_list([2, 4, 3]), from_list([5, 6, 4]))) == [7, 0, 8]"
+   },
+   {
+    "name": "zeros",
+    "code": "assert to_list(add_two_numbers(from_list([0]), from_list([0]))) == [0]"
+   },
+   {
+    "name": "final carry makes a new node",
+    "code": "assert to_list(add_two_numbers(from_list([9, 9, 9]), from_list([1]))) == [0, 0, 0, 1]"
+   },
+   {
+    "name": "different lengths",
+    "code": "assert to_list(add_two_numbers(from_list([1, 8]), from_list([0]))) == [1, 8]"
+   },
+   {
+    "name": "long lists",
+    "code": "assert to_list(add_two_numbers(from_list([9] * 5000), from_list([1]))) == [0] * 5000 + [1]"
+   }
+  ],
+  "hints": [
+   "Walk both lists together, adding the two digits and the carry. The new digit is total % 10, the new carry is total // 10.",
+   "Keep going while either list has nodes or the carry is not zero. A dummy head makes the first node no special case."
+  ],
+  "solution": "def add_two_numbers(l1, l2):\n    dummy = cur = ListNode()\n    carry = 0\n    while l1 or l2 or carry:\n        total = carry\n        if l1:\n            total += l1.val\n            l1 = l1.next\n        if l2:\n            total += l2.val\n            l2 = l2.next\n        carry, digit = divmod(total, 10)\n        cur.next = ListNode(digit)\n        cur = cur.next\n    return dummy.next\n",
+  "notes": "O(max(m, n)) time, O(1) extra space besides the result. Converting to integers works in Python but defeats the point, and would not work in languages with fixed-size integers.",
+  "prelude": "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val, self.next = val, next\n\ndef from_list(xs):\n    dummy = cur = ListNode()\n    for x in xs:\n        cur.next = ListNode(x)\n        cur = cur.next\n    return dummy.next\n\ndef to_list(node):\n    out = []\n    while node:\n        out.append(node.val)\n        node = node.next\n    return out\n\ndef make_cycle(xs, pos):\n    \"\"\"A list of the values xs whose last node points back to index pos (pos = -1: no cycle).\"\"\"\n    head, nodes, n = from_list(xs), [], None\n    n = head\n    while n:\n        nodes.append(n)\n        n = n.next\n    if pos >= 0 and nodes:\n        nodes[-1].next = nodes[pos]\n    return head\n"
+ },
+ {
+  "slug": "three-sum",
+  "concept": "sorting-searching",
+  "title": "3Sum",
+  "difficulty": "medium",
+  "statement": "Return all unique triplets [a, b, c] from nums such that a + b + c == 0. The result must not contain duplicate triplets. The order of triplets and of numbers inside a triplet does not matter.",
+  "examples": [
+   {
+    "input": "nums = [-1, 0, 1, 2, -1, -4]",
+    "output": "[[-1, -1, 2], [-1, 0, 1]]",
+    "note": ""
+   }
+  ],
+  "starter": "def three_sum(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert sorted(sorted(t) for t in three_sum([-1, 0, 1, 2, -1, -4])) == [[-1, -1, 2], [-1, 0, 1]]"
+   },
+   {
+    "name": "no answer",
+    "code": "assert three_sum([1, 2, 3]) == []"
+   },
+   {
+    "name": "all zeros gives one triplet",
+    "code": "assert sorted(sorted(t) for t in three_sum([0, 0, 0, 0])) == [[0, 0, 0]]"
+   },
+   {
+    "name": "too short",
+    "code": "assert three_sum([0, 0]) == []"
+   },
+   {
+    "name": "no duplicate triplets",
+    "code": "r = three_sum([-2, 0, 0, 2, 2])\nassert sorted(sorted(t) for t in r) == [[-2, 0, 2]]"
+   },
+   {
+    "name": "3,000 items must be fast (O(n^2))",
+    "code": "assert three_sum(list(range(-1500, 1500))) is not None"
+   }
+  ],
+  "hints": [
+   "Sort the list. Fix the first number, then look for a pair that sums to its negative with two pointers.",
+   "Skip equal values for the first number and, after finding a triplet, skip equal values for the other two so that no duplicate is produced."
+  ],
+  "solution": "def three_sum(nums):\n    nums = sorted(nums)\n    out = []\n    for i in range(len(nums) - 2):\n        if i and nums[i] == nums[i - 1]:\n            continue\n        lo, hi = i + 1, len(nums) - 1\n        while lo < hi:\n            s = nums[i] + nums[lo] + nums[hi]\n            if s < 0:\n                lo += 1\n            elif s > 0:\n                hi -= 1\n            else:\n                out.append([nums[i], nums[lo], nums[hi]])\n                lo += 1\n                while lo < hi and nums[lo] == nums[lo - 1]:\n                    lo += 1\n    return out\n",
+  "notes": "Sort then two pointers: O(n^2) time, O(1) extra space beyond the output and the sort. Say why: sorting is what makes the two-pointer step valid and makes duplicates easy to skip.",
+  "prelude": ""
+ },
+ {
+  "slug": "binary-search",
+  "concept": "sorting-searching",
+  "title": "Binary Search",
+  "difficulty": "easy",
+  "statement": "Given a list of integers sorted in ascending order and a target, return the index of the target, or -1 if it is not in the list. The running time must be O(log n).",
+  "examples": [
+   {
+    "input": "nums = [-1, 0, 3, 5, 9, 12], target = 9",
+    "output": "4",
+    "note": ""
+   },
+   {
+    "input": "nums = [-1, 0, 3, 5, 9, 12], target = 2",
+    "output": "-1",
+    "note": ""
+   }
+  ],
+  "starter": "def search(nums, target):\n    pass\n",
+  "cases": [
+   {
+    "name": "found",
+    "code": "assert search([-1, 0, 3, 5, 9, 12], 9) == 4"
+   },
+   {
+    "name": "not found",
+    "code": "assert search([-1, 0, 3, 5, 9, 12], 2) == -1"
+   },
+   {
+    "name": "empty list",
+    "code": "assert search([], 1) == -1"
+   },
+   {
+    "name": "first and last",
+    "code": "xs = [1, 3, 5, 7]\nassert search(xs, 1) == 0 and search(xs, 7) == 3"
+   },
+   {
+    "name": "one item",
+    "code": "assert search([4], 4) == 0 and search([4], 5) == -1"
+   },
+   {
+    "name": "2,000,000 items need O(log n)",
+    "code": "xs = list(range(2000000))\nfor _ in range(2000):\n    assert search(xs, 1999999) == 1999999"
+   }
+  ],
+  "hints": [
+   "Keep a low and a high index. Look at the middle, then throw away the half that cannot contain the target.",
+   "Loop while low <= high, and move to mid + 1 or mid - 1 so the range always shrinks."
+  ],
+  "solution": "def search(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n",
+  "notes": "O(log n) time, O(1) space. Most binary search bugs are off by one: decide whether the range is closed [lo, hi] or half-open [lo, hi) and keep to it. In languages with fixed-size integers write lo + (hi - lo) // 2 to avoid overflow.",
+  "prelude": ""
+ },
+ {
+  "slug": "search-rotated-array",
+  "concept": "sorting-searching",
+  "title": "Search in Rotated Sorted Array",
+  "difficulty": "medium",
+  "statement": "A list of distinct integers sorted in ascending order was rotated at an unknown pivot, for example [0, 1, 2, 4, 5, 6, 7] became [4, 5, 6, 7, 0, 1, 2]. Return the index of target, or -1. The running time must be O(log n).",
+  "examples": [
+   {
+    "input": "nums = [4, 5, 6, 7, 0, 1, 2], target = 0",
+    "output": "4",
+    "note": ""
+   },
+   {
+    "input": "nums = [4, 5, 6, 7, 0, 1, 2], target = 3",
+    "output": "-1",
+    "note": ""
+   }
+  ],
+  "starter": "def search_rotated(nums, target):\n    pass\n",
+  "cases": [
+   {
+    "name": "found after the pivot",
+    "code": "assert search_rotated([4, 5, 6, 7, 0, 1, 2], 0) == 4"
+   },
+   {
+    "name": "found before the pivot",
+    "code": "assert search_rotated([4, 5, 6, 7, 0, 1, 2], 5) == 1"
+   },
+   {
+    "name": "missing",
+    "code": "assert search_rotated([4, 5, 6, 7, 0, 1, 2], 3) == -1"
+   },
+   {
+    "name": "not rotated",
+    "code": "assert search_rotated([1, 2, 3, 4], 3) == 2"
+   },
+   {
+    "name": "one item",
+    "code": "assert search_rotated([1], 1) == 0 and search_rotated([1], 0) == -1"
+   },
+   {
+    "name": "two items",
+    "code": "assert search_rotated([3, 1], 1) == 1"
+   },
+   {
+    "name": "1,000,000 items need O(log n)",
+    "code": "xs = list(range(500000, 1000000)) + list(range(500000))\nfor _ in range(2000):\n    assert search_rotated(xs, 7) == 500007"
+   }
+  ],
+  "hints": [
+   "At every step, one half of the range is still sorted. Find out which.",
+   "If the target lies inside the sorted half, search that half. Otherwise search the other one."
+  ],
+  "solution": "def search_rotated(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[lo] <= nums[mid]:\n            if nums[lo] <= target < nums[mid]:\n                hi = mid - 1\n            else:\n                lo = mid + 1\n        else:\n            if nums[mid] < target <= nums[hi]:\n                lo = mid + 1\n            else:\n                hi = mid - 1\n    return -1\n",
+  "notes": "O(log n) time. The key sentence for the interviewer: \"after splitting at mid, at least one half is sorted, and I can tell whether the target is in that half by comparing it to the ends\". With duplicates this can degrade to O(n).",
+  "prelude": ""
+ },
+ {
+  "slug": "diameter-of-binary-tree",
+  "concept": "trees-bst",
+  "title": "Diameter of Binary Tree",
+  "difficulty": "easy",
+  "statement": "Return the length of the diameter of a binary tree: the number of edges on the longest path between any two nodes. The path may or may not pass through the root.",
+  "examples": [
+   {
+    "input": "root = [1, 2, 3, 4, 5]",
+    "output": "3",
+    "note": "the path 4 -> 2 -> 1 -> 3 has three edges"
+   }
+  ],
+  "starter": "def diameter(root):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert diameter(build_tree([1, 2, 3, 4, 5])) == 3"
+   },
+   {
+    "name": "empty tree",
+    "code": "assert diameter(None) == 0"
+   },
+   {
+    "name": "one node",
+    "code": "assert diameter(build_tree([1])) == 0"
+   },
+   {
+    "name": "two nodes",
+    "code": "assert diameter(build_tree([1, 2])) == 1"
+   },
+   {
+    "name": "longest path avoids the root",
+    "code": "assert diameter(build_tree([1, 2, None, 3, 4, 5, None, None, 6])) == 4"
+   },
+   {
+    "name": "a long chain",
+    "code": "root = TreeNode(0)\ncur = root\nfor i in range(1, 800):\n    cur.left = TreeNode(i)\n    cur = cur.left\nassert diameter(root) == 799"
+   }
+  ],
+  "hints": [
+   "For each node, the longest path through it is the height of its left subtree plus the height of its right subtree.",
+   "Compute heights bottom up and update a best-so-far value as you go, so you visit each node once."
+  ],
+  "solution": "def diameter(root):\n    best = 0\n\n    def height(node):\n        nonlocal best\n        if not node:\n            return 0\n        left = height(node.left)\n        right = height(node.right)\n        best = max(best, left + right)\n        return 1 + max(left, right)\n\n    height(root)\n    return best\n",
+  "notes": "O(n) time, O(h) stack space where h is the height. Computing the height separately at every node is O(n^2) in the worst case, which is the usual first attempt.",
+  "prelude": "class TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef build_tree(xs):\n    \"\"\"Build a tree from a level-order list where None means a missing child: [3, 9, 20, None, None, 15, 7].\"\"\"\n    if not xs or xs[0] is None:\n        return None\n    root = TreeNode(xs[0])\n    queue, i = [root], 1\n    while queue and i < len(xs):\n        node = queue.pop(0)\n        if i < len(xs) and xs[i] is not None:\n            node.left = TreeNode(xs[i]); queue.append(node.left)\n        i += 1\n        if i < len(xs) and xs[i] is not None:\n            node.right = TreeNode(xs[i]); queue.append(node.right)\n        i += 1\n    return root\n"
+ },
+ {
+  "slug": "right-side-view",
+  "concept": "trees-bst",
+  "title": "Binary Tree Right Side View",
+  "difficulty": "medium",
+  "statement": "Imagine standing on the right side of a binary tree. Return the values of the nodes you can see, ordered from top to bottom.",
+  "examples": [
+   {
+    "input": "root = [1, 2, 3, None, 5, None, 4]",
+    "output": "[1, 3, 4]",
+    "note": ""
+   }
+  ],
+  "starter": "def right_side_view(root):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert right_side_view(build_tree([1, 2, 3, None, 5, None, 4])) == [1, 3, 4]"
+   },
+   {
+    "name": "empty tree",
+    "code": "assert right_side_view(None) == []"
+   },
+   {
+    "name": "left only",
+    "code": "assert right_side_view(build_tree([1, 2, None, 3])) == [1, 2, 3]"
+   },
+   {
+    "name": "deeper left is visible",
+    "code": "assert right_side_view(build_tree([1, 2, 3, 4])) == [1, 3, 4]"
+   },
+   {
+    "name": "one node",
+    "code": "assert right_side_view(build_tree([9])) == [9]"
+   }
+  ],
+  "hints": [
+   "Do a level-order (breadth-first) traversal.",
+   "The last node of each level is the one you see from the right."
+  ],
+  "solution": "from collections import deque\n\ndef right_side_view(root):\n    if not root:\n        return []\n    out = []\n    queue = deque([root])\n    while queue:\n        out.append(queue[-1].val)\n        for _ in range(len(queue)):\n            node = queue.popleft()\n            if node.left:\n                queue.append(node.left)\n            if node.right:\n                queue.append(node.right)\n    return out\n",
+  "notes": "O(n) time, O(w) space where w is the maximum width. A depth-first search that visits the right child first and records the first node seen at each depth gives the same answer.",
+  "prelude": "class TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef build_tree(xs):\n    \"\"\"Build a tree from a level-order list where None means a missing child: [3, 9, 20, None, None, 15, 7].\"\"\"\n    if not xs or xs[0] is None:\n        return None\n    root = TreeNode(xs[0])\n    queue, i = [root], 1\n    while queue and i < len(xs):\n        node = queue.pop(0)\n        if i < len(xs) and xs[i] is not None:\n            node.left = TreeNode(xs[i]); queue.append(node.left)\n        i += 1\n        if i < len(xs) and xs[i] is not None:\n            node.right = TreeNode(xs[i]); queue.append(node.right)\n        i += 1\n    return root\n"
+ },
+ {
+  "slug": "rotting-oranges",
+  "concept": "graphs-traversal",
+  "title": "Rotting Oranges",
+  "difficulty": "medium",
+  "statement": "A grid holds 0 (empty), 1 (fresh orange) and 2 (rotten orange). Every minute, each fresh orange next to a rotten one (up, down, left, right) becomes rotten. Return the number of minutes until no fresh orange is left, or -1 if that is impossible.",
+  "examples": [
+   {
+    "input": "grid = [[2,1,1],[1,1,0],[0,1,1]]",
+    "output": "4",
+    "note": ""
+   },
+   {
+    "input": "grid = [[2,1,1],[0,1,1],[1,0,1]]",
+    "output": "-1",
+    "note": "the orange in the bottom-left corner is never reached"
+   }
+  ],
+  "starter": "def oranges_rotting(grid):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert oranges_rotting([[2,1,1],[1,1,0],[0,1,1]]) == 4"
+   },
+   {
+    "name": "unreachable",
+    "code": "assert oranges_rotting([[2,1,1],[0,1,1],[1,0,1]]) == -1"
+   },
+   {
+    "name": "no fresh oranges",
+    "code": "assert oranges_rotting([[0, 2]]) == 0"
+   },
+   {
+    "name": "nothing at all",
+    "code": "assert oranges_rotting([[0]]) == 0"
+   },
+   {
+    "name": "only fresh, nothing rotten",
+    "code": "assert oranges_rotting([[1]]) == -1"
+   },
+   {
+    "name": "two sources spread together",
+    "code": "assert oranges_rotting([[2,1,1,1,2]]) == 2"
+   },
+   {
+    "name": "300 x 300 grid must be fast",
+    "code": "g = [[1] * 300 for _ in range(300)]\ng[0][0] = 2\nassert oranges_rotting(g) == 598"
+   }
+  ],
+  "hints": [
+   "Start the search from all rotten oranges at the same time. That is a multi-source breadth-first search.",
+   "Process the queue one minute (one level) at a time. At the end, if any fresh orange is left, return -1."
+  ],
+  "solution": "from collections import deque\n\ndef oranges_rotting(grid):\n    rows, cols = len(grid), len(grid[0])\n    queue = deque()\n    fresh = 0\n    for r in range(rows):\n        for c in range(cols):\n            if grid[r][c] == 2:\n                queue.append((r, c))\n            elif grid[r][c] == 1:\n                fresh += 1\n    seen = set(queue)\n    minutes = 0\n    while queue and fresh:\n        for _ in range(len(queue)):\n            r, c = queue.popleft()\n            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n                nr, nc = r + dr, c + dc\n                if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 1 and (nr, nc) not in seen:\n                    seen.add((nr, nc))\n                    fresh -= 1\n                    queue.append((nr, nc))\n        minutes += 1\n    return -1 if fresh else minutes\n",
+  "notes": "BFS: O(rows * cols) time and space. Do not mutate the caller's grid unless the interviewer allows it, which is why this uses a seen set.",
+  "prelude": ""
+ },
+ {
+  "slug": "number-of-provinces",
+  "concept": "graphs-traversal",
+  "title": "Number of Provinces",
+  "difficulty": "medium",
+  "statement": "There are n cities. is_connected[i][j] is 1 if city i and city j are directly connected, 0 otherwise (and is_connected[i][i] is 1). A province is a group of cities connected directly or indirectly. Return the number of provinces.",
+  "examples": [
+   {
+    "input": "is_connected = [[1,1,0],[1,1,0],[0,0,1]]",
+    "output": "2",
+    "note": ""
+   }
+  ],
+  "starter": "def find_provinces(is_connected):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert find_provinces([[1,1,0],[1,1,0],[0,0,1]]) == 2"
+   },
+   {
+    "name": "all separate",
+    "code": "assert find_provinces([[1,0,0],[0,1,0],[0,0,1]]) == 3"
+   },
+   {
+    "name": "all joined",
+    "code": "assert find_provinces([[1,1,1],[1,1,1],[1,1,1]]) == 1"
+   },
+   {
+    "name": "indirect link",
+    "code": "assert find_provinces([[1,1,0],[1,1,1],[0,1,1]]) == 1"
+   },
+   {
+    "name": "one city",
+    "code": "assert find_provinces([[1]]) == 1"
+   },
+   {
+    "name": "a 1,500 city chain",
+    "code": "n = 1500\nm = [[1 if abs(i - j) <= 1 else 0 for j in range(n)] for i in range(n)]\nassert find_provinces(m) == 1"
+   }
+  ],
+  "hints": [
+   "Count connected components: run a search from every city not visited yet, and count how many searches you start.",
+   "A long chain makes recursion very deep. Use an explicit stack, or union-find, to stay safe."
+  ],
+  "solution": "def find_provinces(is_connected):\n    n = len(is_connected)\n    parent = list(range(n))\n\n    def find(x):\n        while parent[x] != x:\n            parent[x] = parent[parent[x]]\n            x = parent[x]\n        return x\n\n    count = n\n    for i in range(n):\n        for j in range(i + 1, n):\n            if is_connected[i][j]:\n                a, b = find(i), find(j)\n                if a != b:\n                    parent[a] = b\n                    count -= 1\n    return count\n",
+  "notes": "Union-find: O(n^2 * alpha(n)) because the input is an n by n matrix. DFS or BFS gives the same O(n^2). Mention that with an adjacency list the cost would be O(V + E).",
+  "prelude": ""
+ },
+ {
+  "slug": "k-closest-points",
+  "concept": "heaps-priority-queues",
+  "title": "K Closest Points to the Origin",
+  "difficulty": "medium",
+  "statement": "Given a list of points [x, y] and an integer k, return the k points closest to the origin (0, 0) by straight-line distance. The answer may be in any order and is unique apart from order.",
+  "examples": [
+   {
+    "input": "points = [[1, 3], [-2, 2]], k = 1",
+    "output": "[[-2, 2]]",
+    "note": ""
+   },
+   {
+    "input": "points = [[3, 3], [5, -1], [-2, 4]], k = 2",
+    "output": "[[3, 3], [-2, 4]]",
+    "note": ""
+   }
+  ],
+  "starter": "def k_closest(points, k):\n    pass\n",
+  "cases": [
+   {
+    "name": "one closest",
+    "code": "assert k_closest([[1, 3], [-2, 2]], 1) == [[-2, 2]]"
+   },
+   {
+    "name": "two closest",
+    "code": "assert sorted(k_closest([[3, 3], [5, -1], [-2, 4]], 2)) == [[-2, 4], [3, 3]]"
+   },
+   {
+    "name": "k equals the length",
+    "code": "assert sorted(k_closest([[1, 1], [2, 2]], 2)) == [[1, 1], [2, 2]]"
+   },
+   {
+    "name": "origin itself",
+    "code": "assert k_closest([[0, 0], [1, 1]], 1) == [[0, 0]]"
+   },
+   {
+    "name": "100,000 points must be fast",
+    "code": "pts = [[i, -i] for i in range(100000)]\nassert sorted(k_closest(pts, 3)) == [[0, 0], [1, -1], [2, -2]]"
+   }
+  ],
+  "hints": [
+   "You do not need the square root: comparing x*x + y*y gives the same order.",
+   "Keep a max-heap of size k. Push each point, and when it grows past k, remove the farthest. Python heaps are min-heaps, so store the negative distance."
+  ],
+  "solution": "import heapq\n\ndef k_closest(points, k):\n    heap = []\n    for x, y in points:\n        d = x * x + y * y\n        heapq.heappush(heap, (-d, x, y))\n        if len(heap) > k:\n            heapq.heappop(heap)\n    return [[x, y] for _, x, y in heap]\n",
+  "notes": "Heap of size k: O(n log k) time, O(k) space. Sorting everything is O(n log n). Quickselect averages O(n) but is harder to write under pressure. Ask whether k is small or close to n.",
+  "prelude": ""
+ },
+ {
+  "slug": "letter-combinations",
+  "concept": "recursion-backtracking",
+  "title": "Letter Combinations of a Phone Number",
+  "difficulty": "medium",
+  "statement": "Given a string of digits from 2 to 9, return all letter combinations the digits could represent on a phone keypad (2 = abc, 3 = def, 4 = ghi, 5 = jkl, 6 = mno, 7 = pqrs, 8 = tuv, 9 = wxyz). Return an empty list for an empty string. The order does not matter.",
+  "examples": [
+   {
+    "input": "digits = \"23\"",
+    "output": "[\"ad\",\"ae\",\"af\",\"bd\",\"be\",\"bf\",\"cd\",\"ce\",\"cf\"]",
+    "note": ""
+   },
+   {
+    "input": "digits = \"\"",
+    "output": "[]",
+    "note": ""
+   }
+  ],
+  "starter": "def letter_combinations(digits):\n    pass\n",
+  "cases": [
+   {
+    "name": "two digits",
+    "code": "assert sorted(letter_combinations(\"23\")) == [\"ad\",\"ae\",\"af\",\"bd\",\"be\",\"bf\",\"cd\",\"ce\",\"cf\"]"
+   },
+   {
+    "name": "empty input",
+    "code": "assert letter_combinations(\"\") == []"
+   },
+   {
+    "name": "one digit",
+    "code": "assert sorted(letter_combinations(\"2\")) == [\"a\", \"b\", \"c\"]"
+   },
+   {
+    "name": "digit with four letters",
+    "code": "assert sorted(letter_combinations(\"7\")) == [\"p\", \"q\", \"r\", \"s\"]"
+   },
+   {
+    "name": "count for four digits",
+    "code": "assert len(letter_combinations(\"7979\")) == 256"
+   }
+  ],
+  "hints": [
+   "Build the answer one digit at a time: for each letter of this digit, continue with the next digit.",
+   "Backtracking: choose a letter, recurse on the rest, undo the choice. When the path is as long as the input, save it."
+  ],
+  "solution": "def letter_combinations(digits):\n    if not digits:\n        return []\n    keys = {\"2\": \"abc\", \"3\": \"def\", \"4\": \"ghi\", \"5\": \"jkl\", \"6\": \"mno\", \"7\": \"pqrs\", \"8\": \"tuv\", \"9\": \"wxyz\"}\n    out = []\n    path = []\n\n    def go(i):\n        if i == len(digits):\n            out.append(\"\".join(path))\n            return\n        for ch in keys[digits[i]]:\n            path.append(ch)\n            go(i + 1)\n            path.pop()\n\n    go(0)\n    return out\n",
+  "notes": "The output has up to 4^n strings, so O(4^n * n) time is unavoidable. Recursion depth is only n. Mention that the empty-input case returns [] and not [\"\"].",
+  "prelude": ""
+ },
+ {
+  "slug": "word-search",
+  "concept": "recursion-backtracking",
+  "title": "Word Search",
+  "difficulty": "medium",
+  "statement": "Given a grid of letters and a word, return True if the word can be built from letters of sequentially adjacent cells (up, down, left, right). The same cell may not be used twice in one word.",
+  "examples": [
+   {
+    "input": "board = [[\"A\",\"B\",\"C\",\"E\"],[\"S\",\"F\",\"C\",\"S\"],[\"A\",\"D\",\"E\",\"E\"]], word = \"ABCCED\"",
+    "output": "True",
+    "note": ""
+   },
+   {
+    "input": "same board, word = \"ABCB\"",
+    "output": "False",
+    "note": "B would be reused"
+   }
+  ],
+  "starter": "def exist(board, word):\n    pass\n",
+  "cases": [
+   {
+    "name": "found",
+    "code": "b = [[\"A\",\"B\",\"C\",\"E\"],[\"S\",\"F\",\"C\",\"S\"],[\"A\",\"D\",\"E\",\"E\"]]\nassert exist(b, \"ABCCED\") is True"
+   },
+   {
+    "name": "also found",
+    "code": "b = [[\"A\",\"B\",\"C\",\"E\"],[\"S\",\"F\",\"C\",\"S\"],[\"A\",\"D\",\"E\",\"E\"]]\nassert exist(b, \"SEE\") is True"
+   },
+   {
+    "name": "cell reuse is not allowed",
+    "code": "b = [[\"A\",\"B\",\"C\",\"E\"],[\"S\",\"F\",\"C\",\"S\"],[\"A\",\"D\",\"E\",\"E\"]]\nassert exist(b, \"ABCB\") is False"
+   },
+   {
+    "name": "one cell",
+    "code": "assert exist([[\"A\"]], \"A\") is True and exist([[\"A\"]], \"B\") is False"
+   },
+   {
+    "name": "word longer than the board",
+    "code": "assert exist([[\"A\", \"B\"]], \"ABA\") is False"
+   },
+   {
+    "name": "board is restored",
+    "code": "b = [[\"A\", \"B\"], [\"C\", \"D\"]]\nassert exist(b, \"ABDC\") is True\nassert b == [[\"A\", \"B\"], [\"C\", \"D\"]]"
+   }
+  ],
+  "hints": [
+   "Start a depth-first search from every cell that matches the first letter.",
+   "Mark the cell as used while exploring (for example, replace it with \"#\") and restore it when you backtrack."
+  ],
+  "solution": "def exist(board, word):\n    rows, cols = len(board), len(board[0])\n\n    def dfs(r, c, i):\n        if i == len(word):\n            return True\n        if not (0 <= r < rows and 0 <= c < cols) or board[r][c] != word[i]:\n            return False\n        saved = board[r][c]\n        board[r][c] = \"#\"\n        found = (dfs(r + 1, c, i + 1) or dfs(r - 1, c, i + 1) or dfs(r, c + 1, i + 1) or dfs(r, c - 1, i + 1))\n        board[r][c] = saved\n        return found\n\n    return any(dfs(r, c, 0) for r in range(rows) for c in range(cols))\n",
+  "notes": "Worst case O(rows * cols * 3^L) for a word of length L (three directions after the first step). Restoring the cell is the backtracking step interviewers watch for.",
+  "prelude": ""
+ },
+ {
+  "slug": "word-break",
+  "concept": "dynamic-programming",
+  "title": "Word Break",
+  "difficulty": "medium",
+  "statement": "Given a string s and a list of words, return True if s can be split into a sequence of one or more words from the list. Words may be reused.",
+  "examples": [
+   {
+    "input": "s = \"leetcode\", words = [\"leet\", \"code\"]",
+    "output": "True",
+    "note": ""
+   },
+   {
+    "input": "s = \"catsandog\", words = [\"cats\",\"dog\",\"sand\",\"and\",\"cat\"]",
+    "output": "False",
+    "note": ""
+   }
+  ],
+  "starter": "def word_break(s, words):\n    pass\n",
+  "cases": [
+   {
+    "name": "two words",
+    "code": "assert word_break(\"leetcode\", [\"leet\", \"code\"]) is True"
+   },
+   {
+    "name": "reuse a word",
+    "code": "assert word_break(\"applepenapple\", [\"apple\", \"pen\"]) is True"
+   },
+   {
+    "name": "not possible",
+    "code": "assert word_break(\"catsandog\", [\"cats\",\"dog\",\"sand\",\"and\",\"cat\"]) is False"
+   },
+   {
+    "name": "empty string",
+    "code": "assert word_break(\"\", [\"a\"]) is True"
+   },
+   {
+    "name": "greedy fails here",
+    "code": "assert word_break(\"aaaaaaa\", [\"aaaa\", \"aaa\"]) is True"
+   },
+   {
+    "name": "long input must be fast",
+    "code": "assert word_break(\"a\" * 3000 + \"b\", [\"a\", \"aa\", \"aaa\"]) is False"
+   }
+  ],
+  "hints": [
+   "dp[i] means: the first i characters can be split into words. dp[0] is True.",
+   "dp[i] is True if some j < i has dp[j] True and s[j:i] is a word. Put the words in a set."
+  ],
+  "solution": "def word_break(s, words):\n    word_set = set(words)\n    max_len = max(map(len, word_set), default=0)\n    dp = [False] * (len(s) + 1)\n    dp[0] = True\n    for i in range(1, len(s) + 1):\n        for j in range(max(0, i - max_len), i):\n            if dp[j] and s[j:i] in word_set:\n                dp[i] = True\n                break\n    return dp[len(s)]\n",
+  "notes": "O(n * L) substring checks where L is the longest word (each slice costs up to L), O(n) space. Plain recursion without memoization is exponential: say that this is overlapping subproblems.",
+  "prelude": ""
+ },
+ {
+  "slug": "longest-increasing-subsequence",
+  "concept": "dynamic-programming",
+  "title": "Longest Increasing Subsequence",
+  "difficulty": "medium",
+  "statement": "Return the length of the longest strictly increasing subsequence of nums. A subsequence keeps the order but may skip elements.",
+  "examples": [
+   {
+    "input": "nums = [10, 9, 2, 5, 3, 7, 101, 18]",
+    "output": "4",
+    "note": "for example [2, 3, 7, 101]"
+   }
+  ],
+  "starter": "def length_of_lis(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert length_of_lis([10, 9, 2, 5, 3, 7, 101, 18]) == 4"
+   },
+   {
+    "name": "all equal",
+    "code": "assert length_of_lis([7, 7, 7]) == 1"
+   },
+   {
+    "name": "already increasing",
+    "code": "assert length_of_lis([1, 2, 3, 4]) == 4"
+   },
+   {
+    "name": "decreasing",
+    "code": "assert length_of_lis([4, 3, 2, 1]) == 1"
+   },
+   {
+    "name": "empty",
+    "code": "assert length_of_lis([]) == 0"
+   },
+   {
+    "name": "100,000 items need O(n log n)",
+    "code": "assert length_of_lis(list(range(100000))) == 100000"
+   }
+  ],
+  "hints": [
+   "A simple dp[i] = longest subsequence ending at i takes O(n^2).",
+   "For O(n log n) keep a list \"tails\" where tails[k] is the smallest possible last value of an increasing subsequence of length k + 1. Use binary search (bisect_left) to place each number."
+  ],
+  "solution": "from bisect import bisect_left\n\ndef length_of_lis(nums):\n    tails = []\n    for x in nums:\n        i = bisect_left(tails, x)\n        if i == len(tails):\n            tails.append(x)\n        else:\n            tails[i] = x\n    return len(tails)\n",
+  "notes": "O(n log n) time, O(n) space. Present the O(n^2) dp first because it is easy to explain, then improve it. bisect_left gives strictly increasing (bisect_right would allow equal values). The tails list is not itself a valid subsequence.",
+  "prelude": ""
+ },
+ {
+  "slug": "partition-equal-subset-sum",
+  "concept": "dynamic-programming",
+  "title": "Partition Equal Subset Sum",
+  "difficulty": "medium",
+  "statement": "Given a list of positive integers, return True if it can be split into two subsets with the same sum.",
+  "examples": [
+   {
+    "input": "nums = [1, 5, 11, 5]",
+    "output": "True",
+    "note": "[1, 5, 5] and [11]"
+   },
+   {
+    "input": "nums = [1, 2, 3, 5]",
+    "output": "False",
+    "note": ""
+   }
+  ],
+  "starter": "def can_partition(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert can_partition([1, 5, 11, 5]) is True"
+   },
+   {
+    "name": "odd total",
+    "code": "assert can_partition([1, 2, 3, 5]) is False"
+   },
+   {
+    "name": "two equal numbers",
+    "code": "assert can_partition([4, 4]) is True"
+   },
+   {
+    "name": "one number",
+    "code": "assert can_partition([2]) is False"
+   },
+   {
+    "name": "a big item makes it impossible",
+    "code": "assert can_partition([1, 1, 1, 10]) is False"
+   },
+   {
+    "name": "performance",
+    "code": "assert can_partition([1] * 200 + [3, 5]) is True"
+   }
+  ],
+  "hints": [
+   "The total must be even. The question becomes: is there a subset with sum total / 2?",
+   "This is 0/1 knapsack. Keep a boolean array reachable[s]. For each number, update from high sums to low so that a number is not used twice."
+  ],
+  "solution": "def can_partition(nums):\n    total = sum(nums)\n    if total % 2:\n        return False\n    target = total // 2\n    reachable = [False] * (target + 1)\n    reachable[0] = True\n    for x in nums:\n        for s in range(target, x - 1, -1):\n            if reachable[s - x]:\n                reachable[s] = True\n    return reachable[target]\n",
+  "notes": "O(n * target) time, O(target) space: pseudo-polynomial. The reverse loop is the detail: iterating upward would reuse the same number (unbounded knapsack).",
+  "prelude": ""
+ },
+ {
+  "slug": "jump-game",
+  "concept": "coding-patterns",
+  "title": "Jump Game",
+  "difficulty": "medium",
+  "statement": "You start at index 0 of a list nums. nums[i] is the maximum number of steps you can jump forward from index i. Return True if you can reach the last index.",
+  "examples": [
+   {
+    "input": "nums = [2, 3, 1, 1, 4]",
+    "output": "True",
+    "note": ""
+   },
+   {
+    "input": "nums = [3, 2, 1, 0, 4]",
+    "output": "False",
+    "note": "every path ends at index 3, where the jump is 0"
+   }
+  ],
+  "starter": "def can_jump(nums):\n    pass\n",
+  "cases": [
+   {
+    "name": "reachable",
+    "code": "assert can_jump([2, 3, 1, 1, 4]) is True"
+   },
+   {
+    "name": "stuck on a zero",
+    "code": "assert can_jump([3, 2, 1, 0, 4]) is False"
+   },
+   {
+    "name": "single item",
+    "code": "assert can_jump([0]) is True"
+   },
+   {
+    "name": "zero in the middle is fine if jumped over",
+    "code": "assert can_jump([2, 0, 0]) is True"
+   },
+   {
+    "name": "first item is zero",
+    "code": "assert can_jump([0, 1]) is False"
+   },
+   {
+    "name": "200,000 items must be fast",
+    "code": "assert can_jump([1] * 200000) is True"
+   }
+  ],
+  "hints": [
+   "Track the furthest index you can reach so far.",
+   "If the current index is beyond the furthest reach, you are stuck. If the furthest reach is at least the last index, return True."
+  ],
+  "solution": "def can_jump(nums):\n    far = 0\n    for i, step in enumerate(nums):\n        if i > far:\n            return False\n        far = max(far, i + step)\n        if far >= len(nums) - 1:\n            return True\n    return True\n",
+  "notes": "Greedy: O(n) time, O(1) space. A dp or backtracking solution is O(n^2) or exponential. The reason greedy is correct: if index i is reachable, so is every index before it that is within the furthest reach.",
+  "prelude": ""
+ },
+ {
+  "slug": "trapping-rain-water",
+  "concept": "coding-patterns",
+  "title": "Trapping Rain Water",
+  "difficulty": "hard",
+  "statement": "Given a list of non-negative integers representing bar heights (each bar has width 1), return how much water is trapped between the bars after it rains.",
+  "examples": [
+   {
+    "input": "height = [0,1,0,2,1,0,1,3,2,1,2,1]",
+    "output": "6",
+    "note": ""
+   }
+  ],
+  "starter": "def trap(height):\n    pass\n",
+  "cases": [
+   {
+    "name": "example",
+    "code": "assert trap([0,1,0,2,1,0,1,3,2,1,2,1]) == 6"
+   },
+   {
+    "name": "another",
+    "code": "assert trap([4, 2, 0, 3, 2, 5]) == 9"
+   },
+   {
+    "name": "no valley",
+    "code": "assert trap([1, 2, 3]) == 0"
+   },
+   {
+    "name": "empty",
+    "code": "assert trap([]) == 0"
+   },
+   {
+    "name": "flat",
+    "code": "assert trap([2, 2, 2]) == 0"
+   },
+   {
+    "name": "one deep valley",
+    "code": "assert trap([5, 0, 5]) == 5"
+   },
+   {
+    "name": "200,000 bars must be fast",
+    "code": "assert trap([1, 0] * 100000) == 99999"
+   }
+  ],
+  "hints": [
+   "Water above a bar = min(tallest bar to its left, tallest bar to its right) - its height.",
+   "Two pointers: move the pointer with the smaller max, because that side is limited by its own max, not by the other side."
+  ],
+  "solution": "def trap(height):\n    lo, hi = 0, len(height) - 1\n    left_max = right_max = 0\n    water = 0\n    while lo < hi:\n        if height[lo] < height[hi]:\n            left_max = max(left_max, height[lo])\n            water += left_max - height[lo]\n            lo += 1\n        else:\n            right_max = max(right_max, height[hi])\n            water += right_max - height[hi]\n            hi -= 1\n    return water\n",
+  "notes": "Two pointers: O(n) time, O(1) space. State the O(n) space version first (prefix max and suffix max arrays), because it is easier to explain, then reduce the space.",
+  "prelude": ""
  }
 ]
