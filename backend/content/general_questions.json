@@ -37,7 +37,7 @@
   {
     "topic": "django",
     "q": "How do you avoid race conditions when updating a counter or stock in Django?",
-    "a": "Use an F() expression (UPDATE … SET qty = qty - 1) or filter(...).update(...) with a condition and check the returned row count; use select_for_update() inside transaction.atomic() when read-then-decide is required."
+    "a": "Use an F() expression (UPDATE \u2026 SET qty = qty - 1) or filter(...).update(...) with a condition and check the returned row count; use select_for_update() inside transaction.atomic() when read-then-decide is required."
   },
   {
     "topic": "django",
@@ -51,12 +51,12 @@
   },
   {
     "topic": "django",
-    "q": "queryset.update() vs save() — differences?",
+    "q": "queryset.update() vs save() \u2014 differences?",
     "a": "update() issues one UPDATE, skips save() overrides and signals (no pre/post_save), and returns the affected row count; save() loads/instance-level and fires signals. bulk_create/bulk_update similarly skip signals."
   },
   {
     "topic": "django",
-    "q": "How does Django’s QuerySet laziness work?",
+    "q": "How does Django\u2019s QuerySet laziness work?",
     "a": "A queryset does not hit the DB until evaluated (iteration, len, list, bool, slicing with step, repr). Results are cached on the queryset instance; .iterator() avoids caching for large sets; .exists() / .count() are cheaper checks."
   },
   {
@@ -68,5 +68,515 @@
     "topic": "django",
     "q": "How would you cache in Django and avoid stale data?",
     "a": "Cache-aside via django.core.cache (Redis), short TTLs, delete keys in transaction.on_commit after writes, stampede protection (lock / jittered TTL), and fall back to the DB when Redis is down."
+  },
+  {
+    "topic": "python",
+    "q": "What is the difference between a list and a tuple in Python?",
+    "a": "A list is mutable (you can append, remove and assign to items); a tuple is immutable, so it can be hashed when all its items are hashable and used as a dict key or set member. Tuples signal a fixed record (a point, a row); lists are for a collection that changes. Immutability is shallow: a tuple holding a list can still see that list change."
+  },
+  {
+    "topic": "python",
+    "q": "How does a Python dict work, and what is the cost of lookup?",
+    "a": "A dict is a hash table. Python hashes the key, uses the hash to find a slot, and compares keys on a collision (open addressing). Average lookup, insert and delete are O(1); the worst case is O(n) with many collisions. Keys must be hashable, and since Python 3.7 dicts keep insertion order."
+  },
+  {
+    "topic": "python",
+    "q": "What is the GIL and what does it mean for threads?",
+    "a": "The Global Interpreter Lock lets only one thread run Python bytecode at a time in a CPython process. CPU-bound threads therefore do not run in parallel; use multiprocessing for that. Threads still help for I/O-bound work, because the lock is released while waiting on the network or disk."
+  },
+  {
+    "topic": "python",
+    "q": "What is the difference between == and is?",
+    "a": "== compares values by calling __eq__; is compares identity, whether both names point to the same object. Use is for None (x is None) and == for everything else. Small integers and some strings are cached, so is may appear to work on them by accident; do not rely on it."
+  },
+  {
+    "topic": "python",
+    "q": "Explain the mutable default argument bug.",
+    "a": "Default values are evaluated once, when the function is defined, so def f(x, items=[]) shares one list across all calls and items grows between calls. The fix is items=None and then items = [] inside the function when it is None."
+  },
+  {
+    "topic": "python",
+    "q": "What is a generator and why use one?",
+    "a": "A function with yield returns a generator: an iterator that produces values lazily, one at a time, and keeps its local state between them. It uses constant memory for large or infinite sequences, such as reading a huge file line by line. A generator can be consumed only once."
+  },
+  {
+    "topic": "python",
+    "q": "What is a decorator?",
+    "a": "A decorator is a callable that takes a function and returns a replacement, applied with @name above the def. It is used to add behaviour around a function without editing it: logging, timing, caching (functools.lru_cache), permission checks. Use functools.wraps so the wrapper keeps the original name and docstring."
+  },
+  {
+    "topic": "python",
+    "q": "What is the difference between a shallow copy and a deep copy?",
+    "a": "A shallow copy (copy.copy, list(x), x[:]) makes a new outer container but the items inside are the same objects, so changing a nested list shows through both. copy.deepcopy recursively copies the nested objects too. Choose deep copy only when you need full independence, because it is slower."
+  },
+  {
+    "topic": "python",
+    "q": "How does Python manage memory?",
+    "a": "CPython uses reference counting: an object is freed as soon as its count reaches zero. A cyclic garbage collector additionally finds groups of objects that only reference each other. Memory for small objects comes from pymalloc arenas, so freed memory is not always returned to the operating system."
+  },
+  {
+    "topic": "python",
+    "q": "What are *args and **kwargs?",
+    "a": "*args collects extra positional arguments into a tuple and **kwargs collects extra keyword arguments into a dict. At a call site, * and ** unpack a sequence or a dict into arguments. They are used for wrappers and decorators that pass everything on to another function."
+  },
+  {
+    "topic": "python",
+    "q": "What is the difference between __str__ and __repr__?",
+    "a": "__repr__ is the unambiguous developer representation, ideally something that looks like valid code to rebuild the object; __str__ is the readable form for users and falls back to __repr__ if missing. Always define __repr__ for debugging and logs."
+  },
+  {
+    "topic": "python",
+    "q": "What is a context manager?",
+    "a": "An object with __enter__ and __exit__, used with the with statement to guarantee cleanup even if an exception occurs: files, locks, database transactions. You can write one with a class or with the contextlib.contextmanager decorator around a generator that yields once."
+  },
+  {
+    "topic": "python",
+    "q": "What is the difference between a process, a thread and asyncio in Python?",
+    "a": "Processes have separate memory and bypass the GIL, so they suit CPU-bound work at the cost of startup time and inter-process communication. Threads share memory but are limited by the GIL for CPU work; good for blocking I/O. asyncio runs many tasks on one thread with cooperative switching at await points: very cheap for many network connections, but one blocking call stalls everything."
+  },
+  {
+    "topic": "python",
+    "q": "Why is \"x in some_list\" slow and how do you fix it?",
+    "a": "Membership in a list scans every item, O(n). In a set or a dict it is a hash lookup, O(1) on average. If you test membership many times, convert the list to a set once. It is the most common fix for a solution that is too slow in a coding round."
+  },
+  {
+    "topic": "python",
+    "q": "What does the @staticmethod, @classmethod and @property difference look like?",
+    "a": "A normal method receives the instance (self). A classmethod receives the class (cls) and is often an alternative constructor. A staticmethod receives nothing implicit and is just a function in the class namespace. A property makes a method readable like an attribute, so you can add validation later without changing callers."
+  },
+  {
+    "topic": "python",
+    "q": "What is a Python list comprehension and when would you avoid it?",
+    "a": "A compact expression that builds a list: [f(x) for x in xs if cond(x)]. It is usually faster and clearer than a loop with append. Avoid it when it nests deeply or has side effects; use a generator expression (round brackets) when you do not need the whole list in memory."
+  },
+  {
+    "topic": "dsa",
+    "q": "How do you pick the right data structure in an interview?",
+    "a": "Ask what operations dominate. Fast lookup or counting: hash map or set. Order and range queries: sorted array with binary search, or a balanced tree. Always need the smallest or largest: heap. Most recent first: stack. Oldest first: queue. Prefix search: trie. Connectivity: union-find or graph search. State the complexity of each operation you rely on."
+  },
+  {
+    "topic": "dsa",
+    "q": "When should you use BFS and when DFS?",
+    "a": "BFS explores level by level with a queue and finds the shortest path in an unweighted graph. DFS goes deep first with a stack or recursion and suits exploring all paths, detecting cycles, topological sort and backtracking. Both are O(V + E). DFS recursion can overflow the stack on very deep graphs."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is the two-pointer technique?",
+    "a": "Use two indexes moving through a sequence, either from both ends toward each other (a sorted pair sum, palindrome check) or both from the start at different speeds (slow and fast pointers for a linked list cycle or middle). It turns an O(n^2) nested loop into O(n) when the data is sorted or the structure allows it."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is the sliding window technique?",
+    "a": "Keep a window over a contiguous range and move its ends as you scan, updating a running value (sum, counts) instead of recomputing it. Used for longest substring without repeating characters, maximum sum of k items, and similar problems. Fixed-size windows move both ends together; variable windows grow the right end and shrink the left until valid."
+  },
+  {
+    "topic": "dsa",
+    "q": "Compare quicksort, mergesort and heapsort.",
+    "a": "Quicksort: O(n log n) on average, O(n^2) worst case with bad pivots, in place, not stable, fast in practice. Mergesort: O(n log n) always, stable, needs O(n) extra space, good for linked lists and external sorting. Heapsort: O(n log n) always, in place, not stable, poorer cache behaviour. Python uses Timsort: stable, O(n log n), and fast on partly sorted data."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is the time complexity of common operations on a hash map, a balanced BST and a heap?",
+    "a": "Hash map: insert, lookup, delete O(1) average, no order. Balanced BST: all O(log n) and keeps sorted order, so range queries and predecessor lookups work. Binary heap: peek the min or max O(1), insert and remove-min O(log n), and building a heap from n items O(n). A heap does not support fast arbitrary search."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is dynamic programming and how do you recognise it?",
+    "a": "It solves a problem by combining answers to overlapping subproblems and storing them to avoid recomputation, which needs optimal substructure. Signs: counting ways, the minimum or maximum of something, and a naive recursion that repeats the same calls. Method: define the state, write the recurrence, set base cases, then choose top-down memoization or a bottom-up table and see if you can shrink the space."
+  },
+  {
+    "topic": "dsa",
+    "q": "How do you detect a cycle in a linked list?",
+    "a": "Floyd's algorithm: move a slow pointer one step and a fast pointer two steps. If they ever meet there is a cycle; if the fast pointer reaches None there is not. It uses O(n) time and O(1) space; a hash set of visited nodes is simpler but uses O(n) space."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is a trie and when is it better than a hash map?",
+    "a": "A trie is a tree where each edge is a character, so words with a shared prefix share a path. Insert and lookup cost O(length of the word). It is better when you need prefix queries (autocomplete, spell check, longest common prefix), which a hash map cannot answer without scanning every key."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is union-find (disjoint set union)?",
+    "a": "A structure that tracks which items belong to the same group, with find (the group representative) and union (merge two groups). With path compression and union by rank each operation is almost constant time. Use it for connected components, detecting a cycle in an undirected graph, and Kruskal's minimum spanning tree."
+  },
+  {
+    "topic": "dsa",
+    "q": "How do you find the k-th largest element?",
+    "a": "Keep a min-heap of size k and push each item, popping the smallest when the size exceeds k: O(n log k) time, O(k) space; the heap root is the answer. Sorting is O(n log n). Quickselect averages O(n) but is O(n^2) in the worst case. Ask whether the data is streaming, since a heap handles streams."
+  },
+  {
+    "topic": "dsa",
+    "q": "Explain Big-O, Big-Omega and Big-Theta in simple terms.",
+    "a": "Big-O is an upper bound on growth, Big-Omega a lower bound and Big-Theta a tight bound (both). In interviews \"O(n)\" is usually used to mean the tight worst-case growth. Drop constants and lower-order terms, and state time and space separately, and whether you mean average or worst case."
+  },
+  {
+    "topic": "dsa",
+    "q": "How would you reverse a linked list and what are the edge cases?",
+    "a": "Walk the list keeping prev, current and next: save current.next, point current.next at prev, then advance both. It is O(n) time and O(1) space. Edge cases: an empty list, a single node, and returning prev (the new head) at the end rather than the old head."
+  },
+  {
+    "topic": "dsa",
+    "q": "What is a monotonic stack?",
+    "a": "A stack that keeps its items in sorted order by popping any item that breaks the order before a push. It finds \"next greater element\", daily temperatures and the largest rectangle in a histogram in O(n), because each item is pushed and popped once."
+  },
+  {
+    "topic": "system-design",
+    "q": "How do you approach a system design question?",
+    "a": "Clarify requirements (functional and non-functional: scale, latency, availability, consistency). Estimate load (requests per second, storage). Sketch the API and the data model. Draw a high-level design that works, then deep-dive into the bottlenecks (database, cache, queue). Discuss trade-offs and failure modes. Speak your reasoning throughout; the interviewer grades the thinking, not a single right answer."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the CAP theorem?",
+    "a": "When a network partition happens, a distributed system must choose between consistency (every read sees the latest write) and availability (every request gets a non-error answer). Partitions cannot be ruled out, so the real choice is CP or AP during a failure. When there is no partition you can have both, with latency as the trade-off (the PACELC view)."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the difference between vertical and horizontal scaling?",
+    "a": "Vertical scaling gives one machine more CPU, memory or disk: simple, but has a ceiling and a single point of failure. Horizontal scaling adds more machines behind a load balancer: more capacity and fault tolerance, but the application must be stateless or share state, and data must be partitioned."
+  },
+  {
+    "topic": "system-design",
+    "q": "How does a cache work and what are the common strategies?",
+    "a": "A cache keeps frequently read data in fast memory. Cache-aside: the application checks the cache, on a miss reads the database and fills the cache. Write-through writes to both together; write-back writes to the cache first and the database later (faster, riskier). Hard parts: invalidation, TTLs, eviction (LRU), and a stampede when a hot key expires."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is a cache stampede and how do you prevent it?",
+    "a": "When a popular key expires, many requests miss at once and all hit the database. Prevent it with a lock so only one request rebuilds the value, random jitter on TTLs, refreshing before expiry, or serving the stale value while one request refreshes in the background."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is consistent hashing and why is it used?",
+    "a": "Servers and keys are placed on a hash ring, and a key belongs to the next server clockwise. When a server is added or removed only the keys in its neighbouring range move, rather than nearly all keys as with hash(key) % N. Virtual nodes (many points per server) even out the load. It is used in caches, databases such as Dynamo and Cassandra, and load balancing."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the difference between SQL and NoSQL, and how do you choose?",
+    "a": "SQL databases give a fixed schema, joins and ACID transactions: good for relational data and correctness. NoSQL families (key-value, document, wide-column, graph) trade some of that for flexible schema and easier horizontal scale on a known access pattern. Choose from the access patterns and consistency needs, not from fashion; many systems use both."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is database sharding and what are its downsides?",
+    "a": "Sharding splits data across several databases by a shard key (for example, user id) so each holds a slice. It scales writes and storage, but cross-shard queries and transactions become hard, a bad key creates hot shards, and resharding is painful. Scale up, add read replicas and cache first; shard when you must."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the difference between a message queue and a pub/sub topic?",
+    "a": "In a queue each message is delivered to one consumer in a group, which spreads work (background jobs). In pub/sub each subscriber receives its own copy of every message, which broadcasts events. Kafka mixes both: consumer groups share the work inside a group, while separate groups each get all messages."
+  },
+  {
+    "topic": "system-design",
+    "q": "What does idempotent mean and why does it matter for APIs?",
+    "a": "An operation is idempotent if doing it several times has the same effect as doing it once. GET, PUT and DELETE are meant to be idempotent; POST is not. It matters because networks fail and clients retry: an idempotency key on a payment request makes a retry safe instead of charging twice."
+  },
+  {
+    "topic": "system-design",
+    "q": "How would you design a rate limiter?",
+    "a": "Pick an algorithm: token bucket (allows bursts, refills at a steady rate), sliding window, or fixed window (simple, but allows a burst at window edges). Keep counters in a shared fast store such as Redis, keyed by user or IP, using atomic operations. Return HTTP 429 with a Retry-After header, and decide whether to fail open or closed if the store is down."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the difference between latency and throughput?",
+    "a": "Latency is how long one request takes; throughput is how many requests per second the system completes. They interact: a system can have high throughput and high latency (batching). Report tail latency (p95, p99), not just the average, because slow outliers hurt users and fan-out multiplies them."
+  },
+  {
+    "topic": "system-design",
+    "q": "What are replication lag and read-your-writes consistency?",
+    "a": "With asynchronous replication a replica can be behind the primary, so a user may not see what they just wrote. Read-your-writes fixes it for that user: read from the primary for a short time after a write, or track the write position and read from a replica that has caught up."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is a circuit breaker?",
+    "a": "A wrapper around a call to another service that stops calling it after repeated failures (open), waits, then lets a few trial calls through (half-open) and closes again when they succeed. It protects the caller from waiting on a dead dependency and gives the dependency room to recover. Combine it with timeouts, retries with backoff and jitter, and a fallback."
+  },
+  {
+    "topic": "system-design",
+    "q": "How do you handle retries safely?",
+    "a": "Retry only idempotent operations or ones with an idempotency key, with a timeout on each try, exponential backoff and random jitter so clients do not retry in lockstep, and a retry limit or budget. Without those, retries can multiply load on a struggling service and turn a small failure into an outage."
+  },
+  {
+    "topic": "system-design",
+    "q": "How do you generate unique IDs in a distributed system?",
+    "a": "Options: a database auto-increment (simple, but a single point and reveals counts), UUIDv4 (no coordination, but random so poor index locality), or a time-ordered scheme such as Snowflake (timestamp, machine id, sequence) or UUIDv7, which is roughly sortable. Pick based on ordering, size and coordination needs."
+  },
+  {
+    "topic": "system-design",
+    "q": "What is the role of a CDN?",
+    "a": "A content delivery network caches static content (images, scripts, video) on edge servers near users, cutting latency and load on the origin. Control freshness with Cache-Control headers and versioned file names; purge or version assets when they change."
+  },
+  {
+    "topic": "networking",
+    "q": "What happens when you type a URL into the browser and press Enter?",
+    "a": "The browser checks caches, resolves the domain with DNS, opens a TCP connection to the server (and does a TLS handshake for HTTPS), sends an HTTP request, the server (usually behind a load balancer and reverse proxy) processes it and returns a response, and the browser parses the HTML, fetches CSS, JS and images, and renders the page. Name each step and where time can be lost."
+  },
+  {
+    "topic": "networking",
+    "q": "What is the difference between TCP and UDP?",
+    "a": "TCP is connection-oriented and reliable: a handshake, ordered delivery, retransmission, flow and congestion control. UDP is connectionless with no delivery or order guarantee but lower overhead and latency. TCP carries web, email and database traffic; UDP suits DNS, video calls and games, where late data is useless."
+  },
+  {
+    "topic": "networking",
+    "q": "How does the TLS handshake work, in short?",
+    "a": "The client says which protocol versions and ciphers it supports; the server replies with its certificate. The client checks that the certificate chain is trusted and matches the host name. Both sides agree on session keys using an ephemeral key exchange, then all data is encrypted with a fast symmetric cipher. TLS 1.3 needs one round trip."
+  },
+  {
+    "topic": "networking",
+    "q": "What are the main HTTP status code groups?",
+    "a": "1xx informational, 2xx success (200 OK, 201 Created, 204 No Content), 3xx redirection (301 permanent, 302 and 307 temporary, 304 Not Modified), 4xx client error (400 bad request, 401 not authenticated, 403 not allowed, 404 not found, 409 conflict, 429 too many requests), 5xx server error (500, 502 bad gateway, 503 unavailable, 504 gateway timeout)."
+  },
+  {
+    "topic": "networking",
+    "q": "What is the difference between 401 and 403?",
+    "a": "401 Unauthorized really means unauthenticated: the server does not know who you are (missing or invalid credentials). 403 Forbidden means it knows who you are but you are not allowed to do this. The right code to return for a resource that must stay hidden from the user can be 404 instead."
+  },
+  {
+    "topic": "networking",
+    "q": "What is the difference between HTTP/1.1, HTTP/2 and HTTP/3?",
+    "a": "HTTP/1.1 sends one request at a time per connection, so browsers open several connections. HTTP/2 multiplexes many streams over one TCP connection, compresses headers, but a lost TCP packet stalls every stream. HTTP/3 runs over QUIC (on UDP), which removes that head-of-line blocking and speeds up connection setup."
+  },
+  {
+    "topic": "networking",
+    "q": "What does DNS do and how is it cached?",
+    "a": "DNS maps a host name to IP addresses. A resolver asks the root, then the top-level domain, then the authoritative name server, and caches the answer for the record's TTL, as do browsers and operating systems. A low TTL allows fast changes during a migration but means more lookups."
+  },
+  {
+    "topic": "networking",
+    "q": "What are CORS and the same-origin policy?",
+    "a": "Browsers block a page from reading responses from another origin (scheme, host and port) unless that server allows it. CORS is how the server allows it, using headers such as Access-Control-Allow-Origin; for non-simple requests the browser first sends an OPTIONS preflight. It protects users in the browser; it does not stop other clients such as curl."
+  },
+  {
+    "topic": "networking",
+    "q": "What is the difference between cookies, sessions and JWT?",
+    "a": "A cookie is data the browser stores and sends back automatically. A session keeps state on the server and gives the browser only an id in a cookie; it is easy to revoke. A JWT is a signed token holding claims that the server can verify without a lookup, which scales easily but is hard to revoke before it expires, so keep it short-lived and use a refresh token."
+  },
+  {
+    "topic": "networking",
+    "q": "What is the difference between a forward proxy and a reverse proxy?",
+    "a": "A forward proxy acts for clients: they send requests through it to reach the internet (filtering, caching, hiding client addresses). A reverse proxy sits in front of servers and acts for them: TLS termination, load balancing, caching, compression and hiding the backend. Nginx is commonly used as a reverse proxy."
+  },
+  {
+    "topic": "networking",
+    "q": "What is a load balancer and what are Layer 4 and Layer 7 balancing?",
+    "a": "A load balancer spreads requests over healthy servers, using health checks to remove failed ones and algorithms such as round robin, least connections or hashing. Layer 4 balances on IP and port without reading the request, so it is fast. Layer 7 reads HTTP and can route by path, header or cookie, at more cost."
+  },
+  {
+    "topic": "networking",
+    "q": "REST vs GraphQL vs gRPC: when would you use each?",
+    "a": "REST: simple resource-oriented HTTP APIs with caching, the default for public APIs. GraphQL: clients ask for exactly the fields they need, which helps varied front ends and avoids over-fetching, but needs care for caching and query cost. gRPC: binary Protocol Buffers over HTTP/2, fast and strongly typed, a common fit for internal service-to-service calls."
+  },
+  {
+    "topic": "networking",
+    "q": "What are WebSockets, Server-Sent Events and long polling?",
+    "a": "Polling repeatedly asks the server; long polling holds the request open until there is data. Server-Sent Events keep one HTTP connection open for one-way updates from server to client with automatic reconnect. WebSockets upgrade the connection to a two-way channel, best for chat or games. Use the simplest that fits."
+  },
+  {
+    "topic": "os",
+    "q": "What is the difference between a process and a thread?",
+    "a": "A process is a running program with its own address space and resources. Threads are paths of execution inside one process that share its memory, so communication is cheap but needs synchronization. Creating and switching threads is cheaper than for processes, but a bug in one thread can corrupt the whole process."
+  },
+  {
+    "topic": "os",
+    "q": "What is a deadlock and what are the four conditions for it?",
+    "a": "Threads wait for each other forever. It needs all four: mutual exclusion, hold and wait, no preemption, and circular wait. Break any one to prevent it; the usual practical fix is to always acquire locks in one global order, or to use a timeout or try-lock and back off."
+  },
+  {
+    "topic": "os",
+    "q": "What is the difference between a mutex and a semaphore?",
+    "a": "A mutex lets one thread at a time into a critical section and is released by the thread that locked it. A semaphore holds a count, allowing up to N holders (for example, a pool of connections), and can be signalled by a different thread. A binary semaphore looks like a mutex but has no ownership."
+  },
+  {
+    "topic": "os",
+    "q": "What is a race condition?",
+    "a": "The result depends on the timing of two or more threads touching shared data, such as two threads doing counter += 1, which is a read, add and write that can interleave and lose an update. Fix with a lock, an atomic operation, or by avoiding shared mutable state (message passing, immutable data)."
+  },
+  {
+    "topic": "os",
+    "q": "What is virtual memory and why does it exist?",
+    "a": "Each process sees its own large, continuous address space, which the operating system maps to physical memory in pages using page tables (and the TLB as a cache of translations). It gives isolation between processes, lets memory be larger than RAM by swapping pages to disk, and allows sharing. A page fault happens when a page is not in memory."
+  },
+  {
+    "topic": "os",
+    "q": "What is a context switch and why is it costly?",
+    "a": "The operating system saves the state of the running thread (registers, program counter) and loads another's. Besides the direct work, it disturbs CPU caches and the TLB, so the new thread starts \"cold\". Too many threads for the cores means a lot of time spent switching instead of working."
+  },
+  {
+    "topic": "os",
+    "q": "Compare common CPU scheduling algorithms.",
+    "a": "FIFO is simple but a long job blocks others (convoy effect). Shortest job first minimises average waiting time but can starve long jobs and needs the run time in advance. Round robin gives each task a time slice: fair with good response time, with overhead that depends on the slice. Real systems use priority queues with feedback, such as multi-level feedback queues."
+  },
+  {
+    "topic": "os",
+    "q": "What is the difference between stack and heap memory?",
+    "a": "The stack holds function call frames and local variables: allocation is just moving a pointer, memory is freed automatically on return, and it is small and per thread. The heap holds dynamically allocated objects with a lifetime beyond a call: slower to allocate, shared by threads, and must be freed or garbage collected."
+  },
+  {
+    "topic": "web",
+    "q": "How does the JavaScript event loop work?",
+    "a": "JavaScript runs on one thread. Synchronous code runs on the call stack. Async work (timers, network) is handled by the environment and its callbacks go into a task queue. When the stack is empty, the loop first drains the microtask queue (promise callbacks), then takes the next task. So a promise callback always runs before a setTimeout of 0 that was queued at the same time."
+  },
+  {
+    "topic": "web",
+    "q": "What is the difference between var, let and const?",
+    "a": "var is function scoped, hoisted and initialised as undefined, and can be redeclared. let and const are block scoped and sit in the temporal dead zone until declared, so using them early throws. const prevents rebinding of the variable, not mutation of the object it points to. Prefer const, then let; avoid var."
+  },
+  {
+    "topic": "web",
+    "q": "What is a closure?",
+    "a": "A function together with the variables of the scope where it was created, which stay alive as long as the function does. Uses: private state, factory functions, debounce and memoize. A classic bug: var in a loop makes all callbacks share one variable, while let gives each iteration its own."
+  },
+  {
+    "topic": "web",
+    "q": "What is the difference between == and === in JavaScript?",
+    "a": "=== compares value and type with no conversion. == converts types first (the loose equality rules), which gives surprises such as 0 == \"\" being true and null == undefined being true. Use === by default."
+  },
+  {
+    "topic": "web",
+    "q": "How does React decide when to re-render?",
+    "a": "A component re-renders when its state or props change or its parent re-renders. React compares the new element tree to the previous one and updates only the DOM that changed. Keys identify list items across renders. Memoization (React.memo, useMemo, useCallback) skips work, but measure first; it is not free."
+  },
+  {
+    "topic": "web",
+    "q": "What are React hooks rules and what does useEffect do?",
+    "a": "Call hooks only at the top level of a component or custom hook, never in loops or conditions, so React can match them by call order. useEffect runs side effects (fetching, subscriptions) after rendering; its dependency array says when to re-run, and the returned function cleans up. A missing dependency causes stale values; an unstable one causes an infinite loop."
+  },
+  {
+    "topic": "web",
+    "q": "What is the critical rendering path and how do you improve page speed?",
+    "a": "The browser builds the DOM and CSSOM, combines them into a render tree, then lays out and paints. CSS and synchronous scripts block rendering. Improve it by sending less (compression, code splitting, image sizing), deferring non-critical scripts, caching with a CDN, and measuring Core Web Vitals: LCP, INP and CLS."
+  },
+  {
+    "topic": "web",
+    "q": "What is XSS and CSRF and how do you prevent them?",
+    "a": "XSS: an attacker gets their script to run in your page, so escape output by default (frameworks do), use a Content-Security-Policy, and mark cookies HttpOnly. CSRF: another site makes the browser send a request with your cookies, so use SameSite cookies and CSRF tokens for state-changing requests. Also use parameterised queries against SQL injection."
+  },
+  {
+    "topic": "devops",
+    "q": "What is the difference between git merge and git rebase?",
+    "a": "Merge joins two branches with a merge commit and keeps the true history. Rebase replays your commits on top of another branch, giving a straight history but rewriting commits. Never rebase commits that others already pulled. Rebase to tidy your own branch before review; merge to bring shared work together."
+  },
+  {
+    "topic": "devops",
+    "q": "How do you undo mistakes in git?",
+    "a": "git restore discards uncommitted file changes. git reset moves the branch pointer (--soft keeps changes staged, --hard throws them away) and is for local history. git revert makes a new commit that undoes an old one, which is the safe choice on shared branches. git reflog finds commits that seem lost."
+  },
+  {
+    "topic": "devops",
+    "q": "What is the difference between a Docker image and a container?",
+    "a": "An image is a read-only template made of layers: the file system and metadata. A container is a running (or stopped) instance of an image with a writable layer, isolated by namespaces and limited by cgroups. Containers share the host kernel, so they are lighter than virtual machines."
+  },
+  {
+    "topic": "devops",
+    "q": "What is a CI/CD pipeline?",
+    "a": "Continuous integration builds and tests every change automatically on a shared branch to catch breakage early. Continuous delivery keeps the main branch always releasable, with a one-step deploy; continuous deployment releases every passing change automatically. Add safe rollout tools: feature flags, canary releases, and an easy rollback."
+  },
+  {
+    "topic": "devops",
+    "q": "What are SLI, SLO and an error budget?",
+    "a": "A service level indicator is a measurement (the share of requests that succeed under 300 ms). A service level objective is the target for it (99.9% over 30 days). The error budget is the allowed failure, 0.1% here; if you have spent it, slow feature releases and fix reliability first."
+  },
+  {
+    "topic": "devops",
+    "q": "How do you run a blameless postmortem?",
+    "a": "After an incident, write a timeline, the impact, the root causes (technical and process) and what helped. Focus on how the system allowed the mistake, not on who made it. End with concrete action items with owners and dates, and share them. People report problems early only if they are not punished for it."
+  },
+  {
+    "topic": "behavioral",
+    "q": "What is the STAR method?",
+    "a": "A structure for behavioural answers: Situation (brief context), Task (your responsibility), Action (what you personally did, in detail, using \"I\"), Result (a measurable outcome and what you learned). Spend most of the time on Action and Result. Prepare five or six real stories that can be bent to answer many different questions."
+  },
+  {
+    "topic": "behavioral",
+    "q": "Tell me about a time you failed or made a mistake.",
+    "a": "Pick a real mistake with real consequences, own it without blaming others, explain how you found it and fixed it, and name the specific habit or process you changed afterwards. Interviewers look for honesty, accountability and learning, not a disguised strength such as \"I work too hard\"."
+  },
+  {
+    "topic": "behavioral",
+    "q": "Tell me about a conflict with a teammate.",
+    "a": "Describe a concrete disagreement about work, not personality. Show that you listened to their view first, looked for the shared goal, used data or a small experiment to decide, and kept the relationship afterwards. If you changed your mind or compromised, say so."
+  },
+  {
+    "topic": "behavioral",
+    "q": "Tell me about a time you had a tight deadline.",
+    "a": "Show prioritisation: what you cut or postponed and why, how you told stakeholders early, and how you kept quality on the core part. Close with the result and what you would do differently, such as raising the risk sooner."
+  },
+  {
+    "topic": "behavioral",
+    "q": "Why do you want to work here, and why are you leaving your current role?",
+    "a": "Be specific and positive: name something concrete about the product, the problems or the team that you researched, and link it to what you want to grow into. For leaving, speak about what you are moving toward, not complaints about your employer."
+  },
+  {
+    "topic": "behavioral",
+    "q": "How do you handle a question you do not know the answer to?",
+    "a": "Say so plainly, then show how you would find out: state what you do know, reason from first principles, give a best guess labelled as a guess, and say how you would verify it. Honest reasoning scores better than bluffing, and interviewers notice a bluff quickly."
+  },
+  {
+    "topic": "behavioral",
+    "q": "What questions should you ask the interviewer?",
+    "a": "Ask about the work and the team: what a good first six months looks like, how the team handles on-call and incidents, how decisions and code review work, what the biggest technical challenge is now. Avoid asking only about pay and time off in a technical round."
+  },
+  {
+    "topic": "behavioral",
+    "q": "How do you explain a technical project in an interview?",
+    "a": "Give the problem and why it mattered in one or two sentences, your role, the key design decision and the alternative you rejected, the hardest bug or trade-off, and the result with a number (latency from 800 ms to 120 ms). Be ready to go one level deeper on any part; if you cannot defend a detail, do not put it on the resume."
+  },
+  {
+    "topic": "sql",
+    "q": "What is the difference between a clustered and a non-clustered index?",
+    "a": "A clustered index defines the physical order of the table rows, so there can be only one (in PostgreSQL the table is a heap and CLUSTER is a one-time reorder). A non-clustered (secondary) index is a separate structure that points to the rows. Range scans on the clustered key are fast; secondary lookups may need an extra row fetch."
+  },
+  {
+    "topic": "sql",
+    "q": "Why can a query ignore an index?",
+    "a": "Common causes: a function on the column in the WHERE clause (WHERE lower(email) = ...), a type mismatch, a leading wildcard (LIKE '%abc'), low selectivity so a scan is cheaper, stale statistics, or the column order of a composite index not matching the query. Check with EXPLAIN (ANALYZE) instead of guessing."
+  },
+  {
+    "topic": "sql",
+    "q": "What is the N+1 query problem?",
+    "a": "Running one query for a list and then one more query per row to load related data, so 100 rows cost 101 queries. Fix by loading related data in bulk: a join, or in Django select_related for foreign keys and prefetch_related for many-to-many and reverse relations. Detect it with a query-count assertion in tests."
+  },
+  {
+    "topic": "sql",
+    "q": "What is a deadlock in a database and how do you reduce them?",
+    "a": "Two transactions each hold a lock the other needs, so the database aborts one of them. Reduce them by touching rows in a consistent order, keeping transactions short, avoiding user interaction inside a transaction, and retrying the aborted transaction."
+  },
+  {
+    "topic": "sql",
+    "q": "What does a window function do and how does it differ from GROUP BY?",
+    "a": "A window function (ROW_NUMBER, RANK, SUM() OVER (PARTITION BY ... ORDER BY ...)) calculates over a set of related rows without collapsing them, so each row keeps its identity and gains a running total, rank or previous value. GROUP BY collapses rows into one per group."
+  },
+  {
+    "topic": "django",
+    "q": "What is the difference between select_related and prefetch_related?",
+    "a": "select_related follows foreign key and one-to-one relations using a SQL JOIN in a single query. prefetch_related runs a separate query per relation and joins the results in Python, which is how many-to-many and reverse foreign keys are loaded. Use them to remove N+1 queries."
+  },
+  {
+    "topic": "django",
+    "q": "How does Django middleware work?",
+    "a": "Middleware is a chain of callables wrapped around the view. Each receives the request, can act before calling get_response (the next layer), and can act on the response on the way back. The order in MIDDLEWARE matters: for example, authentication must come before code that reads request.user."
+  },
+  {
+    "topic": "django",
+    "q": "How do Django migrations work and how do you deploy them safely?",
+    "a": "Each migration is a Python file recording a schema change; Django tracks applied ones in a table. For zero-downtime deploys, make changes backward compatible: add columns as nullable, deploy code that works with both, backfill in batches, then tighten or drop in a later release. Never edit a migration that has been applied elsewhere."
+  },
+  {
+    "topic": "django",
+    "q": "What is the difference between authentication and permissions in Django REST Framework?",
+    "a": "Authentication establishes who the caller is (session, token, JWT) and sets request.user. Permissions decide whether that user may do this action (IsAuthenticated, custom object permissions). Throttling then limits rates. Run authentication first, then permission checks in has_permission and has_object_permission."
+  },
+  {
+    "topic": "django",
+    "q": "How would you make a slow Django endpoint faster?",
+    "a": "Measure first (Django Debug Toolbar, query logging, a profiler). Then remove N+1 queries, add indexes for the filters and ordering you actually use, fetch only needed columns (only, values), paginate, cache results, and move slow work to a background task with Celery. Re-measure to confirm the gain."
+  },
+  {
+    "topic": "ops",
+    "q": "How do you do a zero-downtime deployment?",
+    "a": "Run several instances behind a load balancer and replace them gradually (rolling), or run the new version beside the old and switch traffic (blue-green), or send a small share of traffic first (canary). Health checks gate traffic, database changes must be backward compatible, and you need a fast rollback."
+  },
+  {
+    "topic": "ops",
+    "q": "How do you back up a database and test the backup?",
+    "a": "Combine periodic full backups with continuous archiving of the write-ahead log, which allows point-in-time recovery. Store copies off the machine and in another region, encrypt them, and restore them regularly into a test environment. A backup that has never been restored is only a hope."
   }
 ]
