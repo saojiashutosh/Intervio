@@ -121,7 +121,7 @@ export default function InterviewPage() {
         <>
           <div className="row">
             <input className="search" placeholder="Search questions…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search questions" />
-            {['all', 'concept', 'sql', 'django', 'ops'].map((t) => <button key={t} className={`chipbtn ${topic === t ? 'on' : ''}`} onClick={() => setTopic(t)}>{t}</button>)}
+            {['all', 'concept', 'python', 'dsa', 'system-design', 'networking', 'os', 'web', 'devops', 'behavioral', 'sql', 'django', 'ops'].map((t) => <button key={t} className={`chipbtn ${topic === t ? 'on' : ''}`} onClick={() => setTopic(t)}>{t}</button>)}
           </div>
           {browse.map((q) => (
             <div key={q.id} className={`qa ${open === q.id ? 'open' : ''}`}>
