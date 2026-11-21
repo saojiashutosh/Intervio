@@ -81418,5 +81418,4437 @@
         ]
       ]
     }
+  },
+  {
+    "id": "two-pointers-sliding-window",
+    "level": 14,
+    "week": "Core",
+    "title": "Two Pointers and Sliding Window in Depth",
+    "tagline": "Turn nested loops into one pass by moving two indexes with a rule, and say why the rule is safe.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Two pointers and the sliding window are the two patterns that turn an O(n^2) nested loop into an O(n) scan. Interviewers like them because the code is short but the reasoning is easy to get wrong, so you are graded on explaining why the pointer moves are safe.",
+      "## Two pointers from both ends",
+      "Use it when the data is sorted (or can be sorted) and you are looking for a pair or a condition on both ends: pair sum, three sum, container with most water, checking a palindrome. Put one pointer at each end. Compare, then move the pointer whose value cannot be part of any better answer. Every step discards at least one candidate for ever, so the loop runs at most n times.",
+      "The sentence to say out loud is the invariant: \"if an answer exists, it is between the two pointers\". When the sum is too big, the right value is too big with every remaining partner, so it can be dropped. If you cannot state why a value can be dropped, the pattern does not apply.",
+      "## Two pointers in the same direction",
+      "A slow pointer marks where the next good item goes, and a fast pointer scans ahead. This removes duplicates from a sorted list in place, moves zeros to the end, or filters a list in O(n) time and O(1) space. A variant is the slow and fast pointer on a linked list, used to find the middle or detect a cycle.",
+      "## The sliding window",
+      "A window is a contiguous range [left, right]. Keep a summary of what is inside (a sum, a count dictionary, a set) and update it as the window moves instead of recomputing it.",
+      "- Fixed size k: add the value entering, subtract the value leaving. Maximum sum of k values, or the number of distinct values in every window of k.\n- Variable size, longest valid window: move right every step; while the window is invalid, move left. Longest substring without repeating characters is the classic.\n- Variable size, shortest valid window: move right until the window becomes valid, then move left as far as it stays valid, recording the length each time. Minimum size subarray with sum at least S.",
+      "The total work is O(n) even though there is a loop inside a loop, because left and right each move forward at most n times. This is an amortized argument, and interviewers expect you to say it.",
+      "## Which pattern?",
+      "- Sorted input, a pair or triple: two pointers from both ends.\n- Contiguous subarray or substring, with a size or a validity rule: sliding window.\n- Contiguous subarray with negative numbers and a target sum: a window does not work, because adding a value no longer makes the sum only grow; use a prefix sum and a hash map instead.\n- Not contiguous (subsets, choices): backtracking or dynamic programming.",
+      "## What to say in the interview",
+      "State the brute force and its cost, name the pattern and why it applies (sorted, or contiguous), state the invariant, then code it. Finish with the time and space cost and two edge cases: an empty input and a window larger than the input."
+    ],
+    "keyPoints": [
+      "Two pointers from both ends needs sorted data; state the invariant: an answer, if any, lies between the pointers.",
+      "Same-direction pointers (slow and fast) filter or deduplicate in place in O(n) time and O(1) space.",
+      "A fixed window updates its sum in O(1): add the entering value, subtract the leaving value.",
+      "A variable window grows the right end and shrinks the left end; each moves forward at most n times, so the total is O(n).",
+      "Negative numbers break the window for sum targets: use prefix sums and a hash map instead."
+    ],
+    "sql": [
+      {
+        "title": "Two pointers from both ends, and in the same direction",
+        "lang": "py",
+        "code": "def pair_sum_sorted(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo < hi:\n        s = nums[lo] + nums[hi]\n        if s == target:\n            return lo, hi\n        if s < target:\n            lo += 1\n        else:\n            hi -= 1\n    return None\n\nassert pair_sum_sorted([1, 3, 4, 6, 8, 11], 10) == (2, 3)\nassert pair_sum_sorted([1, 2, 3], 100) is None\nassert pair_sum_sorted([], 1) is None\n\ndef is_palindrome(s):\n    cleaned = [c.lower() for c in s if c.isalnum()]\n    lo, hi = 0, len(cleaned) - 1\n    while lo < hi:\n        if cleaned[lo] != cleaned[hi]:\n            return False\n        lo += 1\n        hi -= 1\n    return True\n\nassert is_palindrome(\"A man, a plan, a canal: Panama\")\nassert not is_palindrome(\"race a car\")\n\ndef dedupe_sorted_in_place(nums):\n    \"\"\"Return the length of the unique prefix; the slow pointer marks where the next new value goes.\"\"\"\n    if not nums:\n        return 0\n    slow = 0\n    for fast in range(1, len(nums)):\n        if nums[fast] != nums[slow]:\n            slow += 1\n            nums[slow] = nums[fast]\n    return slow + 1\n\ndata = [1, 1, 2, 2, 2, 3]\nk = dedupe_sorted_in_place(data)\nassert k == 3 and data[:k] == [1, 2, 3]"
+      },
+      {
+        "title": "Fixed and variable sliding windows",
+        "lang": "py",
+        "code": "def max_sum_of_k(nums, k):\n    if k > len(nums):\n        return None\n    window = sum(nums[:k])\n    best = window\n    for i in range(k, len(nums)):\n        window += nums[i] - nums[i - k]\n        best = max(best, window)\n    return best\n\nassert max_sum_of_k([2, 1, 5, 1, 3, 2], 3) == 9\nassert max_sum_of_k([1, 2], 3) is None\n\ndef longest_unique_substring(s):\n    \"\"\"Longest window with no repeated character: grow right, shrink left while invalid.\"\"\"\n    last_seen = {}\n    left = best = 0\n    for right, ch in enumerate(s):\n        if ch in last_seen and last_seen[ch] >= left:\n            left = last_seen[ch] + 1\n        last_seen[ch] = right\n        best = max(best, right - left + 1)\n    return best\n\nassert longest_unique_substring(\"abcabcbb\") == 3\nassert longest_unique_substring(\"bbbb\") == 1\nassert longest_unique_substring(\"\") == 0\nassert longest_unique_substring(\"pwwkew\") == 3\n\ndef min_subarray_len(target, nums):\n    \"\"\"Shortest window with sum >= target (positive numbers only).\"\"\"\n    left = total = 0\n    best = float(\"inf\")\n    for right, x in enumerate(nums):\n        total += x\n        while total >= target:\n            best = min(best, right - left + 1)\n            total -= nums[left]\n            left += 1\n    return 0 if best == float(\"inf\") else best\n\nassert min_subarray_len(7, [2, 3, 1, 2, 4, 3]) == 2\nassert min_subarray_len(100, [1, 2, 3]) == 0"
+      }
+    ],
+    "django": {},
+    "exercise": "Solve these without looking: valid-anagram is a warm-up, then three-sum, container-with-most-water, longest-substring-without-repeating and best-time-to-buy-sell from the problem bank. For each, write the brute force and its cost first, say which pattern applies and why, state the invariant in one sentence, then code it. Finally take min_subarray_len and explain in two sentences why a nested loop still gives O(n).",
+    "pitfalls": [
+      "Using two pointers on unsorted data without saying that sorting (O(n log n)) comes first.",
+      "Off-by-one errors: lo < hi or lo <= hi, and whether the window is [left, right] inclusive.",
+      "Forgetting to shrink the window with a while loop; an if only removes one item.",
+      "Using a sliding window when the array has negative numbers and the target is a sum.",
+      "Claiming O(n^2) because of the nested loop, or claiming O(n) without explaining that each pointer only moves forward."
+    ],
+    "interview": [
+      {
+        "q": "When do you use two pointers, and what do you say to justify it?",
+        "a": "When the data is sorted (or can be) and the answer is a pair or a condition on both ends. I state the invariant: if an answer exists it lies between the pointers. Each comparison tells me which end cannot be part of any answer, so I move that pointer and drop that value for good, which makes the scan O(n)."
+      },
+      {
+        "q": "How is a nested while loop in a sliding window still O(n)?",
+        "a": "The right pointer moves forward n times and the left pointer also only moves forward, at most n times in total, because it never goes back. So the combined work is at most 2n steps. This is an amortized argument: the inner loop is not O(n) every time."
+      },
+      {
+        "q": "Longest substring without repeating characters: how do you solve it?",
+        "a": "Slide a window over the string and keep a dict of the last index of each character. Move right every step. If the current character was seen inside the window, jump left to one past its last index. Track the largest window length. O(n) time, O(min(n, alphabet)) space."
+      },
+      {
+        "q": "Why does a sliding window fail for \"subarray with sum equal to k\" when there are negative numbers?",
+        "a": "A window relies on the sum only growing when you extend it and only shrinking when you shrink it, so you know which end to move. Negative numbers break that. Use prefix sums with a hash map from prefix value to count: the number of subarrays ending here with sum k is the count of earlier prefixes equal to prefix - k."
+      },
+      {
+        "q": "How would you remove duplicates from a sorted array in place?",
+        "a": "Use a slow and a fast pointer. The fast pointer scans every element; whenever it finds a value different from the one at the slow pointer, advance slow and copy the value there. The unique values end up in the prefix of length slow + 1. O(n) time and O(1) extra space."
+      }
+    ],
+    "references": [
+      {
+        "title": "Interview preparation, data structures and algorithms (Amazon)",
+        "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
+        "kind": "official"
+      },
+      {
+        "title": "collections: deque (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Preparing for your software engineering interview (Meta)",
+        "url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
+        "kind": "official"
+      }
+    ],
+    "basis": "Why it is here: Amazon's interview-topic page and Meta's preparation page (both read) say that coding rounds test data structures and algorithms, and these two patterns cover a large share of array and string questions. The pattern list, the rule for choosing between them and the wording of the invariant are my own teaching judgment, not a published standard. The complexity results are standard computer science, stated as general knowledge. The Python code runs and carries its own asserts. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "amazon-topics",
+      "meta-swe-prep",
+      "py-collections"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "twoptr",
+        "title": "Two pointers on a sorted array",
+        "legend": [
+          {
+            "kind": "query",
+            "label": "compare"
+          },
+          {
+            "kind": "write",
+            "label": "move"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Move the right pointer",
+            "at": 1
+          },
+          {
+            "text": "Move the left pointer",
+            "at": 2
+          },
+          {
+            "text": "Found it",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.4,
+            "y": 1.2,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -1.882,
+            "y": -0.318,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -0.364,
+            "y": -1.836,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": 1.154,
+            "y": -3.354,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": 2.672,
+            "y": -4.872,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 4.19,
+            "y": -6.39,
+            "label": "11",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "a0",
+            "b": "a1",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a1",
+            "b": "a2",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a2",
+            "b": "a3",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a3",
+            "b": "a4",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a4",
+            "b": "a5",
+            "dir": "none",
+            "dash": true
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: find a pair that sums to 10",
+            "tag": "problem",
+            "body": [
+              "The list is sorted: [1, 3, 4, 6, 8, 11]. Find two numbers whose sum is 10.",
+              "Checking every pair costs O(n^2). Because the list is sorted, two pointers can do it in O(n): one at each end, and every comparison throws away at least one candidate for good."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Brute force",
+                "v": "O(n^2)",
+                "tone": "warn"
+              },
+              {
+                "k": "Two pointers",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Idea",
+              "lines": [
+                "left starts at the smallest value",
+                "right starts at the largest value",
+                "sum too big: move right inwards",
+                "sum too small: move left inwards"
+              ],
+              "hl": []
+            },
+            "set": {
+              "a0": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "left",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "right",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "1 + 11 = 12: too big",
+            "tag": "technique",
+            "body": [
+              "The sum is 12, above the target 10. 11 is the largest value, so paired with anything else (all at least 1) it is 12 or more. It cannot be part of the answer.",
+              "Move right one step left. One value is gone for good."
+            ],
+            "short": "Too big",
+            "card": {
+              "title": "Python",
+              "lines": [
+                "s = nums[lo] + nums[hi]",
+                "if s > target:",
+                "    hi -= 1      # the largest is too big",
+                "elif s < target:",
+                "    lo += 1      # the smallest is too small"
+              ],
+              "hl": [
+                2,
+                4
+              ]
+            },
+            "set": {
+              "a0": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "1 + 11 = 12",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "right",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a5": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              }
+            },
+            "predict": {
+              "question": "The sum is 12 and the target is 10. Which pointer should move?",
+              "options": [
+                "Move left to the right",
+                "Move right to the left",
+                "Move both",
+                "Stop: no pair exists"
+              ],
+              "answer": 1,
+              "why": "The sum is too big and the list is sorted, so only a smaller right value can help. 11 can never be in a pair that sums to 10, so right moves in."
+            }
+          },
+          {
+            "title": "1 + 8 = 9: too small",
+            "tag": "technique",
+            "body": [
+              "9 is below 10. The smallest value, 1, paired with the largest remaining value is still too small, so 1 cannot work with anything. Move left to the right."
+            ],
+            "short": "Too small",
+            "hud": [
+              {
+                "k": "Candidates left",
+                "v": "4 values",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "left",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "1 + 8 = 9",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "a5": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "3 + 8 = 11: too big",
+            "tag": "technique",
+            "body": [
+              "11 is above 10, so 8 is discarded. Each step removes one value, so there are at most n steps in total: O(n) time and O(1) extra space."
+            ],
+            "short": "Too big again",
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "left",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "3 + 8 = 11",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "a4": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "3 + 6 = 9: too small",
+            "tag": "technique",
+            "body": [
+              "Move left. Notice that the invariant never changes: if an answer exists, it lies between the two pointers."
+            ],
+            "short": "Too small again",
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "left",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a3": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "3 + 6 = 9",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "a4": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "4 + 6 = 10: found",
+            "tag": "solution",
+            "body": [
+              "The sum equals the target. Return the pair. Five comparisons for six values, never more than n.",
+              "This works only because the list is sorted. For an unsorted list, either sort first (O(n log n)) or use a hash set of seen values (O(n) time, O(n) space)."
+            ],
+            "short": "Found",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "indices 2 and 3",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "green",
+                "status": null,
+                "pill": {
+                  "text": "4",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "a3": {
+                "tone": "green",
+                "status": null,
+                "pill": {
+                  "text": "+ 6 = 10",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "a4": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              }
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "State that the input must be sorted. If it is not, say what you would do instead."
+            }
+          }
+        ]
+      },
+      {
+        "kind": "stage",
+        "id": "window",
+        "title": "Sliding window of size 3",
+        "legend": [
+          {
+            "kind": "query",
+            "label": "compare"
+          },
+          {
+            "kind": "write",
+            "label": "move"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Window as a running sum",
+            "at": 0
+          },
+          {
+            "text": "Slide: add one, drop one",
+            "at": 1
+          },
+          {
+            "text": "Keep the best",
+            "at": 3
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.4,
+            "y": 1.2,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -1.882,
+            "y": -0.318,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -0.364,
+            "y": -1.836,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": 1.154,
+            "y": -3.354,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": 2.672,
+            "y": -4.872,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 4.19,
+            "y": -6.39,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "a0",
+            "b": "a1",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a1",
+            "b": "a2",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a2",
+            "b": "a3",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a3",
+            "b": "a4",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a4",
+            "b": "a5",
+            "dir": "none",
+            "dash": true
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: best sum of 3 neighbours",
+            "tag": "problem",
+            "body": [
+              "Find the largest sum of any 3 consecutive values in [2, 1, 5, 1, 3, 2]. Recomputing each window from scratch costs O(n * k).",
+              "A sliding window keeps the current sum and updates it as the window moves: add the value entering, subtract the one leaving. That is O(1) per move, O(n) overall."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Recompute each window",
+                "v": "O(n * k)",
+                "tone": "warn"
+              },
+              {
+                "k": "Sliding window",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "First window: 2 + 1 + 5 = 8",
+            "tag": "technique",
+            "body": [
+              "Build the first window by adding its k values. Remember the sum, 8, as the best so far."
+            ],
+            "short": "First window",
+            "hud": [
+              {
+                "k": "Window sum",
+                "v": "8"
+              },
+              {
+                "k": "Best so far",
+                "v": "8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "sum 8",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Slide right: add 1, drop 2",
+            "tag": "technique",
+            "body": [
+              "Move the window one step. New sum = old sum + entering value - leaving value = 8 + 1 - 2 = 7. No loop over the window is needed."
+            ],
+            "short": "Slide",
+            "hud": [
+              {
+                "k": "Window sum",
+                "v": "7"
+              },
+              {
+                "k": "Best so far",
+                "v": "8",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "window = sum(nums[:k])",
+                "best = window",
+                "for i in range(k, len(nums)):",
+                "    window += nums[i] - nums[i - k]",
+                "    best = max(best, window)"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            },
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "sum 7",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            },
+            "predict": {
+              "question": "The window sum is 7 and the window slides: 3 enters and 1 leaves. What is the new sum?",
+              "options": [
+                "9",
+                "10",
+                "11",
+                "7"
+              ],
+              "answer": 0,
+              "why": "7 + 3 - 1 = 9. Add the entering value and subtract the leaving value; the window is never summed again."
+            }
+          },
+          {
+            "title": "Slide again: add 3, drop 1",
+            "tag": "technique",
+            "body": [
+              "7 + 3 - 1 = 9. This is the new best. Window [5, 1, 3]."
+            ],
+            "short": "New best",
+            "hud": [
+              {
+                "k": "Window sum",
+                "v": "9",
+                "tone": "good"
+              },
+              {
+                "k": "Best so far",
+                "v": "9",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "green",
+                "status": null,
+                "pill": {
+                  "text": "sum 9: best",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Last slide: add 2, drop 5",
+            "tag": "solution",
+            "body": [
+              "9 + 2 - 5 = 6, below the best. The scan is finished: the answer is 9 after n - k slides, O(n) time and O(1) space.",
+              "For a variable-size window (longest substring without repeats, shortest subarray with sum at least S) the idea is the same: grow the right end, and shrink the left end while the window is invalid."
+            ],
+            "short": "Done",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "9",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "grey",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "sum 6",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Walk through a sorted list with two markers instead of checking every pair.",
+      "story": "Two friends look for a pair of books on a sorted shelf that cost exactly 10 together. One starts at the cheapest book, the other at the dearest. If the pair costs too much, the friend at the expensive end steps in. If too little, the cheap-end friend steps in. They meet in the middle having touched each book once.",
+      "maps": [
+        [
+          "Two friends at the ends of the shelf",
+          "Two pointers"
+        ],
+        [
+          "Books sorted by price",
+          "Sorted input"
+        ],
+        [
+          "Stepping in when the total is wrong",
+          "Moving a pointer and dropping a value"
+        ]
+      ],
+      "words": [
+        [
+          "two pointers",
+          "Two indexes that move through a list by a rule, usually to avoid checking every pair."
+        ],
+        [
+          "sliding window",
+          "A moving range of neighbouring items whose summary is updated as it moves."
+        ],
+        [
+          "invariant",
+          "A statement that stays true at every step, used to explain why the code is correct."
+        ],
+        [
+          "amortized",
+          "Averaged over all the steps, not counted for a single step."
+        ]
+      ]
+    },
+    "n": 121
+  },
+  {
+    "id": "tries-union-find",
+    "level": 14,
+    "week": "Core",
+    "title": "Tries and Union-Find",
+    "tagline": "Two structures for two questions: \"does any word start with this?\" and \"are these two things connected?\"",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Hash maps, heaps and trees cover most interview problems, but two more structures appear often enough to learn: the trie for questions about prefixes, and union-find for questions about groups. Each is short to code and each has a clear sentence that justifies it.",
+      "## Trie (prefix tree)",
+      "A trie stores strings one character per edge, from a root. Words that share a prefix share a path, and a flag on a node marks the end of a word. Searching for a key of length m costs O(m), no matter how many words are stored. A balanced search tree costs O(m log n) for the same lookup, and a hash set cannot answer a prefix question at all without scanning.",
+      "- Insert, exact search and prefix search are all one walk down the tree: O(m).\n- Autocomplete: walk to the prefix node, then collect the words below it with a depth-first search. Production systems store a top-k list per node so they do not search on each key press.\n- Common questions: implement a trie, word search with many words (prune the search when no word has the current prefix), longest common prefix, replace words with their shortest root.\n- Cost: many small nodes, so memory use is higher than a plain set of strings for few or very different words. A radix tree compresses chains of single-child nodes.",
+      "In Python the simplest trie is nested dictionaries with a special key such as \"$\" for the end of a word. A class with a children dict and an is_end flag is just as good, and clearer to read when you are nervous.",
+      "## Union-find (disjoint set union)",
+      "Union-find keeps a collection of items split into groups, with two operations: find(x) returns the representative (root) of x's group and union(a, b) merges the groups of a and b. Two items are connected exactly when their roots are equal.",
+      "Each group is a tree stored in a parent array. Quick-find updates every item on a union (slow union); quick-union only links two roots, but trees can become long chains. The standard fix uses two ideas together: weighted union (attach the smaller tree under the larger, so depth is at most log n) and path compression (point every item on a find path directly at the root). Together the cost per operation is almost constant, the inverse Ackermann function, which is below 5 for any practical size.",
+      "- Count connected components: start with n and subtract one for every union that joins two different roots.\n- Detect a cycle in an undirected graph: an edge whose endpoints already share a root closes a cycle (redundant connection).\n- Kruskal's minimum spanning tree: sort edges by weight, add an edge only if it joins two different components.\n- Limits: it answers connected or not, not the path, and it cannot undo a union.",
+      "## Choosing between them and the alternatives",
+      "Prefix questions suggest a trie. \"Are these connected\" questions on a growing set of edges suggest union-find; on a fixed graph BFS or DFS gives the same answer for components, and is the safer choice when you also need paths or distances. Say which you chose and what you give up."
+    ],
+    "keyPoints": [
+      "A trie answers prefix questions in O(length of the prefix), independent of the number of words.",
+      "Prefer a hash set for exact matches; use a trie only when prefix queries matter.",
+      "Union-find = parent array + find + union; two items are connected when their roots are equal.",
+      "Weighted union (small under large) and path compression together give almost constant time per operation.",
+      "Union-find detects cycles and counts components, but cannot give paths or undo a union."
+    ],
+    "sql": [
+      {
+        "title": "A trie with insert, search, prefix and autocomplete",
+        "lang": "py",
+        "code": "class Trie:\n    END = \"$\"\n\n    def __init__(self):\n        self.root = {}\n\n    def insert(self, word):\n        node = self.root\n        for ch in word:\n            node = node.setdefault(ch, {})\n        node[self.END] = True\n\n    def _walk(self, text):\n        node = self.root\n        for ch in text:\n            if ch not in node:\n                return None\n            node = node[ch]\n        return node\n\n    def contains(self, word):\n        node = self._walk(word)\n        return node is not None and self.END in node\n\n    def starts_with(self, prefix):\n        return self._walk(prefix) is not None\n\n    def autocomplete(self, prefix, limit=5):\n        node = self._walk(prefix)\n        if node is None:\n            return []\n        out = []\n\n        def dfs(n, path):\n            if len(out) >= limit:\n                return\n            if self.END in n:\n                out.append(prefix + \"\".join(path))\n            for ch in sorted(k for k in n if k != self.END):\n                path.append(ch)\n                dfs(n[ch], path)\n                path.pop()\n\n        dfs(node, [])\n        return out\n\nt = Trie()\nfor w in (\"car\", \"cat\", \"cow\", \"card\"):\n    t.insert(w)\nassert t.contains(\"car\") and not t.contains(\"ca\")\nassert t.starts_with(\"ca\") and not t.starts_with(\"dog\")\nassert t.autocomplete(\"ca\") == [\"car\", \"card\", \"cat\"]\nassert t.autocomplete(\"ca\", limit=2) == [\"car\", \"card\"]\nassert t.autocomplete(\"x\") == []"
+      },
+      {
+        "title": "Union-find, component counting and cycle detection",
+        "lang": "py",
+        "code": "class UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n        self.size = [1] * n\n        self.groups = n\n\n    def find(self, x):\n        while self.parent[x] != x:\n            self.parent[x] = self.parent[self.parent[x]]   # path halving\n            x = self.parent[x]\n        return x\n\n    def union(self, a, b):\n        ra, rb = self.find(a), self.find(b)\n        if ra == rb:\n            return False                                   # already connected\n        if self.size[ra] < self.size[rb]:\n            ra, rb = rb, ra\n        self.parent[rb] = ra                               # smaller tree under the larger\n        self.size[ra] += self.size[rb]\n        self.groups -= 1\n        return True\n\nuf = UnionFind(5)\nassert uf.union(0, 1) and uf.union(2, 3) and uf.union(1, 3)\nassert uf.find(0) == uf.find(3) and uf.find(4) != uf.find(0)\nassert uf.groups == 2\nassert uf.union(0, 3) is False\n\ndef count_components(n, edges):\n    uf = UnionFind(n)\n    for a, b in edges:\n        uf.union(a, b)\n    return uf.groups\n\nassert count_components(5, [(0, 1), (1, 2), (3, 4)]) == 2\n\ndef first_redundant_edge(n, edges):\n    \"\"\"The edge that closes a cycle in an undirected graph.\"\"\"\n    uf = UnionFind(n)\n    for a, b in edges:\n        if not uf.union(a, b):\n            return (a, b)\n    return None\n\nassert first_redundant_edge(4, [(0, 1), (1, 2), (2, 3), (3, 0)]) == (3, 0)\nassert first_redundant_edge(3, [(0, 1), (1, 2)]) is None"
+      }
+    ],
+    "django": {},
+    "exercise": "Implement Trie from memory with insert, contains and starts_with, then add autocomplete that returns the top 3 words by a popularity count stored at each word end. Then implement UnionFind with both optimizations and use it for: number of provinces (the problem bank), a redundant-connection check, and Kruskal's algorithm on a small weighted graph. For each, write one sentence saying why a hash set, or BFS, would or would not be enough.",
+    "pitfalls": [
+      "Forgetting the end-of-word flag, so \"ca\" is reported as a word when only \"car\" was inserted.",
+      "Using a trie for exact lookups, where a hash set is simpler and uses less memory.",
+      "Writing union(a, b) so it links a and b instead of their roots, which corrupts the groups.",
+      "Implementing find without path compression and union without weights, so a long chain makes operations O(n).",
+      "Using union-find when the question needs the path between two nodes, or edge removal."
+    ],
+    "interview": [
+      {
+        "q": "What is a trie and when is it better than a hash set?",
+        "a": "A trie is a tree where each edge is one character, so words sharing a prefix share a path. Lookups cost O(length of the key). It is better when you need prefix operations such as autocomplete or longest common prefix, which a hash set cannot answer without scanning every word. For exact matches only, a hash set is simpler and lighter."
+      },
+      {
+        "q": "How would you build autocomplete for a search box?",
+        "a": "Store queries in a trie and keep a short top-k list by popularity at each node, so a request is one walk to the prefix node plus reading that list. Update counts offline in batches. For very large scale the trie is split across servers by prefix, with caching of hot prefixes."
+      },
+      {
+        "q": "What is union-find and what are its two operations?",
+        "a": "A structure that tracks which items are in the same group. find(x) returns the root of x's tree; union(a, b) links the roots of a and b if they differ. Two items are connected when find returns the same root for both."
+      },
+      {
+        "q": "Which two optimizations make union-find fast, and what is the result?",
+        "a": "Union by size or rank (attach the smaller tree under the larger, keeping depth at most log n) and path compression (point nodes on the find path straight at the root). Together they give amortized cost per operation close to constant, the inverse Ackermann function."
+      },
+      {
+        "q": "How do you detect a cycle in an undirected graph with union-find?",
+        "a": "Process the edges one at a time. For edge (a, b), if find(a) equals find(b) the endpoints are already connected, so this edge closes a cycle. Otherwise union them. It runs in near O(E) time."
+      }
+    ],
+    "references": [
+      {
+        "title": "Trie (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Trie",
+        "kind": "reference"
+      },
+      {
+        "title": "Algorithms, 4th ed.: 1.5 Case Study: Union-Find (Princeton)",
+        "url": "https://algs4.cs.princeton.edu/15uf/",
+        "kind": "textbook"
+      },
+      {
+        "title": "Software development interview topics (Amazon)",
+        "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
+        "kind": "official"
+      }
+    ],
+    "basis": "Sources, all read: Princeton's union-find case study (quick-find, quick-union, weighted quick-union with depth at most lg n, path compression and the near-constant amortized cost) and the Wikipedia trie article (O(m) search, autocomplete use, space trade-off; part of that page was read from a summary). Amazon's topic page (read) lists data structures as tested. Which problems to practise, the advice to prefer a hash set for exact matches, the per-node top-k autocomplete design and the cycle and component examples are my teaching judgment. Python code runs and carries asserts. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "wikipedia-trie",
+      "princeton-union-find",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "trie",
+        "title": "A trie holding car, cat and cow",
+        "legend": [
+          {
+            "kind": "query",
+            "label": "compare"
+          },
+          {
+            "kind": "write",
+            "label": "move"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Why a trie",
+            "at": 0
+          },
+          {
+            "text": "Shared prefixes",
+            "at": 2
+          },
+          {
+            "text": "Prefix search",
+            "at": 4
+          },
+          {
+            "text": "Autocomplete",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "root",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "root",
+            "icon": "ball",
+            "tone": "grey",
+            "from": 0
+          },
+          {
+            "id": "c",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -0.3,
+            "label": "c",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "a",
+            "kind": "cube",
+            "x": 3.9,
+            "y": 0.9,
+            "label": "a",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "r",
+            "kind": "cube",
+            "x": 3.6,
+            "y": 3.6,
+            "label": "r",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 1
+          },
+          {
+            "id": "t",
+            "kind": "cube",
+            "x": 5.1,
+            "y": 2.1,
+            "label": "t",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 2
+          },
+          {
+            "id": "o",
+            "kind": "cube",
+            "x": 5.7,
+            "y": -3.3,
+            "label": "o",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 3
+          },
+          {
+            "id": "w",
+            "kind": "cube",
+            "x": 6.9,
+            "y": -2.1,
+            "label": "w",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 3
+          }
+        ],
+        "links": [
+          {
+            "a": "root",
+            "b": "c",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "c",
+            "b": "a",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "a",
+            "b": "r",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "a",
+            "b": "t",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "c",
+            "b": "o",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "o",
+            "b": "w",
+            "dir": "to",
+            "from": 3
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: fast prefix lookups",
+            "tag": "problem",
+            "body": [
+              "Typing \"ca\" should list every word that starts with \"ca\". A hash set answers \"is this exact word present\" in O(1), but it cannot answer a prefix question without scanning every word.",
+              "A trie (prefix tree) stores one character per edge, so words with the same start share the same path."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Hash set, prefix query",
+                "v": "scan all words",
+                "tone": "warn"
+              },
+              {
+                "k": "Trie, prefix query",
+                "v": "O(prefix length)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "root": {
+                "pill": {
+                  "text": "empty trie",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "Insert \"car\"",
+            "tag": "technique",
+            "body": [
+              "Start at the root and follow or create one child per character: c, a, r. Mark the last node as the end of a word.",
+              "Insert costs O(m) for a word of length m, no matter how many words are stored."
+            ],
+            "short": "Insert car",
+            "card": {
+              "title": "Python",
+              "lines": [
+                "node = self.root",
+                "for ch in word:",
+                "    node = node.setdefault(ch, {})",
+                "node[\"$\"] = True   # end of a word"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            },
+            "set": {
+              "root": {
+                "pill": null
+              },
+              "c": {
+                "status": "live"
+              },
+              "a": {
+                "status": "live"
+              },
+              "r": {
+                "status": "live",
+                "pill": {
+                  "text": "end of car",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              }
+            }
+          },
+          {
+            "title": "Insert \"cat\": the prefix is shared",
+            "tag": "technique",
+            "body": [
+              "\"cat\" starts with c, a, which already exist, so only a new node t is added. Shared prefixes are stored once; that is where a trie saves space compared with storing every word separately."
+            ],
+            "short": "Insert cat",
+            "set": {
+              "c": {
+                "status": null
+              },
+              "a": {
+                "status": null
+              },
+              "r": {
+                "status": null
+              },
+              "t": {
+                "status": "live",
+                "pill": {
+                  "text": "end of cat",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              }
+            },
+            "predict": {
+              "question": "A trie already holds \"car\". How many new nodes does inserting \"cat\" create?",
+              "options": [
+                "3",
+                "2",
+                "1",
+                "0"
+              ],
+              "answer": 2,
+              "why": "Only one: the t node. The path c, a already exists and is reused."
+            }
+          },
+          {
+            "title": "Insert \"cow\": a new branch",
+            "tag": "technique",
+            "body": [
+              "\"cow\" shares only c with the others, so the trie branches at c: o, then w."
+            ],
+            "short": "Insert cow",
+            "hud": [
+              {
+                "k": "Words stored",
+                "v": "3"
+              },
+              {
+                "k": "Nodes",
+                "v": "7 including the root"
+              }
+            ],
+            "set": {
+              "t": {
+                "status": null,
+                "pill": null
+              },
+              "r": {
+                "pill": null
+              },
+              "o": {
+                "status": "live"
+              },
+              "w": {
+                "status": "live",
+                "pill": {
+                  "text": "end of cow",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              }
+            }
+          },
+          {
+            "title": "Prefix search: \"ca\"",
+            "tag": "technique",
+            "body": [
+              "Walk c then a. If a step has no child, the prefix does not exist. If you reach the end, the prefix exists: this took 2 steps, no matter how many words are stored. Cost is O(length of the prefix)."
+            ],
+            "short": "Prefix search",
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def starts_with(self, prefix):",
+                "    node = self.root",
+                "    for ch in prefix:",
+                "        if ch not in node:",
+                "            return False",
+                "        node = node[ch]",
+                "    return True"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            },
+            "set": {
+              "w": {
+                "status": null,
+                "pill": null
+              },
+              "c": {
+                "status": "ok",
+                "tone": "green"
+              },
+              "a": {
+                "status": "ok",
+                "tone": "green",
+                "pill": {
+                  "text": "prefix ca found",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "Autocomplete: collect words below the prefix",
+            "tag": "solution",
+            "body": [
+              "After walking to the node for \"ca\", run a depth-first search below it and collect every end-of-word marker: car and cat. The cost is the prefix length plus the size of the part of the trie you visit.",
+              "Real autocomplete usually stores a precomputed top-k list per node (by popularity) so it does not need to search below the node on every key press."
+            ],
+            "short": "Autocomplete",
+            "hud": [
+              {
+                "k": "Results for ca",
+                "v": "car, cat",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a": {
+                "pill": {
+                  "text": "below: car, cat",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "r": {
+                "tone": "green",
+                "status": "ok"
+              },
+              "t": {
+                "tone": "green",
+                "status": "ok"
+              }
+            }
+          },
+          {
+            "title": "When not to use a trie",
+            "tag": "insight",
+            "body": [
+              "A trie spends memory on many small nodes, so for exact-match lookups a hash set is simpler and faster. Reach for a trie when prefix queries are the point: autocomplete, spell check, longest common prefix, word search on a grid with pruning.",
+              "Memory can be reduced by compressing chains of single-child nodes (a radix tree)."
+            ],
+            "short": "Trade-off",
+            "set": {
+              "a": {
+                "pill": null
+              },
+              "root": {
+                "pill": {
+                  "text": "prefix queries only",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              }
+            },
+            "callout": {
+              "kind": "tip",
+              "text": "Say \"I would use a hash set unless I need prefix queries\" before you reach for a trie."
+            }
+          }
+        ]
+      },
+      {
+        "kind": "stage",
+        "id": "unionfind",
+        "title": "Union-find with weighted union and path compression",
+        "legend": [
+          {
+            "kind": "query",
+            "label": "compare"
+          },
+          {
+            "kind": "write",
+            "label": "move"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Groups",
+            "at": 0
+          },
+          {
+            "text": "Union",
+            "at": 2
+          },
+          {
+            "text": "Find",
+            "at": 4
+          },
+          {
+            "text": "Path compression",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "n0",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -1.5,
+            "label": "0",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": 1.8,
+            "y": 1.8,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": 4.5,
+            "y": -4.5,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": 7.8,
+            "y": -4.2,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n4",
+            "kind": "cube",
+            "x": 6.6,
+            "y": 0.6,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "n1",
+            "b": "n0",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "n3",
+            "b": "n2",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "n2",
+            "b": "n0",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "n3",
+            "b": "n0",
+            "dir": "to",
+            "from": 5
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: are these two connected?",
+            "tag": "problem",
+            "body": [
+              "Given a stream of \"connect a and b\" operations, answer \"are a and b in the same group?\" quickly. Examples: friend groups, network components, finding a cycle in an undirected graph, Kruskal's minimum spanning tree.",
+              "Union-find (disjoint set union) keeps each group as a tree and uses the root as the group's name. find(x) walks up to the root. union(a, b) joins two roots."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Operations",
+                "v": "find and union"
+              },
+              {
+                "k": "Cost with both tricks",
+                "v": "almost constant",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "pill": {
+                  "text": "own group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              },
+              "n1": {
+                "pill": {
+                  "text": "own group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              },
+              "n2": {
+                "pill": {
+                  "text": "own group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              },
+              "n3": {
+                "pill": {
+                  "text": "own group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              },
+              "n4": {
+                "pill": {
+                  "text": "own group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "Start: five separate groups",
+            "tag": "technique",
+            "body": [
+              "Every item is its own root: parent[i] = i, and the size of each group is 1. Number of groups: 5."
+            ],
+            "short": "Start",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "5"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "parent = list(range(n))",
+                "size = [1] * n",
+                "groups = n"
+              ],
+              "hl": []
+            },
+            "set": {
+              "n0": {
+                "pill": null
+              },
+              "n1": {
+                "pill": null
+              },
+              "n2": {
+                "pill": null
+              },
+              "n3": {
+                "pill": null
+              },
+              "n4": {
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "union(0, 1)",
+            "tag": "technique",
+            "body": [
+              "Find the root of each side, 0 and 1. They differ, so attach one root under the other. Groups: 4. With a weighted union you always attach the smaller tree under the larger, which keeps trees shallow: depth at most log n."
+            ],
+            "short": "union(0, 1)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "n0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "root",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "n1": {
+                "tone": "blue"
+              }
+            }
+          },
+          {
+            "title": "union(2, 3)",
+            "tag": "technique",
+            "body": [
+              "Same again for 2 and 3. Groups: 3. Two trees of size 2."
+            ],
+            "short": "union(2, 3)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "n2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "root",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "union(1, 3): join the two trees",
+            "tag": "technique",
+            "body": [
+              "find(1) = 0 and find(3) = 2 are different roots, so join them: root 2 goes under root 0 (equal sizes, so either choice works). Now 0, 1, 2 and 3 share root 0. Groups: 2.",
+              "Notice that 3 is now two steps from the root: 3, then 2, then 0."
+            ],
+            "short": "union(1, 3)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "n2": {
+                "pill": null,
+                "tone": "blue"
+              },
+              "n0": {
+                "pill": {
+                  "text": "root of 4 items",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            },
+            "predict": {
+              "question": "union(1, 3) is called. What does it compare?",
+              "options": [
+                "The roots of 1 and 3",
+                "The values 1 and 3",
+                "All members of both groups",
+                "The sizes of the two groups only"
+              ],
+              "answer": 0,
+              "why": "It calls find on both items and compares their roots. If the roots are equal the items are already connected; otherwise it links the roots."
+            }
+          },
+          {
+            "title": "find(3) with path compression",
+            "tag": "solution",
+            "body": [
+              "find(3) walks 3, 2, 0 and finds the root. While going back, path compression points every visited item straight at the root, so 3 now has parent 0. The next find(3) takes one step.",
+              "Weighted union plus path compression makes each operation cost almost constant time (the inverse Ackermann function, below 5 for any practical n). Either trick alone gives O(log n) amortized."
+            ],
+            "short": "Path compression",
+            "hud": [
+              {
+                "k": "find cost",
+                "v": "almost constant",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def find(self, x):",
+                "    while self.parent[x] != x:",
+                "        self.parent[x] = self.parent[self.parent[x]]   # path halving",
+                "        x = self.parent[x]",
+                "    return x"
+              ],
+              "hl": [
+                2
+              ]
+            },
+            "set": {
+              "n3": {
+                "tone": "green",
+                "pill": {
+                  "text": "now points at 0",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "Using it in an interview",
+            "tag": "insight",
+            "body": [
+              "Detect a cycle in an undirected graph: for each edge (a, b), if find(a) == find(b) the edge closes a cycle; otherwise union them. Count connected components: start with n and subtract one for every successful union.",
+              "Union-find only answers \"connected or not\". It cannot tell you the path between two nodes, and it does not support removing an edge."
+            ],
+            "short": "Use cases",
+            "set": {
+              "n4": {
+                "pill": {
+                  "text": "alone: 2nd group",
+                  "tone": "grey",
+                  "icon": "check"
+                }
+              }
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "If the question needs shortest paths or removal of edges, use BFS or a different structure."
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A trie finds words by their first letters. Union-find tells you which things belong to the same group.",
+      "story": "In a dictionary you find \"car\" by turning to C, then CA, then CAR. All words starting with CA sit together. For groups, think of friend circles at a party: when two circles meet and merge, everyone in them is now in one circle, and you ask only who the circle leader is.",
+      "maps": [
+        [
+          "Turning to C, then CA",
+          "Walking down a trie one character at a time"
+        ],
+        [
+          "Words starting with CA sit together",
+          "Shared prefixes share one path"
+        ],
+        [
+          "The circle leader",
+          "The root returned by find"
+        ],
+        [
+          "Two circles merging",
+          "A union of two groups"
+        ]
+      ],
+      "words": [
+        [
+          "trie",
+          "A tree that stores words one letter per step, so words with the same start share a path."
+        ],
+        [
+          "prefix",
+          "The first letters of a word, such as \"ca\" in \"car\"."
+        ],
+        [
+          "union-find",
+          "A structure that tracks which items belong to the same group."
+        ],
+        [
+          "path compression",
+          "Pointing every item on a search path straight at the group root, so later searches are short."
+        ]
+      ]
+    },
+    "n": 122
+  },
+  {
+    "id": "greedy-algorithms",
+    "level": 14,
+    "week": "Core",
+    "title": "Greedy Algorithms and Interval Problems",
+    "tagline": "Know when taking the best-looking choice is provably safe, and when it is a trap that needs dynamic programming.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A greedy algorithm builds an answer one step at a time and always takes the choice that looks best right now, never going back. When it works, it is the shortest and fastest solution. When it does not, it returns a wrong answer that looks confident. Interviewers test both: can you apply it, and can you tell when it is not valid?",
+      "## When greedy is correct",
+      "Two properties are needed. First, the greedy choice property: some optimal solution contains the locally best choice. Second, optimal substructure: after making the choice, what remains is a smaller problem of the same kind. You usually justify the first property with an exchange argument: take any optimal solution, swap in the greedy choice, and show it is no worse.",
+      "## Interval scheduling",
+      "To attend the maximum number of non-overlapping meetings, sort by end time and take each meeting whose start is not before the end of the last chosen one. Earliest finish leaves the most room for the future, and it is optimal. Earliest start and shortest first are not: a very long early meeting, or a short meeting in the middle, can block two others. The cost is O(n log n) for the sort.",
+      "- Non-overlapping intervals (remove the fewest so none overlap): n minus the maximum number you can keep.\n- Minimum arrows to burst balloons: sort by end and shoot at the end of the first balloon.\n- Meeting rooms II (how many rooms are needed): sort by start and keep a min-heap of end times; reuse a room if the earliest end is not after the next start.\n- Merge intervals: sort by start and extend the last interval while the next one overlaps.",
+      "## Other greedy problems that come up",
+      "- Jump game: track the furthest reachable index; if you fall behind it, fail.\n- Gas station and task scheduler: a running balance or a counting argument.\n- Assigning cookies, or boats to carry people: sort, then pair with two pointers.\n- Huffman coding: repeatedly join the two least frequent symbols, using a heap.",
+      "## When greedy fails",
+      "Coin change with coins 1, 3 and 4 and amount 6: greedy takes 4, 1, 1 (three coins), but 3 + 3 is two coins. For arbitrary coins, use dynamic programming. The same pattern holds for 0/1 knapsack (greedy by value per weight fails; it works only for the fractional version). If you see \"count the ways\" or \"the best of every combination\", suspect dynamic programming.",
+      "## What to say in the interview",
+      "Propose the greedy rule, say why it should be safe (one sentence of exchange argument), test it on a small counterexample attempt, state the cost (usually O(n log n) because of sorting), and be ready to say what you would use if the rule failed."
+    ],
+    "keyPoints": [
+      "Greedy needs the greedy-choice property and optimal substructure; justify it with an exchange argument.",
+      "Interval scheduling: sort by end time, take each interval that starts at or after the last chosen end.",
+      "Earliest start and shortest interval first are wrong for maximising the number of intervals.",
+      "Meeting rooms: sort by start and use a min-heap of end times.",
+      "Greedy fails for general coin change and 0/1 knapsack; use dynamic programming there."
+    ],
+    "sql": [
+      {
+        "title": "Interval scheduling, meeting rooms and jump game",
+        "lang": "py",
+        "code": "import heapq\n\ndef max_non_overlapping(intervals):\n    count, end = 0, float(\"-inf\")\n    for s, e in sorted(intervals, key=lambda x: x[1]):\n        if s >= end:\n            count += 1\n            end = e\n    return count\n\nmeetings = [(1, 3), (2, 5), (4, 6), (5, 8), (7, 9), (8, 10)]\nassert max_non_overlapping(meetings) == 3\nassert max_non_overlapping([]) == 0\nassert max_non_overlapping([(1, 2), (2, 3), (3, 4)]) == 3          # touching is allowed\n\ndef min_removals_for_no_overlap(intervals):\n    return len(intervals) - max_non_overlapping(intervals)\n\nassert min_removals_for_no_overlap([(1, 2), (2, 3), (3, 4), (1, 3)]) == 1\n\ndef min_meeting_rooms(intervals):\n    rooms = []                                     # min-heap of end times of rooms in use\n    for s, e in sorted(intervals):\n        if rooms and rooms[0] <= s:\n            heapq.heapreplace(rooms, e)            # reuse the room that frees up first\n        else:\n            heapq.heappush(rooms, e)\n    return len(rooms)\n\nassert min_meeting_rooms([(0, 30), (5, 10), (15, 20)]) == 2\nassert min_meeting_rooms([(7, 10), (2, 4)]) == 1\n\ndef can_jump(nums):\n    far = 0\n    for i, step in enumerate(nums):\n        if i > far:\n            return False\n        far = max(far, i + step)\n    return True\n\nassert can_jump([2, 3, 1, 1, 4]) and not can_jump([3, 2, 1, 0, 4])"
+      },
+      {
+        "title": "A greedy that fails: coin change",
+        "lang": "py",
+        "code": "def coin_change_greedy(coins, amount):\n    count = 0\n    for c in sorted(coins, reverse=True):\n        count += amount // c\n        amount %= c\n    return count if amount == 0 else -1\n\ndef coin_change_dp(coins, amount):\n    INF = amount + 1\n    best = [0] + [INF] * amount\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a:\n                best[a] = min(best[a], best[a - c] + 1)\n    return best[amount] if best[amount] != INF else -1\n\nassert coin_change_greedy([1, 5, 10, 25], 63) == 6              # works for standard coins\nassert coin_change_greedy([1, 3, 4], 6) == 3                    # 4 + 1 + 1: greedy is not optimal here\nassert coin_change_dp([1, 3, 4], 6) == 2                        # 3 + 3\nassert coin_change_dp([2], 3) == -1"
+      }
+    ],
+    "django": {},
+    "exercise": "Solve from the problem bank: jump-game and merge-intervals. Then implement erase-overlap-intervals, minimum-arrows-to-burst-balloons and meeting-rooms-II yourself. For each, write the greedy rule in one sentence and a two-line exchange argument for why it is safe. Finish by finding your own counterexample that breaks \"shortest interval first\" for interval scheduling.",
+    "pitfalls": [
+      "Choosing a greedy rule because it feels right, without a counterexample check or an exchange argument.",
+      "Sorting by start time when the correct rule sorts by end time (and the other way round for meeting rooms).",
+      "Treating intervals that only touch ([1, 2] and [2, 3]) as overlapping, without asking the interviewer.",
+      "Using greedy for general coin change or 0/1 knapsack, where dynamic programming is required.",
+      "Forgetting the cost of the sort and claiming O(n)."
+    ],
+    "interview": [
+      {
+        "q": "How do you know a problem can be solved greedily?",
+        "a": "It needs the greedy-choice property (some optimal answer includes the locally best choice) and optimal substructure. I try to prove the first with an exchange argument: take any optimal answer, swap in the greedy choice, and show it is no worse. I also try a few small counterexamples before I commit."
+      },
+      {
+        "q": "Maximum number of non-overlapping meetings: what is the algorithm and why is it correct?",
+        "a": "Sort by end time and take every meeting whose start is not before the last chosen end. Ending earliest leaves the most time for the rest, and an exchange argument shows some optimal answer starts with that meeting. O(n log n) for the sort, then O(n)."
+      },
+      {
+        "q": "How many meeting rooms are needed for a list of meetings?",
+        "a": "Sort by start time and keep a min-heap of end times of rooms in use. For each meeting, if the earliest-ending room is free by its start, reuse it (replace the top); otherwise add a room. The heap size at the end is the answer. O(n log n)."
+      },
+      {
+        "q": "Give an example where greedy fails.",
+        "a": "Coin change with coins 1, 3, 4 and amount 6. Greedy takes 4 + 1 + 1 (three coins) but 3 + 3 uses two. The greedy choice of the biggest coin is not safe for these denominations, so you use dynamic programming. Greedy also fails for 0/1 knapsack."
+      },
+      {
+        "q": "What is the difference between greedy and dynamic programming?",
+        "a": "Greedy commits to one choice at each step and never revisits it, so it is fast but only valid when the choice is provably safe. Dynamic programming considers all choices by combining the answers to overlapping subproblems, so it is correct for more problems but costs more time and memory."
+      }
+    ],
+    "references": [
+      {
+        "title": "Interval scheduling (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Interval_scheduling",
+        "kind": "reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Software development interview topics (Amazon)",
+        "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
+        "kind": "official"
+      }
+    ],
+    "basis": "Sources, all read: the Wikipedia interval-scheduling article (earliest-finish-time greedy is optimal; earliest-start and shortest-first are not; O(n log n)) and the Python heapq documentation. Amazon's topic page (read) lists algorithms as tested. The exchange-argument wording, the list of related problems, the meeting-rooms heap method and the coin-change counterexample are standard textbook material that I chose and ordered; the selection is my judgment. Python code runs and carries asserts. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "wikipedia-interval-scheduling",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "greedy",
+        "title": "Greedy interval scheduling: pick the earliest finish",
+        "legend": [
+          {
+            "kind": "query",
+            "label": "compare"
+          },
+          {
+            "kind": "write",
+            "label": "move"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "Which rule?",
+            "at": 1
+          },
+          {
+            "text": "Earliest finish",
+            "at": 2
+          },
+          {
+            "text": "Why it is optimal",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.4,
+            "y": 1.2,
+            "label": "A 1-3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -1.882,
+            "y": -0.318,
+            "label": "B 2-5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -0.364,
+            "y": -1.836,
+            "label": "C 4-6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": 1.154,
+            "y": -3.354,
+            "label": "D 5-8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": 2.672,
+            "y": -4.872,
+            "label": "E 7-9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 4.19,
+            "y": -6.39,
+            "label": "F 8-10",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "a0",
+            "b": "a1",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a1",
+            "b": "a2",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a2",
+            "b": "a3",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a3",
+            "b": "a4",
+            "dir": "none",
+            "dash": true
+          },
+          {
+            "a": "a4",
+            "b": "a5",
+            "dir": "none",
+            "dash": true
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: attend as many meetings as possible",
+            "tag": "problem",
+            "body": [
+              "You have six meetings with start and end times: A 1-3, B 2-5, C 4-6, D 5-8, E 7-9, F 8-10. You can attend one at a time. Which ones maximise the number you attend?",
+              "A greedy algorithm makes the best-looking local choice at each step and never reconsiders it. It is fast but only correct when you can prove the local choice is safe."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Meetings",
+                "v": "6"
+              },
+              {
+                "k": "Overlap rule",
+                "v": "next start >= last end"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Candidate rules: which greedy is right?",
+            "tag": "technique",
+            "body": [
+              "Three tempting rules: take the earliest start, take the shortest meeting, or take the earliest end. The first two fail: one very long early meeting, or a short meeting in the middle that blocks two others, can lead to fewer meetings.",
+              "The rule that works is earliest finish time: it leaves the most room for what comes next."
+            ],
+            "short": "Choose a rule",
+            "predict": {
+              "question": "Which greedy rule gives the maximum number of non-overlapping meetings?",
+              "options": [
+                "Earliest start",
+                "Shortest duration",
+                "Earliest finish",
+                "Latest finish"
+              ],
+              "answer": 2,
+              "why": "Always taking the meeting that ends first leaves the largest remaining time for the others, and an exchange argument proves it is optimal. The other two have counterexamples."
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "In an interview, name the rule and give one counterexample for a rule you reject."
+            }
+          },
+          {
+            "title": "Sort by end time and take A",
+            "tag": "technique",
+            "body": [
+              "Sort by end time: A(3), B(5), C(6), D(8), E(9), F(10). Take A, the earliest to finish. Remember its end time, 3."
+            ],
+            "short": "Pick A",
+            "hud": [
+              {
+                "k": "Chosen",
+                "v": "1"
+              },
+              {
+                "k": "Last end",
+                "v": "3"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "intervals.sort(key=lambda x: x[1])",
+                "end = float(\"-inf\")",
+                "count = 0",
+                "for s, e in intervals:",
+                "    if s >= end:",
+                "        count += 1",
+                "        end = e"
+              ],
+              "hl": [
+                0,
+                4,
+                5
+              ]
+            },
+            "set": {
+              "a0": {
+                "tone": "green",
+                "pill": {
+                  "text": "take",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "B starts at 2 < 3: skip",
+            "tag": "technique",
+            "body": [
+              "B overlaps A (it starts before A ends), so skip it. Skipping costs nothing: A ended earlier than B, so A is at least as good."
+            ],
+            "short": "Skip B",
+            "set": {
+              "a1": {
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps A",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              }
+            }
+          },
+          {
+            "title": "C starts at 4 >= 3: take",
+            "tag": "technique",
+            "body": [
+              "C starts after A ends, so take it. The last end becomes 6."
+            ],
+            "short": "Take C",
+            "hud": [
+              {
+                "k": "Chosen",
+                "v": "2"
+              },
+              {
+                "k": "Last end",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "a2": {
+                "tone": "green",
+                "pill": {
+                  "text": "take",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "D starts at 5 < 6: skip",
+            "tag": "technique",
+            "body": [
+              "D overlaps C, so skip it."
+            ],
+            "short": "Skip D",
+            "set": {
+              "a3": {
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps C",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              }
+            }
+          },
+          {
+            "title": "E starts at 7 >= 6: take",
+            "tag": "technique",
+            "body": [
+              "E is free, take it. The last end becomes 9, and F starts at 8, before 9, so F is skipped."
+            ],
+            "short": "Take E, skip F",
+            "hud": [
+              {
+                "k": "Chosen",
+                "v": "3"
+              },
+              {
+                "k": "Last end",
+                "v": "9"
+              }
+            ],
+            "set": {
+              "a4": {
+                "tone": "green",
+                "pill": {
+                  "text": "take",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "a5": {
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps E",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              }
+            }
+          },
+          {
+            "title": "Why it is optimal, and the cost",
+            "tag": "solution",
+            "body": [
+              "Exchange argument: take any optimal answer. Replace its first meeting by the earliest-finishing meeting. It still does not overlap the rest, because it ends no later. So some optimal answer starts with our choice; repeat for the remaining meetings.",
+              "Cost: O(n log n) for the sort, then one O(n) pass. \"Minimum number of meetings to remove so none overlap\" is the same problem: n minus the answer."
+            ],
+            "short": "Proof and cost",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "3 meetings: A, C, E",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green"
+              },
+              "a2": {
+                "tone": "green"
+              },
+              "a4": {
+                "tone": "green"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Greedy means always taking the best-looking choice now, and only trusting it when you can show it is safe.",
+      "story": "You want to see as many films as possible in one day at a festival. If you always pick the film that finishes first, you are free sooner and can fit more films after it. Picking the shortest film, or the one that starts first, can leave you blocked.",
+      "maps": [
+        [
+          "Films at a festival",
+          "Intervals with start and end times"
+        ],
+        [
+          "Pick the film that finishes first",
+          "The greedy rule: earliest finish"
+        ],
+        [
+          "Being free sooner",
+          "Leaving the most room for later choices"
+        ]
+      ],
+      "words": [
+        [
+          "greedy",
+          "Always taking the choice that looks best right now, without reconsidering it later."
+        ],
+        [
+          "exchange argument",
+          "A proof that swaps the greedy choice into any best answer without making it worse."
+        ],
+        [
+          "interval",
+          "A range with a start and an end, such as a meeting from 2 to 5."
+        ],
+        [
+          "optimal substructure",
+          "After one choice, what is left is a smaller problem of the same kind."
+        ]
+      ]
+    },
+    "n": 123
+  },
+  {
+    "id": "design-leaderboard",
+    "level": 13,
+    "week": "Core",
+    "title": "Design a Leaderboard (Sorted Sets)",
+    "tagline": "Rank millions of players in real time: why a database count is slow and how a sorted set answers rank in O(log N).",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "The leaderboard is a favourite system design question because it looks like a simple table and hides a real data structure problem. Players submit scores, and everyone wants the top N, their own rank and the players near them, fast and fresh. The answer is to use the right structure for ranked reads, then protect it with a durable store.",
+      "## Requirements and numbers",
+      "Ask: how many players, how many score updates and reads per second, how fresh must ranks be, is it global or per game, are there daily or weekly boards, and do ties matter. State your assumptions out loud and compute from them; the numbers decide whether one node is enough.",
+      "## Why SQL alone struggles",
+      "ORDER BY score DESC LIMIT 10 is fine with an index. A player's rank is the problem: COUNT(*) WHERE score > mine has to walk every row ahead of the player, so cost grows with the number of players, and every update must also maintain the index. At a few thousand reads a second on millions of rows this is the bottleneck.",
+      "## The sorted set",
+      "A Redis sorted set is a collection of unique members ordered by an associated score. Its documented costs are ZADD and ZINCRBY at O(log N), ZRANK and ZREVRANK at O(log N), ZRANGE at O(log N + M) for M returned members, and ZSCORE and ZCARD at O(1). Internally it combines a skip list (order) with a hash table (member lookup). That gives you the three reads you need: the top N, my rank, and my neighbours.",
+      "- Update a score: ZADD or ZINCRBY.\n- Top 10: ZRANGE key 0 9 REV WITHSCORES.\n- My rank: ZREVRANK key member (zero based, add one).\n- Neighbours: ZRANGE key (rank - 5) (rank + 5) REV.",
+      "## Durability and the data flow",
+      "Redis is an in-memory store, so treat the sorted set as a fast view and keep a database as the source of truth. A common flow: the API validates the score and writes an event to a queue; a worker stores the row in SQL and updates the sorted set. If Redis is lost, rebuild it from SQL. Make updates idempotent with an event id so a retry cannot count twice.",
+      "## Ties, time windows and scale",
+      "- Ties: equal scores sort by member name. To rank earlier achievers higher, fold a timestamp into the score, keeping the value exact within the precision of a double.\n- Windows: one key per day or week, with an expiry, updated by the same event as the all-time key.\n- Scale: split players over several sorted sets by hash of the id. Top N is scatter and gather. Exact rank is the sum of higher counts per shard, so large products show exact ranks for the top and a percentile for the rest.",
+      "## Follow-up questions to prepare",
+      "Friends-only leaderboards, anti-cheat (validate scores server side), what happens when a hot key gets many writes, and how you would test a rebuild of Redis from the database."
+    ],
+    "keyPoints": [
+      "Rank is a count of rows ahead of you, which SQL computes by scanning; a sorted set keeps the order ready.",
+      "Sorted set costs: ZADD, ZINCRBY, ZREVRANK are O(log N); ZRANGE is O(log N + M).",
+      "Keep SQL as the source of truth and treat Redis as a rebuildable view; use a queue and idempotent events.",
+      "Daily and weekly boards are separate keys with expiry; fold time into the score to break ties by who was first.",
+      "To scale past one node, shard by player id and merge the top N from every shard; show percentile instead of exact rank far down."
+    ],
+    "sql": [
+      {
+        "title": "A sorted-set style leaderboard in plain Python (ranks and ties)",
+        "lang": "py",
+        "code": "import bisect\n\nclass Leaderboard:\n    \"\"\"Keeps (-score, tie_breaker, player) in a sorted list: the same read pattern as a sorted set.\n    Insert and rank are O(log N) to find, O(N) to shift here; a skip list removes the shifting.\"\"\"\n\n    def __init__(self):\n        self.rows = []\n        self.by_player = {}\n        self.clock = 0\n\n    def set_score(self, player, score):\n        if player in self.by_player:\n            self.rows.remove(self.by_player[player])\n        self.clock += 1\n        row = (-score, self.clock, player)            # earlier arrival wins a tie\n        bisect.insort(self.rows, row)\n        self.by_player[player] = row\n\n    def top(self, n):\n        return [(p, -s) for s, _, p in self.rows[:n]]\n\n    def rank(self, player):\n        return bisect.bisect_left(self.rows, self.by_player[player]) + 1\n\n    def around(self, player, k):\n        r = self.rank(player) - 1\n        lo = max(0, r - k)\n        return [(p, -s) for s, _, p in self.rows[lo:r + k + 1]]\n\nlb = Leaderboard()\nfor name, score in [(\"ana\", 120), (\"bo\", 300), (\"cy\", 300), (\"di\", 90)]:\n    lb.set_score(name, score)\nassert lb.top(2) == [(\"bo\", 300), (\"cy\", 300)]       # tie: bo reached 300 first\nassert lb.rank(\"ana\") == 3 and lb.rank(\"di\") == 4\nlb.set_score(\"di\", 500)\nassert lb.top(1) == [(\"di\", 500)] and lb.rank(\"ana\") == 4\nassert lb.around(\"ana\", 1) == [(\"cy\", 300), (\"ana\", 120)]"
+      },
+      {
+        "title": "Merging the top N of several shards (scatter and gather)",
+        "lang": "py",
+        "code": "import heapq\n\ndef merge_top(shards, n):\n    \"\"\"Each shard returns its own top list sorted by score descending; the global top n is a k-way merge.\"\"\"\n    merged = heapq.merge(*shards, key=lambda row: -row[1])\n    return list(merged)[:n]\n\nshard_a = [(\"ana\", 900), (\"bo\", 500), (\"cy\", 100)]\nshard_b = [(\"di\", 800), (\"ed\", 700)]\nassert merge_top([shard_a, shard_b], 3) == [(\"ana\", 900), (\"di\", 800), (\"ed\", 700)]\nassert merge_top([[], shard_b], 1) == [(\"di\", 800)]\n\ndef weekly_key(prefix, iso_year, iso_week):\n    return f\"{prefix}:{iso_year}-w{iso_week:02d}\"\n\nassert weekly_key(\"board\", 2026, 7) == \"board:2026-w07\""
+      }
+    ],
+    "django": {},
+    "exercise": "Design the leaderboard on paper in 25 minutes: write your assumptions and the read and write rates, then draw the API, the sorted set, the queue and the SQL table. Write the Redis commands for top 10, my rank and my neighbours. Then answer out loud: what happens if Redis restarts, how do two players with the same score rank, how do you add a weekly board, and what changes at 500 million players?",
+    "pitfalls": [
+      "Computing rank with COUNT(*) on a SQL table that has millions of rows.",
+      "Treating Redis as the only copy of the scores.",
+      "Forgetting ties and time windows until the interviewer asks.",
+      "Making updates non-idempotent, so a queue retry adds points twice.",
+      "Jumping to sharding before checking that one node is not enough."
+    ],
+    "interview": [
+      {
+        "q": "Why is a Redis sorted set good for a leaderboard?",
+        "a": "It keeps members ordered by score, so ZADD or ZINCRBY updates a score in O(log N), ZREVRANK gives a player's rank in O(log N) and ZRANGE reads the top N in O(log N + M). The same queries on SQL need a COUNT over every higher score or a scan, which grows with the number of players."
+      },
+      {
+        "q": "What is your source of truth, and what if Redis loses its data?",
+        "a": "SQL (or another durable store) holds every score. Redis is a fast view built from it. If Redis is lost I rebuild the sorted set from the database, and in the meantime reads can degrade to a slower query or a cached copy. Events go through a queue with ids so updates are idempotent."
+      },
+      {
+        "q": "How do you handle ties?",
+        "a": "Equal scores in a sorted set are ordered by member name, which is arbitrary for users. To make the earlier player rank higher, encode the time in the score, such as score * 10^6 + (max_time - time), as long as the value stays exact in a double, or break ties in the application after fetching a slightly larger range."
+      },
+      {
+        "q": "How would you add daily and weekly leaderboards?",
+        "a": "One sorted set per window, with the date in the key (board:2026-w47) and an expiry set when the window ends. The score update writes to the all-time key and to the current window keys in the same worker step."
+      },
+      {
+        "q": "How do you scale a leaderboard beyond one Redis node?",
+        "a": "Split the players over several sorted sets by hash of the player id. The top N is scatter and gather: take the top N from each shard and merge. An exact global rank is the sum of the number of higher scores in every shard, which is costly, so show exact rank for the top and an approximate percentile (from score buckets) for the rest."
+      }
+    ],
+    "references": [
+      {
+        "title": "Redis sorted sets",
+        "url": "https://redis.io/docs/latest/develop/data-types/sorted-sets/",
+        "kind": "official"
+      },
+      {
+        "title": "System design delivery framework (Hello Interview)",
+        "url": "https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery",
+        "kind": "guide"
+      },
+      {
+        "title": "System Design Primer: design a key-value cache for search queries",
+        "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/query_cache/README.md",
+        "kind": "guide"
+      }
+    ],
+    "basis": "Sources, all read: Redis documentation for sorted sets (definition, the O(log N) and O(log N + M) costs, skip list plus hash table, leaderboards as a named use) and Hello Interview's delivery framework (requirements, estimates, a high-level design, then deep dives). The numbers in the animation (10 million players, 5,000 updates a second, 2,000 reads a second) are illustrative assumptions chosen for clarity, not measurements. The queue and worker design, the tie-breaking trick, the time-window keys, and the sharding and percentile advice are my own judgment, not taken from the Redis page. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "redis-sorted-sets",
+      "hello-delivery",
+      "sd-primer-querycache"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "leaderboard",
+        "title": "A leaderboard with a Redis sorted set",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "score update"
+          },
+          {
+            "kind": "query",
+            "label": "read"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "event",
+            "label": "event"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Requirements",
+            "at": 0
+          },
+          {
+            "text": "Why SQL is slow",
+            "at": 1
+          },
+          {
+            "text": "Sorted set",
+            "at": 2
+          },
+          {
+            "text": "Top N and my rank",
+            "at": 3
+          },
+          {
+            "text": "Durability",
+            "at": 5
+          },
+          {
+            "text": "Ties and windows",
+            "at": 6
+          },
+          {
+            "text": "Scaling",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "pl",
+            "kind": "device",
+            "x": 1.2,
+            "y": 1.2,
+            "label": "Players",
+            "icon": "phone",
+            "tone": "grey"
+          },
+          {
+            "id": "api",
+            "kind": "cube",
+            "x": 3.9,
+            "y": -1.5,
+            "label": "Leaderboard\nAPI",
+            "icon": "server",
+            "tone": "blue"
+          },
+          {
+            "id": "sql",
+            "kind": "db",
+            "x": 8.82,
+            "y": -2.58,
+            "label": "SQL scores\n(source of truth)",
+            "tone": "purple"
+          },
+          {
+            "id": "zs",
+            "kind": "db",
+            "x": 5.7,
+            "y": -5.7,
+            "label": "Redis\nsorted set",
+            "tone": "red",
+            "from": 2
+          },
+          {
+            "id": "q",
+            "kind": "cube",
+            "x": 7.26,
+            "y": -4.14,
+            "label": "Score\nevents",
+            "icon": "queue",
+            "tone": "orange",
+            "from": 5
+          },
+          {
+            "id": "wk",
+            "kind": "cube",
+            "x": 10.26,
+            "y": -7.14,
+            "label": "Updater\nworker",
+            "icon": "gear",
+            "tone": "teal",
+            "from": 5
+          },
+          {
+            "id": "zs2",
+            "kind": "db",
+            "x": 8.22,
+            "y": -9.18,
+            "label": "Redis\nshard B",
+            "tone": "red",
+            "from": 7
+          }
+        ],
+        "links": [
+          {
+            "a": "pl",
+            "b": "api",
+            "dir": "to"
+          },
+          {
+            "a": "api",
+            "b": "sql",
+            "dir": "to",
+            "until": 1
+          },
+          {
+            "a": "api",
+            "b": "zs",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "api",
+            "b": "q",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "q",
+            "b": "wk",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "wk",
+            "b": "sql",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "wk",
+            "b": "zs",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "api",
+            "b": "zs2",
+            "dir": "to",
+            "dash": true,
+            "from": 7
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: a live leaderboard for a game",
+            "tag": "problem",
+            "body": [
+              "Design a leaderboard: players submit scores, everyone can see the top 10, and each player can see their own rank and the players around them. Ranks should be fresh within about a second.",
+              "The numbers here are assumptions for the animation, chosen for clarity: 10 million players, about 5,000 score updates a second and 2,000 leaderboard reads a second. State your own assumptions to the interviewer in the same way."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Players (assumed)",
+                "v": "10 million"
+              },
+              {
+                "k": "Updates (assumed)",
+                "v": "5,000 / s"
+              },
+              {
+                "k": "Reads (assumed)",
+                "v": "2,000 / s"
+              },
+              {
+                "k": "Freshness",
+                "v": "about 1 second",
+                "tone": "warn"
+              }
+            ],
+            "card": {
+              "title": "Requirements",
+              "lines": [
+                "submit a score for a player",
+                "top N players",
+                "my rank, and the players around me",
+                "out of scope: anti-cheat, friends-only boards"
+              ],
+              "hl": []
+            },
+            "set": {
+              "pl": {
+                "pill": {
+                  "text": "2,000 reads/s",
+                  "tone": "grey",
+                  "icon": "users"
+                }
+              }
+            }
+          },
+          {
+            "title": "First attempt: a SQL table",
+            "tag": "problem",
+            "body": [
+              "Store (player_id, score) and run: SELECT ... ORDER BY score DESC LIMIT 10. With an index on score, the top 10 is cheap.",
+              "The trouble is a player's rank: SELECT COUNT(*) ... WHERE score > my_score has to count every row above you. For a player near the bottom of 10 million rows that is a huge range scan on every request, and every score update also has to update the index."
+            ],
+            "short": "SQL is slow for rank",
+            "hud": [
+              {
+                "k": "Top 10",
+                "v": "index scan: fine",
+                "tone": "good"
+              },
+              {
+                "k": "My rank",
+                "v": "counts millions of rows",
+                "tone": "bad"
+              }
+            ],
+            "card": {
+              "title": "SQL",
+              "lines": [
+                "SELECT * FROM scores",
+                "ORDER BY score DESC LIMIT 10;",
+                "",
+                "-- rank: counts all rows above",
+                "SELECT COUNT(*) + 1 FROM scores",
+                "WHERE score > :my_score;"
+              ],
+              "hl": [
+                4,
+                5
+              ]
+            },
+            "set": {
+              "sql": {
+                "status": "hot",
+                "load": 90
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pl",
+                  "api",
+                  "sql"
+                ],
+                "kind": "query"
+              }
+            ]
+          },
+          {
+            "title": "A sorted set keeps the order for you",
+            "tag": "technique",
+            "body": [
+              "A Redis sorted set is a collection of unique members, each with a score, kept ordered by score. ZADD sets or updates a score, and ZINCRBY adds to it; both are O(log N). Redis implements it as a skip list plus a hash table, so finding a member and its position are both fast.",
+              "The database now does the ranking work when a score is written, so reads do not have to scan."
+            ],
+            "short": "Sorted set",
+            "card": {
+              "title": "Redis",
+              "lines": [
+                "ZADD board 1500 \"ana\"",
+                "ZINCRBY board 50 \"ana\"",
+                "# both O(log N)"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "set": {
+              "sql": {
+                "status": null,
+                "load": null
+              },
+              "zs": {
+                "pill": {
+                  "text": "ZADD / ZINCRBY: O(log N)",
+                  "tone": "red",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pl",
+                  "api",
+                  "zs"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "A sorted set holds 10 million players. What is the cost of ZINCRBY on one player?",
+              "options": [
+                "O(1)",
+                "O(log N)",
+                "O(N)",
+                "O(N log N)"
+              ],
+              "answer": 1,
+              "why": "Redis documents ZADD and ZINCRBY as O(log N): the skip list finds the position and the hash table finds the member. It does not re-sort the whole set."
+            }
+          },
+          {
+            "title": "Top N and my rank",
+            "tag": "technique",
+            "body": [
+              "Top 10: ZRANGE board 0 9 REV WITHSCORES, O(log N + 10). My rank: ZREVRANK board \"ana\", O(log N), which is zero based, so add 1. The players around me: take my rank r and read ZRANGE board (r - 5) (r + 5) REV.",
+              "Both reads are cheap and do not depend on how many millions of players there are."
+            ],
+            "short": "Reads",
+            "hud": [
+              {
+                "k": "Top 10",
+                "v": "O(log N + 10)",
+                "tone": "good"
+              },
+              {
+                "k": "My rank",
+                "v": "O(log N)",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Redis",
+              "lines": [
+                "ZRANGE board 0 9 REV WITHSCORES",
+                "ZREVRANK board \"ana\"      # 0-based",
+                "ZRANGE board 95 105 REV    # neighbours"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "set": {
+              "zs": {
+                "pill": {
+                  "text": "reads O(log N + M)",
+                  "tone": "red",
+                  "icon": "bolt"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pl",
+                  "api",
+                  "zs"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "zs",
+                  "api",
+                  "pl"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Redis is memory: what if it restarts?",
+            "tag": "problem",
+            "body": [
+              "A sorted set lives in memory. If the node is lost, the scores must be recoverable. Redis persistence helps but is not the source of truth you want for a game economy.",
+              "Keep the database as the system of record and treat the sorted set as a fast, rebuildable view."
+            ],
+            "short": "Durability",
+            "hud": [
+              {
+                "k": "Redis",
+                "v": "fast, rebuildable view",
+                "tone": "warn"
+              },
+              {
+                "k": "SQL",
+                "v": "source of truth",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "zs": {
+                "status": "down",
+                "pill": {
+                  "text": "restart: empty?",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "Always answer \"what is the source of truth, and how do you rebuild the cache or index from it?\""
+            }
+          },
+          {
+            "title": "Write the event once, update both stores",
+            "tag": "solution",
+            "body": [
+              "The API puts a score event on a queue. A worker writes the durable row to SQL and updates the sorted set. If Redis is lost, rebuild it from SQL; if the worker is down, events wait in the queue.",
+              "Updates stay idempotent when the event carries an id and the worker applies the highest score or the increment exactly once."
+            ],
+            "short": "Queue and worker",
+            "hud": [
+              {
+                "k": "Source of truth",
+                "v": "SQL",
+                "tone": "good"
+              },
+              {
+                "k": "Fast view",
+                "v": "Redis, rebuilt from SQL",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "zs": {
+                "status": "ok",
+                "pill": {
+                  "text": "rebuild from SQL",
+                  "tone": "red",
+                  "icon": "repeat"
+                }
+              },
+              "sql": {
+                "pill": {
+                  "text": "durable",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pl",
+                  "api",
+                  "q",
+                  "wk",
+                  "sql"
+                ],
+                "kind": "event"
+              },
+              {
+                "path": [
+                  "wk",
+                  "zs"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Ties, and daily or weekly boards",
+            "tag": "technique",
+            "body": [
+              "Equal scores are ordered by member name in a sorted set, which is rarely what players expect. To rank the player who reached the score first higher, fold the time into the score, for example score * 1,000,000 + (max_time - time), as long as the number stays exact in a double.",
+              "A weekly leaderboard is just another sorted set with a date in the key, such as board:2026-w47, given an expiry. All-time and weekly boards are separate keys updated by the same event."
+            ],
+            "short": "Ties and windows",
+            "card": {
+              "title": "Keys",
+              "lines": [
+                "board:alltime",
+                "board:2026-w47     # expires after the week",
+                "board:2026-11-21   # daily"
+              ],
+              "hl": [
+                1
+              ]
+            },
+            "set": {
+              "zs": {
+                "pill": {
+                  "text": "one key per window",
+                  "tone": "red",
+                  "icon": "clock"
+                }
+              }
+            }
+          },
+          {
+            "title": "When one sorted set is not enough",
+            "tag": "technique",
+            "body": [
+              "One sorted set on one node is comfortable for millions of members. Beyond that, split the players into several sorted sets by a hash of the player id. The top N is then scatter and gather: ask every shard for its top N and merge the lists.",
+              "An exact global rank is harder: it is the sum of the count of higher scores on every shard. Many products show the exact rank only for the top thousand, and an approximate percentile (bucket the scores) for everyone else."
+            ],
+            "short": "Scaling",
+            "hud": [
+              {
+                "k": "Top N",
+                "v": "merge the top N of every shard"
+              },
+              {
+                "k": "Exact rank far down",
+                "v": "expensive: show a percentile",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "zs": {
+                "pill": null
+              },
+              "zs2": {
+                "pill": {
+                  "text": "shard B",
+                  "tone": "red",
+                  "icon": "bolt"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "api",
+                  "zs"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "api",
+                  "zs2"
+                ],
+                "kind": "query"
+              }
+            ]
+          },
+          {
+            "title": "Recap: what to say",
+            "tag": "insight",
+            "body": [
+              "Requirements, then a sorted set for ordered reads in O(log N), the database as the source of truth, a queue to update both, time-windowed keys, and sharding with scatter and gather when one set is too big. Name the failure cases: Redis lost, duplicate events, hot keys.",
+              "Interviewers often follow with \"how would you show the top 10 among my friends?\": a small sorted set per player or a query of the friends' scores, because the friend list is small."
+            ],
+            "short": "Recap",
+            "hud": [
+              {
+                "k": "Reads",
+                "v": "O(log N + M)",
+                "tone": "good"
+              },
+              {
+                "k": "Writes",
+                "v": "O(log N)",
+                "tone": "good"
+              },
+              {
+                "k": "Durable store",
+                "v": "SQL",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "zs": {
+                "status": "ok"
+              },
+              "zs2": {
+                "status": "ok"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A leaderboard shows who is ahead. A sorted set keeps the list in order so you never recount.",
+      "story": "In a school race, a teacher can tally everyone's time at the end and sort the list, which takes ages. Or the teacher can keep a list on a board where each runner is slotted into the right place the moment they finish. Then \"who is third?\" is just a glance.",
+      "maps": [
+        [
+          "Tallying at the end",
+          "A SQL count and sort on every read"
+        ],
+        [
+          "Slotting runners in as they finish",
+          "ZADD placing a member in order"
+        ],
+        [
+          "A glance at the board",
+          "ZREVRANK and ZRANGE reads"
+        ]
+      ],
+      "words": [
+        [
+          "sorted set",
+          "A collection of unique items, each with a score, always kept in score order."
+        ],
+        [
+          "rank",
+          "A player's position in the ordered list; first place is rank 1."
+        ],
+        [
+          "source of truth",
+          "The store whose data is trusted when copies disagree."
+        ],
+        [
+          "idempotent",
+          "Safe to repeat: doing it twice has the same effect as doing it once."
+        ]
+      ]
+    },
+    "n": 124
+  },
+  {
+    "id": "design-search-engine",
+    "level": 13,
+    "week": "Core",
+    "title": "Design Full-Text Search (Inverted Index)",
+    "tagline": "How keyword search stays fast over millions of documents: analysis, inverted indexes, ranking and shards.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Search comes up in many designs (product search, site search, log search), and interviewers expect you to know why a database LIKE query is the wrong tool and what replaces it. The core answer is the inverted index. Explain it, then show how it is built, queried, ranked and scaled.",
+      "## Requirements and scale",
+      "Ask what is searched (products, posts, logs), the number of documents and queries per second, the latency target, how quickly new documents must appear, and whether you need typo tolerance, filters and facets. State your assumptions as numbers; they drive the number of shards.",
+      "## Why LIKE does not work",
+      "A condition such as text LIKE '%word%' with a leading wildcard cannot use a normal index. The database scans every document for every query, and it has no notion of relevance. Search engines flip the model: instead of storing, per document, its words, they store, per word, the documents that contain it.",
+      "## Analysis",
+      "Text is analyzed before it is indexed: split into tokens, lower-cased, often stripped of very common words, and reduced to word stems so that \"running\" and \"runs\" meet at \"run\". The same analysis runs on the query. Elasticsearch's documentation states that text fields are analyzed and indexed for full-text search, and returns results by relevance rather than exact match only.",
+      "## The inverted index",
+      "The index maps each term to a sorted postings list of document ids, often with term counts and positions. Looking up a term is one dictionary lookup. A query with two terms intersects two sorted lists by walking them together, in time proportional to their lengths; OR is a union and NOT removes ids. Phrase queries use the stored positions.",
+      "## Ranking",
+      "Matches need an order. TF-IDF-style scoring gives a higher score to a document that contains the term often and to a term that is rare across the collection, and BM25 refines it with a limit on repeated terms and normalisation by document length. Production ranking usually adds freshness, popularity or a learned model over the top few hundred candidates, so retrieval is cheap and ranking is expensive but narrow.",
+      "## Shards, replicas and freshness",
+      "- Split the index by document id into shards. A query is sent to all shards, each returns its top results, and a coordinator merges them (scatter and gather). Latency is set by the slowest shard.\n- Replicas serve reads and survive failures.\n- New documents go into small immutable segments that are searched together and merged in the background; searchable after a short refresh interval, about a second in Elasticsearch by default.\n- Cache popular queries briefly.",
+      "## What to say at the end",
+      "Say what you left out: spelling correction, autocomplete (a trie or an edge n-gram index), personalised ranking and how you measure relevance (click-through, human judgments). Naming the gaps shows you know the real problem is larger than the diagram."
+    ],
+    "keyPoints": [
+      "A LIKE with a leading wildcard scans every row; search engines store, per term, the documents that contain it.",
+      "Analysis (tokens, lower-case, stop words, stems) must be identical at index time and query time.",
+      "AND is an intersection of sorted postings lists; OR is a union.",
+      "Rank with TF-IDF or BM25 ideas: term frequency, term rarity, length normalisation; then re-rank the top candidates.",
+      "Shard by document id and scatter-gather; latency is the slowest shard; new documents live in small segments merged later."
+    ],
+    "sql": [
+      {
+        "title": "A tiny inverted index with AND queries and TF-IDF-style ranking",
+        "lang": "py",
+        "code": "import math\nimport re\nfrom collections import defaultdict, Counter\n\nSTOP = {\"the\", \"a\", \"an\", \"are\", \"is\", \"of\", \"and\"}\n\ndef analyze(text):\n    tokens = re.findall(r\"[a-z0-9]+\", text.lower())\n    out = []\n    for t in tokens:\n        if t in STOP:\n            continue\n        for suffix in (\"ing\", \"s\"):\n            if t.endswith(suffix) and len(t) > len(suffix) + 2:\n                t = t[: -len(suffix)]\n                if suffix == \"ing\" and len(t) > 2 and t[-1] == t[-2]:\n                    t = t[:-1]                       # running -> runn -> run\n                break\n        out.append(t)\n    return out\n\nclass Index:\n    def __init__(self):\n        self.postings = defaultdict(dict)        # term -> {doc_id: term count}\n        self.length = {}\n\n    def add(self, doc_id, text):\n        tokens = analyze(text)\n        self.length[doc_id] = len(tokens)\n        for term, n in Counter(tokens).items():\n            self.postings[term][doc_id] = n\n\n    def search(self, query, k=3):\n        terms = analyze(query)\n        if not terms or any(t not in self.postings for t in terms):\n            return []\n        ids = set(self.postings[terms[0]])\n        for t in terms[1:]:\n            ids &= set(self.postings[t])          # AND: intersect the postings\n        n_docs = len(self.length)\n        scores = {}\n        for d in ids:\n            s = 0.0\n            for t in terms:\n                tf = self.postings[t][d] / self.length[d]\n                idf = math.log((1 + n_docs) / (1 + len(self.postings[t]))) + 1\n                s += tf * idf\n            scores[d] = s\n        return sorted(scores, key=lambda d: (-scores[d], d))[:k]\n\nix = Index()\nix.add(1, \"The fast red car\")\nix.add(3, \"A fast car, a fast car, a fast car and a slow train\")\nix.add(4, \"Cars are running on the road\")\nix.add(9, \"Running shoes\")\nassert analyze(\"The Fast Cars are Running!\") == [\"fast\", \"car\", \"run\"]\nassert set(ix.search(\"fast car\")) == {1, 3}\nassert ix.search(\"fast car\")[0] == 3                     # the term appears more often in doc 3\nassert ix.search(\"unicorn\") == []\nassert 4 in ix.search(\"car\") and 9 not in ix.search(\"car\")"
+      },
+      {
+        "title": "Intersecting two sorted postings lists in linear time",
+        "lang": "py",
+        "code": "def intersect(a, b):\n    i = j = 0\n    out = []\n    while i < len(a) and j < len(b):\n        if a[i] == b[j]:\n            out.append(a[i])\n            i += 1\n            j += 1\n        elif a[i] < b[j]:\n            i += 1\n        else:\n            j += 1\n    return out\n\nassert intersect([1, 3, 7, 12], [3, 4, 12, 20]) == [3, 12]\nassert intersect([], [1]) == []\nassert intersect([1, 2], [3, 4]) == []"
+      }
+    ],
+    "django": {},
+    "exercise": "Build the index in the first sample and extend it: add phrase queries using stored positions, an OR operator, and a NOT operator. Then design on paper search for 300 million products: pick the number of shards from your assumptions, decide the shard key, describe what happens when one shard is slow, how a price change reaches the index, and how you would implement autocomplete as a separate component.",
+    "pitfalls": [
+      "Proposing a LIKE query or a SQL full scan for text search.",
+      "Applying different analysis at index time and at query time, so terms never match.",
+      "Forgetting that a query must hit every shard, so tail latency is the slowest shard.",
+      "Calling the search index the source of truth, instead of a derived copy that can be rebuilt.",
+      "Ignoring relevance: returning matches in id order."
+    ],
+    "interview": [
+      {
+        "q": "What is an inverted index?",
+        "a": "A map from each term to the sorted list of the documents that contain it (a postings list), often with counts and positions. A query looks up its terms and combines the lists, so the work depends on the matching documents, not on the whole collection. It is called inverted because it flips the usual document-to-words direction."
+      },
+      {
+        "q": "Why can a database LIKE '%word%' query not power search?",
+        "a": "A leading wildcard cannot use a normal B-tree index, so the database scans every row for every query. It also cannot rank by relevance. At large scale this is too slow and expensive; a search engine builds an inverted index once and answers from it."
+      },
+      {
+        "q": "What does analysis do and why must it match at query time?",
+        "a": "It converts text to the tokens that are indexed: split, lower-case, remove stop words, reduce words to stems. A query must go through the same steps, otherwise its tokens will not equal the stored ones and nothing matches."
+      },
+      {
+        "q": "How do you combine \"fast\" AND \"car\"?",
+        "a": "Take the two sorted postings lists and intersect them by walking both with two pointers, advancing the smaller id; the cost is proportional to the list lengths. Starting with the shortest list and using skip pointers speeds this up. OR is a merge into a union, NOT removes ids."
+      },
+      {
+        "q": "How does a distributed search system answer a query?",
+        "a": "The index is sharded by document id. A coordinator sends the query to every shard, each shard returns its top results using its local inverted index, and the coordinator merges and re-ranks them. Replicas add availability and read capacity. Total latency is set by the slowest shard, so timeouts and replicas are important."
+      }
+    ],
+    "references": [
+      {
+        "title": "Full-text search in Elasticsearch",
+        "url": "https://www.elastic.co/docs/solutions/search/full-text",
+        "kind": "official"
+      },
+      {
+        "title": "System Design Primer: design the Twitter timeline and search",
+        "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md",
+        "kind": "guide"
+      },
+      {
+        "title": "System design delivery framework (Hello Interview)",
+        "url": "https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery",
+        "kind": "guide"
+      }
+    ],
+    "basis": "Sources, all read: Elastic's full-text search page (full-text or lexical search; text fields are analyzed and indexed; results ranked by relevance; it does not itself describe inverted indexes or BM25 formulas), the System Design Primer's Twitter design (a search component beside the timeline) and Hello Interview's delivery framework. The inverted index structure, TF-IDF and BM25 as the default in Lucene-based engines, shards and scatter-gather, immutable segments and the one-second default refresh are general engineering knowledge that I am stating without a page I read for them, so verify exact defaults against the documentation of the engine you use. The numbers in the animation (300 million documents, 3,000 queries a second, one second of freshness) are illustrative assumptions chosen for clarity, not measurements. The step order and what to leave out are my judgment. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "elastic-full-text",
+      "sd-primer-twitter",
+      "hello-delivery"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "search",
+        "title": "A full-text search engine, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "index"
+          },
+          {
+            "kind": "query",
+            "label": "search"
+          },
+          {
+            "kind": "response",
+            "label": "results"
+          },
+          {
+            "kind": "event",
+            "label": "merge"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Requirements",
+            "at": 0
+          },
+          {
+            "text": "Why LIKE is slow",
+            "at": 1
+          },
+          {
+            "text": "Analysis",
+            "at": 2
+          },
+          {
+            "text": "Inverted index",
+            "at": 3
+          },
+          {
+            "text": "AND queries",
+            "at": 4
+          },
+          {
+            "text": "Ranking",
+            "at": 5
+          },
+          {
+            "text": "Shards",
+            "at": 6
+          },
+          {
+            "text": "Freshness",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "docs",
+            "kind": "crowd",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "Documents",
+            "tone": "grey"
+          },
+          {
+            "id": "an",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -2.7,
+            "label": "Analyzer\n(tokens)",
+            "icon": "gear",
+            "tone": "orange",
+            "from": 2
+          },
+          {
+            "id": "s1",
+            "kind": "db",
+            "x": 4.98,
+            "y": -6.42,
+            "label": "Shard 1\ninverted index",
+            "tone": "purple",
+            "from": 3
+          },
+          {
+            "id": "s2",
+            "kind": "db",
+            "x": 7.86,
+            "y": -3.54,
+            "label": "Shard 2\ninverted index",
+            "tone": "purple",
+            "from": 6
+          },
+          {
+            "id": "co",
+            "kind": "cube",
+            "x": 9.42,
+            "y": -7.98,
+            "label": "Coordinator\nand ranker",
+            "icon": "split",
+            "tone": "blue",
+            "from": 4
+          },
+          {
+            "id": "user",
+            "kind": "device",
+            "x": 12.12,
+            "y": -10.68,
+            "label": "Searcher",
+            "icon": "laptop",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "cache",
+            "kind": "cube",
+            "x": 14.28,
+            "y": -8.52,
+            "label": "Result\ncache",
+            "icon": "bolt",
+            "tone": "red",
+            "from": 8
+          }
+        ],
+        "links": [
+          {
+            "a": "docs",
+            "b": "an",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "an",
+            "b": "s1",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "an",
+            "b": "s2",
+            "dir": "to",
+            "from": 6
+          },
+          {
+            "a": "s1",
+            "b": "co",
+            "dir": "both",
+            "from": 5
+          },
+          {
+            "a": "s2",
+            "b": "co",
+            "dir": "both",
+            "from": 6
+          },
+          {
+            "a": "co",
+            "b": "user",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "co",
+            "b": "cache",
+            "dir": "both",
+            "dash": true,
+            "from": 8
+          }
+        ],
+        "steps": [
+          {
+            "title": "The prompt: search over many documents",
+            "tag": "problem",
+            "body": [
+              "Design search for a site with hundreds of millions of documents (products, posts, pages). Users type a few words and expect relevant results in well under a second, with new documents searchable soon after they are published.",
+              "The numbers in this animation are assumptions chosen for clarity: 300 million documents, 3,000 queries a second, and about a second of delay before a new document is searchable."
+            ],
+            "short": "Prompt",
+            "hud": [
+              {
+                "k": "Documents (assumed)",
+                "v": "300 million"
+              },
+              {
+                "k": "Queries (assumed)",
+                "v": "3,000 / s"
+              },
+              {
+                "k": "Latency target",
+                "v": "under 500 ms",
+                "tone": "warn"
+              },
+              {
+                "k": "Freshness",
+                "v": "about 1 second"
+              }
+            ],
+            "card": {
+              "title": "Requirements",
+              "lines": [
+                "keyword search with relevant ranking",
+                "results fast, even for common words",
+                "new documents searchable soon",
+                "out of scope: spelling, personalisation, ads"
+              ],
+              "hl": []
+            },
+            "set": {
+              "docs": {
+                "pill": {
+                  "text": "300 million",
+                  "tone": "grey",
+                  "icon": "file"
+                }
+              }
+            }
+          },
+          {
+            "title": "Why not WHERE text LIKE '%word%'?",
+            "tag": "problem",
+            "body": [
+              "A leading wildcard cannot use a normal index, so the database scans every document for every query. 300 million documents at 3,000 queries a second is not workable, and a scan also has no idea which results are more relevant.",
+              "Search engines reverse the problem: instead of \"for each document, which words does it have\", they store \"for each word, which documents have it\"."
+            ],
+            "short": "LIKE is a scan",
+            "hud": [
+              {
+                "k": "LIKE %word%",
+                "v": "scans every document",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "user": {
+                "pill": {
+                  "text": "\"fast car\"",
+                  "tone": "grey",
+                  "icon": "search"
+                }
+              }
+            }
+          },
+          {
+            "title": "Analysis: turn text into tokens",
+            "tag": "technique",
+            "body": [
+              "Before indexing, text is analyzed: split into tokens (words), lower-cased, often with very common words removed and words reduced to a stem, so \"Running\" and \"runs\" both become \"run\". Elasticsearch describes text fields as analyzed and indexed for full-text search.",
+              "The same analysis must be applied to the query, or \"Running\" would never match the stored \"run\"."
+            ],
+            "short": "Analysis",
+            "card": {
+              "title": "Analyzer",
+              "lines": [
+                "\"The Fast Cars are Running!\"",
+                "  split on non-letters",
+                "  lower-case",
+                "  remove stop words (the, are)",
+                "  stem: cars -> car, running -> run",
+                "=> [fast, car, run]"
+              ],
+              "hl": [
+                5
+              ]
+            },
+            "set": {
+              "an": {
+                "status": "live",
+                "pill": {
+                  "text": "same at query time",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "docs",
+                  "an"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "Why must the query pass through the same analyzer as the documents?",
+              "options": [
+                "To make it shorter",
+                "So its tokens match the stored tokens",
+                "To encrypt it",
+                "To rank it"
+              ],
+              "answer": 1,
+              "why": "The index contains analyzed tokens such as \"run\". If the query kept \"Running\", it would not match. Index and query must use the same analysis."
+            }
+          },
+          {
+            "title": "The inverted index",
+            "tag": "technique",
+            "body": [
+              "The index maps each term to the sorted list of ids of the documents that contain it (a postings list). Looking up a term is a dictionary lookup, then you read its list. The cost no longer depends on how many documents do not contain the word.",
+              "Postings often also store how many times the word appears and its positions, which is needed for ranking and phrase queries."
+            ],
+            "short": "Inverted index",
+            "card": {
+              "title": "Index",
+              "lines": [
+                "fast : [1, 3, 7, 12]",
+                "car  : [3, 4, 12, 20]",
+                "run  : [3, 9]",
+                "# term -> sorted document ids"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "set": {
+              "s1": {
+                "status": "live",
+                "pill": {
+                  "text": "term -> doc ids",
+                  "tone": "purple",
+                  "icon": "search"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "an",
+                  "s1"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "A two-word query: intersect the lists",
+            "tag": "technique",
+            "body": [
+              "The query \"fast car\" means documents containing both words. Take the two sorted lists and walk them together, advancing the pointer with the smaller id: [1, 3, 7, 12] and [3, 4, 12, 20] give [3, 12]. Cost is proportional to the list lengths, and you can start from the shortest list.",
+              "OR queries are a union of the lists, and NOT removes ids."
+            ],
+            "short": "AND query",
+            "hud": [
+              {
+                "k": "Matches",
+                "v": "documents 3 and 12",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "i = j = 0; out = []",
+                "while i < len(a) and j < len(b):",
+                "    if a[i] == b[j]: out.append(a[i]); i += 1; j += 1",
+                "    elif a[i] < b[j]: i += 1",
+                "    else: j += 1"
+              ],
+              "hl": [
+                2
+              ]
+            },
+            "set": {
+              "s1": {
+                "pill": {
+                  "text": "[3, 12]",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              },
+              "co": {
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "user",
+                  "co"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "co",
+                  "s1"
+                ],
+                "kind": "query"
+              }
+            ]
+          },
+          {
+            "title": "Ranking: which match comes first?",
+            "tag": "technique",
+            "body": [
+              "Thousands of documents may match, so results need a relevance score. The classic idea (TF-IDF, and its successor BM25, the default in Lucene-based engines) rewards a document when the query term appears often in it and when the term is rare across all documents, and normalises for document length.",
+              "Real systems add signals such as freshness, popularity and click data, often with a learned ranking model applied to the top few hundred candidates."
+            ],
+            "short": "Ranking",
+            "hud": [
+              {
+                "k": "Term frequency",
+                "v": "more in this document: higher"
+              },
+              {
+                "k": "Rarity",
+                "v": "rare in the corpus: higher"
+              },
+              {
+                "k": "Length",
+                "v": "long documents are normalised"
+              }
+            ],
+            "set": {
+              "co": {
+                "pill": {
+                  "text": "score and sort",
+                  "tone": "blue",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "co",
+                  "user"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Shards: split the index and scatter the query",
+            "tag": "solution",
+            "body": [
+              "300 million documents do not fit one machine, so the index is split into shards by document id. Each shard holds a complete inverted index for its documents. A query goes to every shard (scatter), each returns its own top results, and the coordinator merges them (gather).",
+              "Replicas of each shard add availability and read capacity. Latency is set by the slowest shard, so one slow shard hurts every query: use timeouts and hedged requests."
+            ],
+            "short": "Shards",
+            "hud": [
+              {
+                "k": "Query goes to",
+                "v": "every shard"
+              },
+              {
+                "k": "Latency",
+                "v": "slowest shard sets it",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "s1": {
+                "pill": {
+                  "text": "top 10 of shard 1",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              },
+              "s2": {
+                "status": "live",
+                "pill": {
+                  "text": "top 10 of shard 2",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "co",
+                  "s1"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "co",
+                  "s2"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "s1",
+                  "co"
+                ],
+                "kind": "event"
+              },
+              {
+                "path": [
+                  "s2",
+                  "co"
+                ],
+                "kind": "event"
+              }
+            ]
+          },
+          {
+            "title": "Freshness: new documents become searchable",
+            "tag": "technique",
+            "body": [
+              "Rewriting a big index for each new document is far too slow. Engines like Lucene write new documents into small immutable segments and search across all segments, merging them in the background. Elasticsearch makes new documents searchable after a refresh, about a second by default.",
+              "Deletes are marked, not removed, until a merge rewrites the segment. The cost is extra disk and merge work, in return for fast, lock-free reads."
+            ],
+            "short": "Freshness",
+            "hud": [
+              {
+                "k": "New document visible",
+                "v": "about 1 s (refresh)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s2": {
+                "pill": {
+                  "text": "new segment, merged later",
+                  "tone": "purple",
+                  "icon": "repeat"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "docs",
+                  "an"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "an",
+                  "s2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Caching and recap",
+            "tag": "insight",
+            "body": [
+              "Many queries repeat, so cache popular query results for a short time, and invalidate or let them expire as the index changes. Know the trade-off: a cached result can be a few seconds stale.",
+              "Summary: analyze, build an inverted index, intersect postings, rank, shard and scatter-gather, add replicas and a cache. Name the hard parts: relevance quality, slow shards, and keeping the index in step with the source data."
+            ],
+            "short": "Recap",
+            "hud": [
+              {
+                "k": "Index",
+                "v": "inverted, sharded"
+              },
+              {
+                "k": "Query",
+                "v": "scatter, gather, rank"
+              },
+              {
+                "k": "Cache",
+                "v": "popular queries, short TTL"
+              }
+            ],
+            "set": {
+              "cache": {
+                "status": "live",
+                "pill": {
+                  "text": "popular queries",
+                  "tone": "red",
+                  "icon": "bolt"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "user",
+                  "co",
+                  "cache"
+                ],
+                "kind": "query"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A search engine keeps a list for each word saying which pages contain it, so it never has to read every page.",
+      "story": "At the back of a textbook there is an index. To find \"photosynthesis\" you do not read every page. You look up the word and it tells you pages 14 and 88. A search engine keeps a giant back-of-book index for all its documents.",
+      "maps": [
+        [
+          "The index at the back of a book",
+          "The inverted index"
+        ],
+        [
+          "A word with its page numbers",
+          "A term with its postings list"
+        ],
+        [
+          "Looking up two words and finding common pages",
+          "Intersecting two postings lists"
+        ]
+      ],
+      "words": [
+        [
+          "inverted index",
+          "A map from each word to the list of documents that contain it."
+        ],
+        [
+          "postings list",
+          "The sorted list of document ids stored for one word."
+        ],
+        [
+          "analyzer",
+          "The step that splits text into lower-case word pieces, and trims them, before indexing or searching."
+        ],
+        [
+          "shard",
+          "One slice of a large index, held on its own machine."
+        ]
+      ]
+    },
+    "n": 125
+  },
+  {
+    "id": "resume-project-walkthrough",
+    "level": 6,
+    "week": "Core",
+    "title": "Resume Bullets and Project Walkthroughs",
+    "tagline": "Turn each resume line into a story you can defend for ten minutes of follow-up questions.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "Most interviews begin with your resume and a project walkthrough, and the follow-up questions often decide the round. The goal is not to impress with a long list of tools; it is to show that you understand what you built, why you built it that way, and what happened. Every line on your resume must survive five minutes of \"why?\".",
+      "## Write bullets that start a story",
+      "A strong bullet has four parts: an action verb, what you built or changed, how you did it (the main technology or method) and a result you can measure. Compare \"Worked on the payments API\" with \"Cut checkout p95 latency from 800 ms to 120 ms by adding a Redis cache and removing an N+1 query\". The second one makes the interviewer ask exactly the question you want.",
+      "- Lead with verbs such as built, cut, migrated, designed and led, not \"responsible for\" or \"helped with\".\n- Put one number in most bullets: latency, cost, error rate, users, time saved.\n- Name the technology only where it is part of the result.\n- Drop anything you could not discuss for five minutes.",
+      "## The 90-second project walkthrough",
+      "Use the same order every time. First, the problem and why it mattered. Second, your role and the size of the team. Third, the key decision and the alternative you rejected, with the reason. Fourth, the result with a number. Fifth, what you would do differently. This takes about a minute and a half. Stop there. A short, clear answer leads to the follow-up questions you have prepared for.",
+      "## Prepare for the probes",
+      "Interviewers dig where the story is thin. Expect: why this technology and what else you considered, the hardest bug, what broke first as it scaled, how you measured the result, what you would change, and which part you did yourself. Write one honest answer for each, with a real detail. Failures and trade-offs are good material: they show judgment.",
+      "## Numbers you can defend",
+      "Every number is a question: where did it come from, over what period, and what else changed? Know the source (a dashboard, a load test, a before and after). If you cannot defend a number, soften it or remove it. An exaggeration found in the first follow-up makes the rest of the story less believable.",
+      "## We and I",
+      "Say \"we\" for the team outcome and \"I\" for what you personally decided, wrote or fixed. If you only say \"we\", the interviewer cannot see your contribution. If you only say \"I\", the story sounds unrealistic. Be honest about what you did not do.",
+      "## Map stories to common questions",
+      "Prepare four to six stories and note which questions each can answer: a conflict, a failure, a deadline, a decision with missing data, a time you led or influenced someone. Companies publish what they look for; Amazon's leadership principles include Ownership, Dive Deep, Deliver Results, Learn and Be Curious, Have Backbone and Disagree and Commit, so tag stories to those if you interview there. One story can serve several questions if you change the emphasis."
+    ],
+    "keyPoints": [
+      "A good bullet = verb + what + how + a measured result.",
+      "Tell the project in about 90 seconds: problem, role, key decision and rejected alternative, result, what you would change.",
+      "Prepare the follow-ups: why this tool, what broke, how you measured, what you would change, what you did yourself.",
+      "Only keep numbers you can explain; never invent or round up results.",
+      "Say \"we\" for the team result and \"I\" for your part; prepare four to six stories mapped to common questions."
+    ],
+    "sql": [
+      {
+        "title": "A small resume bullet checker",
+        "lang": "py",
+        "code": "import re\n\nWEAK_STARTS = (\"responsible for\", \"worked on\", \"helped with\", \"involved in\", \"assisted\")\n\ndef lint_bullet(text):\n    \"\"\"Return a list of problems with a resume bullet.\"\"\"\n    issues = []\n    lowered = text.lower().strip()\n    if lowered.startswith(WEAK_STARTS):\n        issues.append(\"starts with a weak phrase: use a verb such as built, cut or led\")\n    if not re.search(r\"\\d\", text):\n        issues.append(\"no number: add a measured result\")\n    if len(text.split()) > 30:\n        issues.append(\"too long: aim for one or two lines\")\n    if len(text.split()) < 6:\n        issues.append(\"too short: say what and how\")\n    return issues\n\nassert lint_bullet(\"Worked on the payments API\") != []\ngood = \"Cut checkout p95 latency from 800 ms to 120 ms with a Redis cache and an N+1 fix\"\nassert lint_bullet(good) == []\nassert \"no number: add a measured result\" in lint_bullet(\"Built a recommendation service for the mobile app team\")"
+      }
+    ],
+    "django": {},
+    "exercise": "Take your three strongest resume bullets and rewrite each as verb + what + how + result. For each one, write the 90-second walkthrough in five lines (problem, role, decision and rejected alternative, result, what you would change). Then write one honest answer for each probe: why this tool, what broke, how you measured it, what you would change, what you did yourself. Practise out loud with a timer, then ask a friend to interrupt with \"why?\" every 20 seconds.",
+    "pitfalls": [
+      "Listing technologies without a result or a reason for choosing them.",
+      "A number you cannot explain, or one that mixes your work with other changes.",
+      "Saying only \"we\", so your own contribution is invisible.",
+      "A five-minute opening answer that leaves no room for questions.",
+      "Describing a project with no failure or trade-off; it sounds unreal and gives the interviewer nothing to probe."
+    ],
+    "interview": [
+      {
+        "q": "Walk me through a project on your resume.",
+        "a": "Start with the problem and why it mattered, then your role and the team size, the key decision and the alternative I rejected (and why), the result with a number, and what I would change. About 90 seconds, then I stop and let them ask. I choose a project where I can go deep on any detail."
+      },
+      {
+        "q": "How do you describe your own contribution on a team project?",
+        "a": "I say \"we\" for the team result and \"I\" for what I decided, built or fixed, with specifics: \"I designed the cache layer and wrote the migration\". I am honest about parts others owned, and I can still explain how those parts worked."
+      },
+      {
+        "q": "How did you measure the improvement you list on your resume?",
+        "a": "I name the source (a dashboard, a load test, a before and after in production), the period and the conditions, and what else changed in that time. If the number was an estimate I say so. Being exact about measurement matters more than a big number."
+      },
+      {
+        "q": "What would you do differently in that project?",
+        "a": "A specific, honest change: for example, load test earlier, write the runbook before launch, or choose a simpler design. It shows reflection. I avoid a disguised strength such as \"I worked too hard\"."
+      },
+      {
+        "q": "Tell me about a technical decision you made and the alternatives.",
+        "a": "I describe the options considered, the criteria (latency, cost, complexity, team skills), what I chose and why, how I validated the choice and whether it held up. A decision with trade-offs and a clear reason is a better answer than a perfect story."
+      }
+    ],
+    "references": [
+      {
+        "title": "Amazon Leadership Principles",
+        "url": "https://www.amazon.jobs/content/en/our-workplace/leadership-principles",
+        "kind": "official"
+      },
+      {
+        "title": "SDE II interview prep (Amazon)",
+        "url": "https://www.amazon.jobs/content/en/how-we-hire/sde-ii-interview-prep",
+        "kind": "official"
+      },
+      {
+        "title": "Preparing for your software engineering interview (Meta)",
+        "url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
+        "kind": "official"
+      }
+    ],
+    "basis": "Sources, all read: Amazon's Leadership Principles page (the principle names used in the mapping step) and Meta's preparation article and Amazon's SDE II prep page, which describe behavioural and experience-based questions as part of the loop. The bullet formula, the five-part 90-second structure, the list of probes and the advice on numbers and on \"we\" and \"I\" are my own teaching judgment from common interview practice; they are not a published standard from those companies. The example numbers (800 ms to 120 ms) are illustrative, not a real project. The Python checker is a toy to practise on. Priorities and hours are my judgment; the roadmap raises the priority for roles that need it.",
+    "sources": [
+      "amazon-leadership-principles",
+      "amazon-sde2",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "walkthrough",
+        "title": "From a resume bullet to a 90-second story",
+        "legend": [
+          {
+            "kind": "event",
+            "label": "you say"
+          },
+          {
+            "kind": "query",
+            "label": "they probe"
+          },
+          {
+            "kind": "response",
+            "label": "you answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Bullet anatomy",
+            "at": 0
+          },
+          {
+            "text": "90-second story",
+            "at": 1
+          },
+          {
+            "text": "Probes",
+            "at": 3
+          },
+          {
+            "text": "Numbers",
+            "at": 4
+          },
+          {
+            "text": "Close",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "bul",
+            "kind": "cube",
+            "x": 1.2,
+            "y": 1.2,
+            "label": "Resume\nbullet",
+            "icon": "file",
+            "tone": "blue"
+          },
+          {
+            "id": "ctx",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -2.7,
+            "label": "Context\nand your role",
+            "icon": "user",
+            "tone": "orange",
+            "from": 1
+          },
+          {
+            "id": "dec",
+            "kind": "cube",
+            "x": 5.4,
+            "y": -5.4,
+            "label": "Decision and\nalternative",
+            "icon": "split",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "res",
+            "kind": "cube",
+            "x": 8.1,
+            "y": -8.1,
+            "label": "Result\nwith a number",
+            "icon": "gauge",
+            "tone": "green",
+            "from": 1
+          },
+          {
+            "id": "prb",
+            "kind": "cube",
+            "x": 8.04,
+            "y": -2.76,
+            "label": "Interviewer\nprobes",
+            "icon": "search",
+            "tone": "red",
+            "from": 2
+          },
+          {
+            "id": "lrn",
+            "kind": "cube",
+            "x": 10.74,
+            "y": -5.46,
+            "label": "What you\nlearned",
+            "icon": "bolt",
+            "tone": "teal",
+            "from": 5
+          }
+        ],
+        "links": [
+          {
+            "a": "bul",
+            "b": "ctx",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "ctx",
+            "b": "dec",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "dec",
+            "b": "res",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "res",
+            "b": "prb",
+            "dir": "to",
+            "dash": true,
+            "from": 2
+          },
+          {
+            "a": "prb",
+            "b": "dec",
+            "dir": "to",
+            "dash": true,
+            "from": 2
+          },
+          {
+            "a": "res",
+            "b": "lrn",
+            "dir": "to",
+            "from": 5
+          }
+        ],
+        "steps": [
+          {
+            "title": "Anatomy of a strong bullet",
+            "tag": "technique",
+            "body": [
+              "Interviewers pick a line from your resume and dig into it, so each bullet should be the start of a story you can tell. A strong bullet has an action verb, what you built or changed, how (the key technology or method), and a result with a number.",
+              "Weak: \"Worked on the payments API\". Strong: \"Cut checkout API p95 latency from 800 ms to 120 ms by adding a Redis cache and fixing an N+1 query\"."
+            ],
+            "short": "Bullet anatomy",
+            "hud": [
+              {
+                "k": "Verb",
+                "v": "built, cut, migrated, led"
+              },
+              {
+                "k": "Result",
+                "v": "a number you can defend",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Formula",
+              "lines": [
+                "verb + what + how + measured result",
+                "",
+                "Weak:   Worked on the payments API",
+                "Strong: Cut checkout p95 latency 800 ms -> 120 ms",
+                "        with a Redis cache and an N+1 fix"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            },
+            "set": {
+              "bul": {
+                "pill": {
+                  "text": "verb, what, how, result",
+                  "tone": "blue",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "The 90-second walkthrough",
+            "tag": "solution",
+            "body": [
+              "When asked \"tell me about this project\", answer in this order: the problem and why it mattered (one or two sentences), your role and team size, the key decision and the alternative you rejected, the result with a number, and what you would do differently.",
+              "Keep it to about 90 seconds and stop. A short, clear answer invites the follow-up questions you prepared for; a long one buries them."
+            ],
+            "short": "Walkthrough",
+            "set": {
+              "ctx": {
+                "pill": {
+                  "text": "why it mattered, your role",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "dec": {
+                "pill": {
+                  "text": "chose A over B because",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              },
+              "res": {
+                "pill": {
+                  "text": "800 -> 120 ms",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "bul",
+                  "ctx",
+                  "dec",
+                  "res"
+                ],
+                "kind": "event"
+              }
+            ],
+            "predict": {
+              "question": "Which part of a project story do interviewers learn the most from?",
+              "options": [
+                "The list of technologies used",
+                "The key decision and the alternative you rejected",
+                "The company's name",
+                "The date the project started"
+              ],
+              "answer": 1,
+              "why": "Technologies are on the resume already. The decision and the rejected alternative show how you think, which is what the interview is measuring."
+            }
+          },
+          {
+            "title": "Prepare for the follow-ups",
+            "tag": "technique",
+            "body": [
+              "After the story come probes. Expect: why this technology and not another, what was the hardest bug, how did it scale and what broke first, how did you measure the result, what would you change, and what did the rest of the team do?",
+              "Prepare one honest answer for each, with a real detail such as a number, a failure or a trade-off."
+            ],
+            "short": "Probes",
+            "card": {
+              "title": "Follow-ups to prepare",
+              "lines": [
+                "Why this tool, and what else did you consider?",
+                "What broke, and how did you find it?",
+                "How did you measure the result?",
+                "What would you change now?",
+                "Which part did you personally do?"
+              ],
+              "hl": []
+            },
+            "set": {
+              "prb": {
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "res",
+                  "prb"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "prb",
+                  "dec"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Numbers you can defend",
+            "tag": "technique",
+            "body": [
+              "Every number on the resume is a question. Know where it came from (a dashboard, a load test, a before and after), over what period, and what else changed. If you cannot defend a number, soften it (\"about\", \"reduced noticeably\") or remove it.",
+              "Never invent or round up a result. Interviewers often ask for the exact way it was measured."
+            ],
+            "short": "Numbers",
+            "hud": [
+              {
+                "k": "Source of the number",
+                "v": "know it",
+                "tone": "good"
+              },
+              {
+                "k": "Unclear numbers",
+                "v": "remove or soften",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "res": {
+                "status": "live",
+                "pill": {
+                  "text": "where did 120 ms come from?",
+                  "tone": "green",
+                  "icon": "search"
+                }
+              }
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "An exaggerated number found in the first follow-up damages the credibility of everything else."
+            }
+          },
+          {
+            "title": "\"We\" and \"I\": show your own part",
+            "tag": "technique",
+            "body": [
+              "Most work is a team effort, and interviewers know it. Say \"we\" for the team result, and \"I\" for what you decided, built or fixed. If every sentence is \"we\", they cannot tell what you did.",
+              "Be honest about the parts you did not do; you can still describe how they worked and why."
+            ],
+            "short": "We and I",
+            "hud": [
+              {
+                "k": "Team result",
+                "v": "we"
+              },
+              {
+                "k": "Your part",
+                "v": "I",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "ctx": {
+                "pill": {
+                  "text": "I designed the cache",
+                  "tone": "orange",
+                  "icon": "user"
+                }
+              }
+            }
+          },
+          {
+            "title": "Close with what you learned",
+            "tag": "insight",
+            "body": [
+              "End with one concrete lesson or change you made afterwards: \"next time I would load test earlier\" or \"I added a runbook\". It shows reflection, which many behavioural questions look for.",
+              "Amazon publishes its leadership principles, including Ownership, Dive Deep, Deliver Results, Learn and Be Curious and Have Backbone; Disagree and Commit. A single project story can usually be told to answer several of these. Prepare four to six stories and tag each one with the questions it can answer."
+            ],
+            "short": "Learning and mapping",
+            "set": {
+              "lrn": {
+                "status": "live",
+                "pill": {
+                  "text": "one concrete change",
+                  "tone": "teal",
+                  "icon": "check"
+                }
+              },
+              "prb": {
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "res",
+                  "lrn"
+                ],
+                "kind": "event"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Your resume is a menu. The interviewer will order one dish and ask how you cooked it.",
+      "story": "Imagine a chef whose menu lists \"great soup\". A guest orders it and asks what is in it, why the salt is right and what went wrong last time. A good chef answers with real details. A weak chef only knows the menu words.",
+      "maps": [
+        [
+          "The menu line",
+          "A resume bullet"
+        ],
+        [
+          "The guest asking about the soup",
+          "The interviewer probing a project"
+        ],
+        [
+          "The chef explaining real choices",
+          "Your decision, trade-off and result"
+        ]
+      ],
+      "words": [
+        [
+          "walkthrough",
+          "A short spoken tour of a project from problem to result."
+        ],
+        [
+          "trade-off",
+          "Giving up something to gain something else, such as speed for simplicity."
+        ],
+        [
+          "p95 latency",
+          "The response time that 95 out of 100 requests are faster than."
+        ],
+        [
+          "probe",
+          "A follow-up question that digs into the details of an answer."
+        ]
+      ]
+    },
+    "n": 126
   }
 ]
