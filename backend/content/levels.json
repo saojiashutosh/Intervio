@@ -7,7 +7,7 @@
     "project": "Design an e-commerce database",
     "projectGoals": [
       "Entities: customers, addresses, products, categories, product_categories, inventory, carts, cart_items, orders, order_items, payments, shipments",
-      "Rules: unique SKU; non-negative prices and stock; quantity > 0; historical unit price snapshot; valid order/payment states; deliberate delete behaviour",
+      "Rules: unique SKU; non-negative prices and stock; quantity > 0; historical unit price snapshot; valid order/payment states; deliberate delete behavior",
       "Artifacts: ER diagram, data dictionary, migrations, seed data, 20 SQL queries, constraint tests"
     ],
     "acceptance": [

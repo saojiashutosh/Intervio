@@ -75,7 +75,7 @@
         "band": "2-5",
         "area": "Data",
         "topic": "Schema design, indexing, query tuning",
-        "detail": "Mid-level focus is database optimisation and design.",
+        "detail": "Mid-level focus is database optimization and design.",
         "sources": [
           "hackajob-backend"
         ],
@@ -96,7 +96,7 @@
         "band": "5+",
         "area": "System design",
         "topic": "Depth in two places",
-        "detail": "Move from generic statements to experience-based detail; recognise what makes the system hard and flag limits of your own design.",
+        "detail": "Move from generic statements to experience-based detail; recognize what makes the system hard and flag limits of your own design.",
         "sources": [
           "hello-levels"
         ],
@@ -389,7 +389,7 @@
       {
         "band": "2-5",
         "area": "Performance",
-        "topic": "N+1 and query optimisation",
+        "topic": "N+1 and query optimization",
         "detail": "select_related vs prefetch_related, assertNumQueries in tests.",
         "sources": [
           "hackajob-backend",
@@ -401,7 +401,7 @@
         "band": "2-5",
         "area": "Database",
         "topic": "Indexing and EXPLAIN",
-        "detail": "Database optimisation is the mid-level focus.",
+        "detail": "Database optimization is the mid-level focus.",
         "sources": [
           "hackajob-backend"
         ],
@@ -893,7 +893,7 @@
   {
     "slug": "data",
     "title": "Data engineer",
-    "blurb": "Pipelines, warehouses and modelling. Skill frequencies come from a 2026 posting analysis (snippet only).",
+    "blurb": "Pipelines, warehouses and modeling. Skill frequencies come from a 2026 posting analysis (snippet only).",
     "sources": [
       "de-zoomcamp",
       "datadriven-de-jd",
@@ -958,8 +958,8 @@
       {
         "band": "2-5",
         "area": "Modelling",
-        "topic": "Analytics engineering and data modelling",
-        "detail": "dbt, testing, documentation, deployment; modelling in ~38% of postings.",
+        "topic": "Analytics engineering and data modeling",
+        "detail": "dbt, testing, documentation, deployment; modeling in ~38% of postings.",
         "sources": [
           "de-zoomcamp",
           "datadriven-de-jd"
@@ -1248,7 +1248,7 @@
         "band": "0-2",
         "area": "Coding",
         "topic": "Data structures and algorithms",
-        "detail": "ML engineer coding rounds are close to software-engineering coding; practise hash maps, trees, graphs and complexity.",
+        "detail": "ML engineer coding rounds are close to software-engineering coding; practice hash maps, trees, graphs and complexity.",
         "sources": [
           "ml-interviews-book",
           "huyen-formats",

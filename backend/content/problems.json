@@ -1075,7 +1075,7 @@
    "Repeatedly take courses with no remaining prerequisites (Kahn's algorithm) and count them."
   ],
   "solution": "from collections import deque\n\ndef can_finish(n, prerequisites):\n    indeg, nxt = [0] * n, [[] for _ in range(n)]\n    for a, b in prerequisites:\n        nxt[b].append(a)\n        indeg[a] += 1\n    q, done = deque(i for i in range(n) if indeg[i] == 0), 0\n    while q:\n        u = q.popleft()\n        done += 1\n        for v in nxt[u]:\n            indeg[v] -= 1\n            if indeg[v] == 0:\n                q.append(v)\n    return done == n\n",
-  "notes": "Kahn's algorithm: O(n + edges). A DFS with three colours works too.",
+  "notes": "Kahn's algorithm: O(n + edges). A DFS with three colors works too.",
   "prelude": ""
  },
  {
