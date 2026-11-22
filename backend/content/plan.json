@@ -1,7 +1,7 @@
 [
   {
     "week": 1,
-    "title": "Relational modelling and ER diagrams",
+    "title": "Relational modeling and ER diagrams",
     "deliverable": "ER diagram v1, schema.sql, seed.sql and 10 basic queries",
     "days": [
       "Install PostgreSQL, create a database and role, connect with psql/pgAdmin. Learn database, schema, table, row, column.",
@@ -57,7 +57,7 @@
     "deliverable": "Level 2 optimized product-search queries with measured evidence",
     "days": [
       "B-tree indexes, equality/range predicates, ordering and selectivity.",
-      "Single-column and composite indexes. Practise leftmost-prefix behaviour and column order.",
+      "Single-column and composite indexes. Practise leftmost-prefix behavior and column order.",
       "Partial, covering (INCLUDE), expression, unique, GIN and GiST indexes — when each helps.",
       "Optimize product search by category, price range, status and created_at. Compare plans and timings.",
       "Index costs: disk, write amplification, vacuum, maintenance, redundant indexes. Test insert/update impact.",
@@ -112,7 +112,7 @@
       "Choose shard keys: cardinality, hotspots, tenant locality, query routing.",
       "Cross-shard queries, transactions, uniqueness, rebalancing and shard migration.",
       "Strong, eventual and causal consistency; read-your-writes and monotonic reads.",
-      "Design cache and replica behaviour for catalogue, inventory and order history.",
+      "Design cache and replica behavior for catalogue, inventory and order history.",
       "Produce a scale-out architecture with capacity assumptions, bottlenecks and failure modes."
     ]
   },
@@ -132,7 +132,7 @@
   {
     "week": 11,
     "title": "Redis, caching, reliability",
-    "deliverable": "Cached backend with metrics and failure behaviour",
+    "deliverable": "Cached backend with metrics and failure behavior",
     "days": [
       "Redis strings, hashes, sets, sorted sets, TTL, eviction policies and persistence basics.",
       "Cache-aside for product details and category listings. Measure hit rate and latency.",

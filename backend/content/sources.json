@@ -1709,6 +1709,60 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Full-text (lexical) search definition, that text fields are analyzed and indexed, and that results are ranked by relevance. The page does not describe inverted indexes or BM25 formulas."
+    },
+    {
+      "key": "wikipedia-dijkstra",
+      "title": "Dijkstra's algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "Shortest paths from a source in a weighted graph, the priority-queue operations, the non-negative weight requirement, and the running times (Theta(V^2) original, Theta(E + V log V) with a Fibonacci heap). The first third was read verbatim; the running-time and negative-edge sections came from a summary."
+    },
+    {
+      "key": "py-datamodel",
+      "title": "Python reference: Data model",
+      "url": "https://docs.python.org/3/reference/datamodel.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "snippet",
+      "used_for": "Mutable and immutable types, hashing rules for dict keys and set members, the C3 MRO for attribute lookup, and returning NotImplemented from comparisons. The special-method section was only seen in a summary, so the lesson checks those behaviours by running code."
+    },
+    {
+      "key": "py-dataclasses",
+      "title": "Python docs: dataclasses",
+      "url": "https://docs.python.org/3/library/dataclasses.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "What @dataclass generates, the order, frozen and eq options, the hash rules, default_factory for mutable defaults, the ValueError for unhashable defaults, and __post_init__."
+    },
+    {
+      "key": "py-mro",
+      "title": "The Python 2.3 Method Resolution Order",
+      "url": "https://docs.python.org/3/howto/mro.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "C3 linearization and its merge rule, monotonicity, the diamond result, and inconsistent base orders. It does not cover super()."
+    },
+    {
+      "key": "sqlite-window-functions",
+      "title": "SQLite: Window functions",
+      "url": "https://www.sqlite.org/windowfunctions.html",
+      "publisher": "SQLite",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The OVER clause, row_number, rank and dense_rank, lag and lead returning NULL with no row, PARTITION BY and the default frame. Frames and version history were partly from a summary."
+    },
+    {
+      "key": "prometheus-overview",
+      "title": "Prometheus: Overview",
+      "url": "https://prometheus.io/docs/introduction/overview/",
+      "publisher": "Prometheus",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Time series identified by metric name and labels, the pull model over HTTP with a push gateway for short-lived jobs, PromQL, Alertmanager, and standalone servers. It does not describe metric types or cardinality."
     }
   ],
   "levels": [

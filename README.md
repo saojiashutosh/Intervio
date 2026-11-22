@@ -1,6 +1,6 @@
 # Intervio
 
-An interview-prep portal for software engineers. It teaches 126 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
+An interview-prep portal for software engineers. It teaches 132 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
 
 ## What it does
 

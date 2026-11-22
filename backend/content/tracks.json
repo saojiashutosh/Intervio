@@ -7,7 +7,7 @@
   {
     "slug": "python-django",
     "title": "Python and Django core",
-    "blurb": "The language and framework behaviour interviewers probe: Python internals, the Django request cycle, and authentication."
+    "blurb": "The language and framework behavior interviewers probe: Python internals, the Django request cycle, and authentication."
   },
   {
     "slug": "swe-core",

@@ -102,7 +102,7 @@
   {
     "topic": "python",
     "q": "What is a decorator?",
-    "a": "A decorator is a callable that takes a function and returns a replacement, applied with @name above the def. It is used to add behaviour around a function without editing it: logging, timing, caching (functools.lru_cache), permission checks. Use functools.wraps so the wrapper keeps the original name and docstring."
+    "a": "A decorator is a callable that takes a function and returns a replacement, applied with @name above the def. It is used to add behavior around a function without editing it: logging, timing, caching (functools.lru_cache), permission checks. Use functools.wraps so the wrapper keeps the original name and docstring."
   },
   {
     "topic": "python",
@@ -172,7 +172,7 @@
   {
     "topic": "dsa",
     "q": "Compare quicksort, mergesort and heapsort.",
-    "a": "Quicksort: O(n log n) on average, O(n^2) worst case with bad pivots, in place, not stable, fast in practice. Mergesort: O(n log n) always, stable, needs O(n) extra space, good for linked lists and external sorting. Heapsort: O(n log n) always, in place, not stable, poorer cache behaviour. Python uses Timsort: stable, O(n log n), and fast on partly sorted data."
+    "a": "Quicksort: O(n log n) on average, O(n^2) worst case with bad pivots, in place, not stable, fast in practice. Mergesort: O(n log n) always, stable, needs O(n) extra space, good for linked lists and external sorting. Heapsort: O(n log n) always, in place, not stable, poorer cache behavior. Python uses Timsort: stable, O(n log n), and fast on partly sorted data."
   },
   {
     "topic": "dsa",
@@ -181,7 +181,7 @@
   },
   {
     "topic": "dsa",
-    "q": "What is dynamic programming and how do you recognise it?",
+    "q": "What is dynamic programming and how do you recognize it?",
     "a": "It solves a problem by combining answers to overlapping subproblems and storing them to avoid recomputation, which needs optimal substructure. Signs: counting ways, the minimum or maximum of something, and a naive recursion that repeats the same calls. Method: define the state, write the recurrence, set base cases, then choose top-down memoization or a bottom-up table and see if you can shrink the space."
   },
   {
@@ -402,7 +402,7 @@
   {
     "topic": "os",
     "q": "Compare common CPU scheduling algorithms.",
-    "a": "FIFO is simple but a long job blocks others (convoy effect). Shortest job first minimises average waiting time but can starve long jobs and needs the run time in advance. Round robin gives each task a time slice: fair with good response time, with overhead that depends on the slice. Real systems use priority queues with feedback, such as multi-level feedback queues."
+    "a": "FIFO is simple but a long job blocks others (convoy effect). Shortest job first minimizes average waiting time but can starve long jobs and needs the run time in advance. Round robin gives each task a time slice: fair with good response time, with overhead that depends on the slice. Real systems use priority queues with feedback, such as multi-level feedback queues."
   },
   {
     "topic": "os",
@@ -417,7 +417,7 @@
   {
     "topic": "web",
     "q": "What is the difference between var, let and const?",
-    "a": "var is function scoped, hoisted and initialised as undefined, and can be redeclared. let and const are block scoped and sit in the temporal dead zone until declared, so using them early throws. const prevents rebinding of the variable, not mutation of the object it points to. Prefer const, then let; avoid var."
+    "a": "var is function scoped, hoisted and initialized as undefined, and can be redeclared. let and const are block scoped and sit in the temporal dead zone until declared, so using them early throws. const prevents rebinding of the variable, not mutation of the object it points to. Prefer const, then let; avoid var."
   },
   {
     "topic": "web",
@@ -447,7 +447,7 @@
   {
     "topic": "web",
     "q": "What is XSS and CSRF and how do you prevent them?",
-    "a": "XSS: an attacker gets their script to run in your page, so escape output by default (frameworks do), use a Content-Security-Policy, and mark cookies HttpOnly. CSRF: another site makes the browser send a request with your cookies, so use SameSite cookies and CSRF tokens for state-changing requests. Also use parameterised queries against SQL injection."
+    "a": "XSS: an attacker gets their script to run in your page, so escape output by default (frameworks do), use a Content-Security-Policy, and mark cookies HttpOnly. CSRF: another site makes the browser send a request with your cookies, so use SameSite cookies and CSRF tokens for state-changing requests. Also use parameterized queries against SQL injection."
   },
   {
     "topic": "devops",
@@ -497,7 +497,7 @@
   {
     "topic": "behavioral",
     "q": "Tell me about a time you had a tight deadline.",
-    "a": "Show prioritisation: what you cut or postponed and why, how you told stakeholders early, and how you kept quality on the core part. Close with the result and what you would do differently, such as raising the risk sooner."
+    "a": "Show prioritization: what you cut or postponed and why, how you told stakeholders early, and how you kept quality on the core part. Close with the result and what you would do differently, such as raising the risk sooner."
   },
   {
     "topic": "behavioral",
@@ -507,7 +507,7 @@
   {
     "topic": "behavioral",
     "q": "How do you handle a question you do not know the answer to?",
-    "a": "Say so plainly, then show how you would find out: state what you do know, reason from first principles, give a best guess labelled as a guess, and say how you would verify it. Honest reasoning scores better than bluffing, and interviewers notice a bluff quickly."
+    "a": "Say so plainly, then show how you would find out: state what you do know, reason from first principles, give a best guess labeled as a guess, and say how you would verify it. Honest reasoning scores better than bluffing, and interviewers notice a bluff quickly."
   },
   {
     "topic": "behavioral",
