@@ -17,6 +17,7 @@ const registry = {
   'sd-framework': lazy(() => import('./OpsVisuals').then((m) => ({ default: m.SdFramework }))),
   pool: lazy(() => import('./OpsVisuals').then((m) => ({ default: m.PoolViz }))),
   'cache-aside': lazy(() => import('./SystemVisuals').then((m) => ({ default: m.CacheAsideViz }))),
+  'loss-curve': lazy(() => import('./MlVisuals').then((m) => ({ default: m.LossCurveViz }))),
 }
 
 export type InlineId = keyof typeof registry
@@ -37,6 +38,7 @@ export const INLINE_TITLES: Record<InlineId, string> = {
   'cache-aside': 'Cache-aside: hit, miss and invalidation',
   'sd-framework': 'Answer a design question in six steps',
   pool: 'Connection pools: why 3 servers can break a database',
+  'loss-curve': 'Loss against training steps for three learning rates',
 }
 
 export const isInlineId = (id: string): id is InlineId => id in registry

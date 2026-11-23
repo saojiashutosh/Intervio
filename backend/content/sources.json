@@ -1763,6 +1763,132 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Time series identified by metric name and labels, the pull model over HTTP with a push gateway for short-lived jobs, PromQL, Alertmanager, and standalone servers. It does not describe metric types or cardinality."
+    },
+    {
+      "key": "testing-library-principles",
+      "title": "Testing Library: Guiding Principles",
+      "url": "https://testing-library.com/docs/guiding-principles/",
+      "publisher": "Testing Library",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The principle that tests should resemble how the software is used, and that utilities deal with DOM nodes rather than component instances."
+    },
+    {
+      "key": "testing-library-queries",
+      "title": "Testing Library: About Queries",
+      "url": "https://testing-library.com/docs/queries/about/",
+      "publisher": "Testing Library",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Query priority (role first, test id last) and the difference between getBy, queryBy and findBy, including the 1000 ms default for findBy."
+    },
+    {
+      "key": "playwright-best-practices",
+      "title": "Playwright: Best Practices",
+      "url": "https://playwright.dev/docs/best-practices",
+      "publisher": "Playwright",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Testing user-visible behaviour, isolated tests, locators, web-first assertions, stubbing with page.route, and testing only what you control."
+    },
+    {
+      "key": "vitest-guide",
+      "title": "Vitest: Getting Started",
+      "url": "https://vitest.dev/guide/",
+      "publisher": "Vitest",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Vitest is built on Vite, picks up .test. and .spec. files, reads vite.config, and 'vitest run' makes a single run. Version requirements change often."
+    },
+    {
+      "key": "pandas-scale",
+      "title": "pandas: Scaling to large datasets",
+      "url": "https://pandas.pydata.org/docs/user_guide/scale.html",
+      "publisher": "pandas",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Loading fewer columns with usecols, category and downcast dtypes (the 13.7 MB to 1.05 MB example), chunksize, and the note that groupby is harder chunk by chunk."
+    },
+    {
+      "key": "pandas-merging",
+      "title": "pandas: Merge, join, concatenate and compare",
+      "url": "https://pandas.pydata.org/docs/user_guide/merging.html",
+      "publisher": "pandas",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "The how values, validate and its MergeError, indicator and the _merge column, and the Cartesian product when keys repeat on both sides."
+    },
+    {
+      "key": "pandas-missing-data",
+      "title": "pandas: Working with missing data",
+      "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+      "publisher": "pandas",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "NaN, NaT and pd.NA, isna treating None as missing, skipna defaults, dropna and fillna, and that nullable dtypes are not the default."
+    },
+    {
+      "key": "pandas-groupby",
+      "title": "pandas: Group by: split-apply-combine",
+      "url": "https://pandas.pydata.org/docs/user_guide/groupby.html",
+      "publisher": "pandas",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Split, apply, combine; the dropna default of True for group keys; as_index and sort defaults. The text on transform could not be read."
+    },
+    {
+      "key": "mlcc-linear-regression",
+      "title": "Machine Learning Crash Course: Linear regression",
+      "url": "https://developers.google.com/machine-learning/crash-course/linear-regression",
+      "publisher": "Google",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "The model equation y' = b + w1x1, weight and bias as learned parameters, and the car fuel economy example."
+    },
+    {
+      "key": "mlcc-loss",
+      "title": "Machine Learning Crash Course: Linear regression: Loss",
+      "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/loss",
+      "publisher": "Google",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "L1 and L2 loss, MAE, MSE and RMSE formulas, the 0.81 worked example, and MSE being pulled toward outliers more than MAE."
+    },
+    {
+      "key": "mlcc-gradient-descent",
+      "title": "Machine Learning Crash Course: Linear regression: Gradient descent",
+      "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent",
+      "publisher": "Google",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "The four steps, a start near zero, the update rule and the slope formulas for MSE, and the convex loss surface of a linear model."
+    },
+    {
+      "key": "mlcc-hyperparameters",
+      "title": "Machine Learning Crash Course: Linear regression: Hyperparameters",
+      "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/hyperparameters",
+      "publisher": "Google",
+      "kind": "curriculum",
+      "checked": "read",
+      "used_for": "Learning rate, batch size and epochs; too small and too large rates; full batch, SGD and mini-batch; the updates-per-epoch numbers."
+    },
+    {
+      "key": "ms-star-schema",
+      "title": "Microsoft Learn: Understand star schema and the importance for Power BI",
+      "url": "https://learn.microsoft.com/en-us/power-bi/guidance/star-schema",
+      "publisher": "Microsoft",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Fact and dimension tables, grain, normalized and snowflake dimensions, surrogate keys, Type 1 and Type 2 slowly changing dimensions. Written for Power BI."
+    },
+    {
+      "key": "kimball-techniques",
+      "title": "Kimball Group: Dimensional modeling techniques",
+      "url": "https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/",
+      "publisher": "Kimball Group",
+      "kind": "article",
+      "checked": "read",
+      "used_for": "An index page: only the names of the techniques and slowly changing dimension Types 0 to 3 (retain original, overwrite, add new row, add new attribute). No definitions were read."
     }
   ],
   "levels": [

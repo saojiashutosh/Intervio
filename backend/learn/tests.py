@@ -348,7 +348,7 @@ class LessonDepthTests(TestCase):
 class InlineVisualMarkerTests(TestCase):
     """Lessons embed visuals with '@viz:<id>' lines. An unknown id would silently render nothing."""
     KNOWN = {"er-anatomy", "er-notation", "er-design", "fk-side", "joins", "decompose", "composite-index", "mvcc",
-             "deadlock", "hashring", "celery-flow", "wal", "cache-aside", "sd-framework", "pool"}
+             "deadlock", "hashring", "celery-flow", "wal", "cache-aside", "sd-framework", "pool", "loss-curve"}
 
     @classmethod
     def setUpTestData(cls):
