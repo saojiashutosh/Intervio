@@ -337,6 +337,26 @@ section[id] { scroll-margin-top: 7.5rem; }
 @media (max-width: 700px) { .sliders { grid-template-columns: 1fr; } }
 .logslider { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; margin: .4rem 0; }
 .logslider input[type=range] { width: 100%; accent-color: var(--accent); }
+/* Loss curve chart (inline visual "loss-curve"). Series colours are the validated categorical slots 1 to 3, stepped for each surface. */
+.losschart { --lc-1: #2a78d6; --lc-2: #eb6834; --lc-3: #1baf7a; }
+:root[data-theme="dark"] .losschart { --lc-1: #3987e5; --lc-2: #d95926; --lc-3: #199e70; }
+.losschart .lc-scroll { overflow-x: auto; }
+.losschart svg { width: 100%; min-width: 560px; height: auto; display: block; touch-action: pan-y; cursor: crosshair; }
+.losschart .lc-grid { stroke: var(--line); stroke-width: 1; }
+.losschart .lc-base { stroke: var(--line-strong); stroke-width: 1; }
+.losschart .lc-cross { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.losschart .lc-dot { stroke: var(--surface); stroke-width: 2; }
+.losschart .lc-axis { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+.losschart .lc-title { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+.losschart .lc-label { fill: var(--text); font-size: 12px; font-weight: 600; font-family: var(--font); }
+.losschart .lc-legend, .losschart .lc-read { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; padding: 0; margin: .3rem 0; font-size: .9rem; }
+.losschart .lc-read { margin: .5rem 0; }
+.losschart .lc-key { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: .4rem; }
+.losschart .lc-table { margin: .5rem 0; font-size: .85rem; }
+.losschart .lc-table summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.losschart .lc-table table { border-collapse: collapse; margin-top: .4rem; width: 100%; }
+.losschart .lc-table th, .losschart .lc-table td { border-bottom: 1px solid var(--line); padding: .25rem .5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.losschart .lc-table th:first-child { text-align: left; }
 .archrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; margin: .6rem 0 1rem; }
 .archbox { border: 1.5px solid var(--line); border-radius: 10px; padding: .55rem .7rem; display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; background: var(--surface2); transition: border-color .2s, opacity .2s; }
 .archbox span { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
