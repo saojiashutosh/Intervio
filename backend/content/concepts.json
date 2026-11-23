@@ -90253,5 +90253,2792 @@
       ]
     },
     "n": 132
+  },
+  {
+    "id": "frontend-testing",
+    "n": 133,
+    "level": 9,
+    "week": "Core",
+    "title": "Frontend Testing: Testing Library, Vitest and Playwright",
+    "tagline": "Write tests that do what a user does, so they keep passing when you tidy the code and fail when the page really breaks.",
+    "explain": [
+      "Frontend teams, and often interviewers, ask the same thing: how do you know this page still works after your change? The answer is automated tests. Good ones copy the way people use the page. Bad ones copy the way the code is written, and they break every time someone refactors.",
+      "## Test like a user",
+      "Testing Library's guiding principle is: 'The more your tests resemble the way your software is used, the more confidence they can give you.' In practice you render a component, find a button by its role and name, click it, and check the text on the screen. You never read component state or a CSS class. Playwright's best-practice guide says the same: test user-visible behaviour, and avoid details such as a function name or a CSS class.",
+      "## Query by role first",
+      "Testing Library lists queries in a priority order. getByRole comes first, and the docs say it 'should be your top preference for just about everything'. After it come getByLabelText, getByPlaceholderText, getByText and getByDisplayValue, then getByAltText and getByTitle. getByTestId is the last choice, for cases where role or text will not work. A nice side effect: if you cannot find a control by role, a screen reader user probably cannot find it either.",
+      "## getBy, queryBy and findBy",
+      "getBy throws when it finds nothing or more than one element. queryBy returns null for nothing, so it is the way to assert that something is gone. findBy returns a promise that retries for 1000 ms by default, so it is for content that appears after a request. Each also has an All form for many matches.",
+      "## Runners and browsers",
+      "Vitest is a test runner built on Vite. It reads your vite.config, finds files with .test. or .spec. in the name, and runs them; 'vitest run' does one pass for CI. Component tests usually run in a simulated browser such as jsdom. Playwright is different: it drives a real browser against the running app, so it checks that the pieces work together. Its locators wait and retry for you, and web-first assertions such as expect(locator).toBeVisible() retry until they pass.",
+      "## Stub the outside world, keep tests isolated",
+      "Playwright's advice is to test only what you control. A third-party service or a flaky backend can fail for reasons that are not your bug, so replace it with a stub that returns a fixed answer. In Playwright that is page.route with route.fulfill; in a unit test it is a fake function you pass in. Each test should also be isolated, with its own storage and cookies, and should not need another test to run first.",
+      "## How many of each",
+      "Write many fast function and component tests and only a few end-to-end tests for paths that must never break, like sign in and checkout. This is the common test-pyramid shape. The exact ratio is my own judgment, not a published standard. In an interview, say what you would test at each level and why, then name what you would stub."
+    ],
+    "keyPoints": [
+      "Test what the user sees, not how the code is written.",
+      "Query order: role first, then label, text, then alt or title, test id last.",
+      "getBy throws, queryBy returns null (for absence), findBy waits (default 1000 ms).",
+      "Vitest runs component tests; Playwright drives a real browser for a few key paths.",
+      "Stub what you do not control, and keep every test isolated."
+    ],
+    "sql": [
+      {
+        "title": "A component test with Testing Library and Vitest",
+        "lang": "js",
+        "code": "import { useState } from 'react';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { expect, test } from 'vitest';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  return (\n    <div>\n      <p>Count: {count}</p>\n      <button onClick={() => setCount(count + 1)}>Add one</button>\n    </div>\n  );\n}\n\ntest('clicking the button adds one', () => {\n  render(<Counter />);\n  expect(screen.getByText('Count: 0')).toBeTruthy();\n  fireEvent.click(screen.getByRole('button', { name: /add one/i }));        // find it the way a user would\n  expect(screen.getByText('Count: 1')).toBeTruthy();\n  expect(screen.queryByText('Count: 2')).toBeNull();                          // queryBy: asserts something is absent\n});\n",
+        "note": "Find the button by role and name, click it, check the text. queryByText returns null, which proves the number 2 is not on the screen."
+      },
+      {
+        "title": "Stub a dependency so the test never touches the network",
+        "lang": "js",
+        "code": "const assert = require('node:assert');\n\n// A function that depends on something you do not control: a network call.\nasync function loadGreeting(fetchUser) {\n  const user = await fetchUser();\n  return user ? `Hello, ${user.name}` : 'Please sign in';\n}\n\n(async () => {\n  // Stub the dependency: the test decides what comes back, so it never touches the network.\n  assert.strictEqual(await loadGreeting(async () => ({ name: 'Asha' })), 'Hello, Asha');\n  assert.strictEqual(await loadGreeting(async () => null), 'Please sign in');\n\n  // A failing call is easy to test too: make the stub reject.\n  await assert.rejects(\n    loadGreeting(async () => { throw new Error('network down'); }),\n    /network down/\n  );\n})();\n"
+      },
+      {
+        "title": "An end-to-end test with Playwright",
+        "lang": "js",
+        "code": "import { test, expect } from '@playwright/test';\n\ntest('a signed-in user sees their name', async ({ page }) => {\n  // Stub the one thing we do not control: the backend answer.\n  await page.route('**/api/me', (route) =>\n    route.fulfill({ json: { name: 'Asha' } }));\n\n  await page.goto('/');\n  // Web-first assertion: it retries until the text shows up or the time runs out.\n  await expect(page.getByText('Hello, Asha')).toBeVisible();\n  await page.getByRole('button', { name: 'Sign out' }).click();\n  await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();\n});\n",
+        "note": "Follows the locator, web-first assertion and page.route pattern from the Playwright guide. It needs a running app, so it is shown but not run here."
+      }
+    ],
+    "django": {},
+    "exercise": "Take one form in a React project (a sign-up or a search box). Write four Testing Library tests: it renders, an empty submit shows an error, a valid submit calls the function you pass in, and the error is gone afterwards (use queryBy). Then write one Playwright test for the whole flow with the backend call stubbed using page.route. Rename a CSS class and check that none of your tests fail.",
+    "pitfalls": [
+      "Finding elements by CSS class or by component state, so every refactor breaks the test.",
+      "Using getBy to check that something is absent; it throws instead of returning null.",
+      "Using getByTestId first when getByRole would work, and hiding an accessibility problem.",
+      "Calling a real third-party service in a test, so it fails for reasons that are not your bug.",
+      "Tests that depend on another test running first, or on shared cookies and storage."
+    ],
+    "interview": [
+      {
+        "q": "How do you decide what to test in a React component?",
+        "a": "Test behaviour a user can see: what is on the screen, what happens after a click or typing, and what is shown on an error. Do not test internal state or class names. If a refactor does not change what the user sees, no test should fail."
+      },
+      {
+        "q": "What is the difference between getBy, queryBy and findBy?",
+        "a": "getBy throws if it finds no element or more than one. queryBy returns null when it finds none, so use it to assert absence. findBy returns a promise that retries, by default for 1000 ms, so use it for content that appears after a request."
+      },
+      {
+        "q": "Why prefer getByRole over getByTestId?",
+        "a": "Role and name are how users and assistive technology find things, so a test that uses them also checks accessibility. A test id is invisible to users, so use it only when role, label and text cannot work."
+      },
+      {
+        "q": "When would you use Playwright instead of Testing Library?",
+        "a": "When you need a real browser and the whole app working together, such as sign in or checkout. Component tests are faster and cover most logic, so keep end-to-end tests few and stub third-party services you do not control."
+      },
+      {
+        "q": "How do you keep tests from being flaky?",
+        "a": "Isolate each test with its own state, wait with locators and findBy or web-first assertions instead of fixed sleeps, and stub external services so the result does not depend on a network."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Testing Library: Guiding principles",
+        "url": "https://testing-library.com/docs/guiding-principles/",
+        "kind": "Testing Library docs"
+      },
+      {
+        "title": "Testing Library: About queries",
+        "url": "https://testing-library.com/docs/queries/about/",
+        "kind": "Testing Library docs"
+      },
+      {
+        "title": "Playwright: Best practices",
+        "url": "https://playwright.dev/docs/best-practices",
+        "kind": "Playwright docs"
+      },
+      {
+        "title": "Vitest: Getting started",
+        "url": "https://vitest.dev/guide/",
+        "kind": "Vitest docs"
+      }
+    ],
+    "basis": "Why it is here: none of the front end lessons covered testing, a gap I found in the course. That it is asked in interviews is my judgment; I did not find a company page that lists it. The guiding principle, the query priority order, the getBy, queryBy and findBy rules (including the 1000 ms default) are from the two Testing Library pages I read. The advice on user-visible behaviour, isolation, locators, web-first assertions, stubbing with page.route and testing only what you control is from the Playwright best-practices page I read. The Vitest facts (built on Vite, .test. or .spec. file names, vitest run, reads vite.config) are from its getting-started guide; the exact Vite and Node versions it asks for change often, so check them. The Testing Library and Vitest sample was run in this project's own test setup and passes, and the stub sample runs in Node. The Playwright sample follows the documented pattern but was not run here because no browser project is set up. The test pyramid mix and the priority and hours are my own judgment, not a published standard; the animation shows illustrative steps, not measurements.",
+    "sources": [
+      "testing-library-principles",
+      "testing-library-queries",
+      "playwright-best-practices",
+      "vitest-guide"
+    ],
+    "viz": "stage",
+    "lab": "",
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "fetest",
+        "title": "A test that behaves like a user",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "user action"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "query",
+            "label": "outside call"
+          },
+          {
+            "kind": "fail",
+            "label": "broken test"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Fragile tests",
+            "at": 1
+          },
+          {
+            "text": "Query order",
+            "at": 2
+          },
+          {
+            "text": "getBy, queryBy, findBy",
+            "at": 3
+          },
+          {
+            "text": "Vitest",
+            "at": 4
+          },
+          {
+            "text": "Playwright",
+            "at": 5
+          },
+          {
+            "text": "Stubs",
+            "at": 6
+          },
+          {
+            "text": "Isolation",
+            "at": 7
+          },
+          {
+            "text": "The mix",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "user",
+            "kind": "device",
+            "x": -3.2,
+            "y": 4.2,
+            "label": "User",
+            "icon": "user",
+            "tone": "grey"
+          },
+          {
+            "id": "test",
+            "kind": "cube",
+            "x": -3,
+            "y": -0.6,
+            "label": "Test\nfile",
+            "icon": "check",
+            "tone": "orange"
+          },
+          {
+            "id": "comp",
+            "kind": "cube",
+            "x": 1.6,
+            "y": 2.2,
+            "label": "React\ncomponent",
+            "icon": "box",
+            "tone": "blue"
+          },
+          {
+            "id": "pw",
+            "kind": "cube",
+            "x": 1.6,
+            "y": -3.6,
+            "label": "Playwright\nbrowser",
+            "icon": "globe",
+            "tone": "green",
+            "from": 5
+          },
+          {
+            "id": "app",
+            "kind": "cube",
+            "x": 6,
+            "y": -3.6,
+            "label": "Running\napp",
+            "icon": "server",
+            "tone": "blue",
+            "from": 5
+          },
+          {
+            "id": "stub",
+            "kind": "cube",
+            "x": 6,
+            "y": 2.2,
+            "label": "Stubbed\nAPI",
+            "icon": "box",
+            "tone": "purple",
+            "from": 6
+          }
+        ],
+        "links": [
+          {
+            "a": "test",
+            "b": "comp",
+            "dir": "to"
+          },
+          {
+            "a": "user",
+            "b": "comp",
+            "dir": "to"
+          },
+          {
+            "a": "pw",
+            "b": "app",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "app",
+            "b": "stub",
+            "dir": "to",
+            "dash": true,
+            "from": 6
+          }
+        ],
+        "steps": [
+          {
+            "title": "Test what the user sees",
+            "tag": "technique",
+            "body": [
+              "Testing Library's guiding principle is one sentence: 'The more your tests resemble the way your software is used, the more confidence they can give you.'",
+              "So a good test does what a person does. It finds a button by its label, clicks it, and checks the text that appears. It does not look inside the component."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Test style",
+                "v": "like a user",
+                "tone": "good"
+              },
+              {
+                "k": "Looks at",
+                "v": "the screen"
+              }
+            ],
+            "set": {
+              "test": {
+                "pill": {
+                  "text": "acts like a user",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "user",
+                  "comp"
+                ],
+                "kind": "request",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Problem: a test that knows too much",
+            "tag": "problem",
+            "body": [
+              "Say a test reads the component's state or a CSS class. Someone renames the class during a clean-up. The page works the same for users, but the test fails.",
+              "Playwright's guide gives the same warning: do not test things such as 'the name of a function, whether something is an array, or the CSS class of some element'."
+            ],
+            "short": "Fragile test",
+            "hud": [
+              {
+                "k": "Page works for users",
+                "v": "yes",
+                "tone": "good"
+              },
+              {
+                "k": "Test result",
+                "v": "fails",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "test": {
+                "status": "hot",
+                "pill": {
+                  "text": "breaks on a rename",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              },
+              "comp": {
+                "pill": {
+                  "text": "same behaviour",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "test",
+                  "comp"
+                ],
+                "kind": "fail",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Find things the way people and screen readers do",
+            "tag": "technique",
+            "body": [
+              "Testing Library lists its queries in an order. Role comes first: it says getByRole 'should be your top preference for just about everything'. Then label, placeholder, text and display value. Then alt text and title. Test ids come last.",
+              "This order also pushes you to write accessible pages, because a button with no role or name is hard to find in a test and hard to use with a screen reader."
+            ],
+            "short": "Query order",
+            "set": {
+              "test": {
+                "status": "ok",
+                "pill": {
+                  "text": "getByRole first",
+                  "tone": "orange"
+                }
+              }
+            },
+            "card": {
+              "title": "Which query first?",
+              "lines": [
+                "1  getByRole('button', { name: /save/i })",
+                "2  getByLabelText, getByPlaceholderText, getByText",
+                "3  getByAltText, getByTitle",
+                "4  getByTestId: only when nothing above works"
+              ],
+              "hl": [
+                0
+              ]
+            },
+            "callout": {
+              "kind": "tip",
+              "text": "If getByRole cannot find it, the page may have an accessibility problem."
+            }
+          },
+          {
+            "title": "getBy, queryBy, findBy",
+            "tag": "technique",
+            "body": [
+              "Each query has three forms. getBy throws if it finds none or more than one. queryBy returns null when it finds none, and still throws on more than one, so use it to prove something is not on the screen. findBy returns a promise that keeps trying, with a default time of 1000 ms, so use it for things that arrive later.",
+              "Pick the form by what you expect: it is there now (getBy), it is not there (queryBy), it will be there soon (findBy)."
+            ],
+            "short": "Three forms",
+            "set": {
+              "test": {
+                "pill": {
+                  "text": "queryBy for absence",
+                  "tone": "orange"
+                }
+              }
+            },
+            "predict": {
+              "question": "The error message should disappear after a valid submit. Which query proves that?",
+              "options": [
+                "getByText, because it fails if the text is gone",
+                "queryByText, then expect it to be null",
+                "findByText, because the message is slow"
+              ],
+              "answer": 1,
+              "why": "getBy throws when nothing matches, so it cannot be used to check absence. queryBy returns null when nothing matches, which is what you assert."
+            }
+          },
+          {
+            "title": "Vitest runs the test",
+            "tag": "technique",
+            "body": [
+              "Vitest is a test runner built on Vite. In the guide I read, it needed a recent Vite and Node, and it picks up files with .test. or .spec. in the name. It reads your vite.config by default, so your Vite plugins carry over.",
+              "Add a script that runs 'vitest' for watch mode, and use 'vitest run' for one run, for example in CI. The Testing Library code above runs inside it, usually in a jsdom (simulated browser) environment."
+            ],
+            "short": "Test runner",
+            "hud": [
+              {
+                "k": "Runner",
+                "v": "Vitest"
+              },
+              {
+                "k": "Files",
+                "v": "*.test.tsx"
+              },
+              {
+                "k": "CI command",
+                "v": "vitest run",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "test": {
+                "status": "live",
+                "pill": {
+                  "text": "vitest run",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "test",
+                  "comp"
+                ],
+                "kind": "request",
+                "n": 2
+              },
+              {
+                "path": [
+                  "comp",
+                  "test"
+                ],
+                "kind": "response",
+                "n": 2,
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "End to end with Playwright",
+            "tag": "technique",
+            "body": [
+              "A component test uses a simulated browser. Playwright drives a real browser against the running app, so it checks that all the parts work together.",
+              "Use locators such as page.getByRole, not CSS classes. Locators wait and retry by themselves. Use web-first assertions such as await expect(locator).toBeVisible(), which retry until the check passes or time runs out."
+            ],
+            "short": "Real browser",
+            "hud": [
+              {
+                "k": "Runs in",
+                "v": "a real browser"
+              },
+              {
+                "k": "Waits",
+                "v": "automatically",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "pw": {
+                "pill": {
+                  "text": "getByRole + expect",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pw",
+                  "app"
+                ],
+                "kind": "request",
+                "n": 2
+              },
+              {
+                "path": [
+                  "app",
+                  "pw"
+                ],
+                "kind": "response",
+                "n": 2,
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "Stub what you do not control",
+            "tag": "technique",
+            "body": [
+              "Playwright's advice is 'only test what you control'. A payment page, a map service or a flaky backend can fail for reasons that are not your bug. Replace them with a stub: a fake that returns a fixed answer.",
+              "In Playwright you do this with page.route and route.fulfill. In a unit test you pass a fake function. Either way the test is fast and gives the same result each time."
+            ],
+            "short": "Stubs",
+            "hud": [
+              {
+                "k": "External calls",
+                "v": "stubbed",
+                "tone": "good"
+              },
+              {
+                "k": "Flaky failures",
+                "v": "none",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "stub": {
+                "pill": {
+                  "text": "fixed answer",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "app",
+                  "stub"
+                ],
+                "kind": "query"
+              },
+              {
+                "path": [
+                  "stub",
+                  "app"
+                ],
+                "kind": "response",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Keep tests isolated",
+            "tag": "insight",
+            "body": [
+              "Playwright says each test should be 'completely isolated': its own storage and cookies, and it should not depend on another test running first. Use beforeEach for shared set-up.",
+              "A test that passes only after another test ran is a bug waiting to happen. Run tests in any order to find them."
+            ],
+            "short": "Isolation",
+            "set": {
+              "pw": {
+                "pill": {
+                  "text": "fresh state each test",
+                  "tone": "teal",
+                  "icon": "check"
+                }
+              }
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "Tests that share state fail in a different order, and only on CI."
+            }
+          },
+          {
+            "title": "How many of each? My judgment",
+            "tag": "insight",
+            "body": [
+              "Many small, fast component and function tests. A few end-to-end tests for the paths that must never break, such as sign in and checkout. This is the usual 'test pyramid' idea. The exact ratio is my own judgment, not a published rule.",
+              "Where a bug can be caught cheaply, catch it there. Save end-to-end tests for what only a real browser can prove."
+            ],
+            "short": "The mix",
+            "card": {
+              "title": "A sensible mix (judgment)",
+              "lines": [
+                "many   function tests  (milliseconds)",
+                "many   component tests (Testing Library)",
+                "few    end-to-end tests (Playwright)"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Test like a user. Query by role first. Use queryBy for absence and findBy for later. Run component tests in Vitest and a few end-to-end paths in Playwright. Stub what you do not control. Keep every test isolated."
+            ],
+            "short": "Recap",
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 would a user notice if this broke?",
+                "2 getByRole first",
+                "3 stub the outside world",
+                "4 no test depends on another",
+                "5 few end-to-end, many small"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Check a web page works by using it the way a person would, with a few automatic tests.",
+      "story": "Before a shop opens, the owner walks in as a customer. She picks an item, goes to the counter and pays. She does not check how the shelves were built. If she moved the shelves around, the walk would still work. Automatic tests do this walk for you every time the code changes.",
+      "maps": [
+        [
+          "Walking in as a customer",
+          "A test that clicks and reads the screen"
+        ],
+        [
+          "How the shelves were built",
+          "Internal code a test should ignore"
+        ],
+        [
+          "A pretend card machine",
+          "A stub for an outside service"
+        ]
+      ],
+      "words": [
+        [
+          "assertion",
+          "A line in a test that checks something is true."
+        ],
+        [
+          "stub",
+          "A fake stand-in that returns a fixed answer."
+        ],
+        [
+          "locator",
+          "A way to find one thing on the page."
+        ],
+        [
+          "jsdom",
+          "A simulated browser that runs inside Node for fast tests."
+        ],
+        [
+          "end-to-end",
+          "A test that uses the whole app from the browser to the backend."
+        ]
+      ]
+    }
+  },
+  {
+    "id": "pandas-ingestion",
+    "n": 134,
+    "level": 10,
+    "week": "Core",
+    "title": "pandas for Data Ingestion: Load, Clean, Join, Group",
+    "tagline": "Read a messy file without running out of memory, fix missing values, join tables safely, and add things up without silently losing rows.",
+    "explain": [
+      "A large part of data engineering is ingestion: a file or an export arrives, and you turn it into a clean table other people can trust. pandas is the usual Python tool for this at small and medium sizes. It holds a table in memory as a DataFrame. This lesson follows one file from disk to a checked result and names the mistakes that quietly give wrong numbers.",
+      "## Load less",
+      "The pandas guide on scaling large datasets says pandas works in memory, so the first job is to load less. read_csv(usecols=[...]) reads only the columns you list. Be careful: not every format can do this. For Parquet the matching argument is columns=. Next, use smaller dtypes. A text column with few distinct values can become a category; in the guide's own example, one column fell from about 13.7 MB to about 1.05 MB. pd.to_numeric with downcast='unsigned' or downcast='float' shrinks number columns. Measure with memory_usage(deep=True).",
+      "## Read in chunks",
+      "read_csv(chunksize=N) returns the file in pieces. You work on each piece and keep only a small result, for example running totals. The guide notes that value counts and sums combine well across chunks, while groupby is much harder to do chunk by chunk. If a job needs more than this, the guide points to other tools for out-of-core work.",
+      "## Missing values",
+      "pandas uses NaN for missing floats, NaT for missing dates and times, and pd.NA in the nullable types such as Int64 and string. isna() and notna() detect them, and isna() also treats None as missing. Reductions such as sum skip missing values by default; pass skipna=False to include them. dropna() removes rows, fillna() fills them. The code is easy. The hard part is meaning: a missing amount might be unpaid, unknown or an error, and each needs a different fix.",
+      "## Merge safely",
+      "merge joins two tables on a key. The how argument can be left, right, inner, outer or cross, matching SQL joins. The big risk is a repeated key. If both sides repeat a key, you get the Cartesian product of the matches, so rows multiply, totals are too high, and memory can overflow. Pass validate='many_to_one' (or one_to_one, one_to_many) and pandas raises a MergeError instead. Pass indicator=True to get a _merge column of left_only, right_only and both, so you can list the rows that found no partner.",
+      "## Group by",
+      "groupby splits rows by a key, applies a step such as sum, and combines the results. By default pandas leaves out rows whose key is NaN, because dropna defaults to True. Pass dropna=False to keep them as their own group. as_index=False returns the key as a normal column. Always compare a grand total before and after, so a dropped group does not go unseen.",
+      "## How to talk about it",
+      "In an interview, describe the order: load only what you need with small types, read big files in chunks, decide what missing means, join with validate, check the row counts and totals, then write. Name the two silent bugs: the exploding join and the dropped NaN key."
+    ],
+    "keyPoints": [
+      "pandas works in memory: load fewer columns (usecols) and use smaller dtypes (category, downcast).",
+      "chunksize reads a big file piece by piece; sums and counts combine across chunks.",
+      "isna() finds NaN, NaT, pd.NA and None. Decide what missing means before you fill or drop.",
+      "merge with validate='many_to_one' stops a repeated key from multiplying rows; indicator=True lists unmatched rows.",
+      "groupby drops NaN keys by default (dropna=True). Check totals before and after."
+    ],
+    "sql": [
+      {
+        "title": "Load less: usecols, small dtypes and chunks",
+        "lang": "py",
+        "code": "import io\nimport pandas as pd\n\n# A small CSV standing in for a big file. Real files are read the same way.\nrows = [\"order_id,customer,country,amount,note\"]\nfor i in range(1, 2001):\n    rows.append(f\"{i},c{i % 50},{['IN', 'US', 'DE'][i % 3]},{(i % 97) + 0.5},ok\")\ncsv = \"\\n\".join(rows)\n\n# 1. Load only the columns you need.\nsmall = pd.read_csv(io.StringIO(csv), usecols=[\"order_id\", \"country\", \"amount\"])\nassert list(small.columns) == [\"order_id\", \"country\", \"amount\"]\n\n# 2. Lean types: a few distinct strings become a category, numbers are downcast.\nbefore = small.memory_usage(deep=True).sum()\nsmall[\"country\"] = small[\"country\"].astype(\"category\")\nsmall[\"amount\"] = pd.to_numeric(small[\"amount\"], downcast=\"float\")\nsmall[\"order_id\"] = pd.to_numeric(small[\"order_id\"], downcast=\"unsigned\")\nafter = small.memory_usage(deep=True).sum()\nassert after < before / 2\n\n# 3. Chunks: add up a big file piece by piece without holding it all.\ntotals = None\nfor chunk in pd.read_csv(io.StringIO(csv), usecols=[\"country\", \"amount\"], chunksize=500):\n    part = chunk.groupby(\"country\")[\"amount\"].sum()\n    totals = part if totals is None else totals.add(part, fill_value=0)\nwhole = pd.read_csv(io.StringIO(csv)).groupby(\"country\")[\"amount\"].sum()\nassert (totals - whole).abs().max() < 1e-9\n",
+        "note": "Runs with pandas installed. The asserts show the saving in memory and that the chunked total equals the whole-file total."
+      },
+      {
+        "title": "Missing values, a safe merge and the group-by trap",
+        "lang": "py",
+        "code": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 4],\n    \"customer_id\": [10, 10, 20, 99],          # 99 has no customer row\n    \"amount\": [50.0, None, 30.0, 20.0],         # one missing amount\n})\ncustomers = pd.DataFrame({\"customer_id\": [10, 20, 30], \"city\": [\"Pune\", \"Delhi\", \"Goa\"]})\n\n# Missing values: find them, then decide. Here a missing amount means \"not paid yet\".\nassert orders[\"amount\"].isna().sum() == 1\norders[\"amount\"] = orders[\"amount\"].fillna(0)\n\n# Merge with a safety check: each order must match at most one customer row.\njoined = orders.merge(customers, on=\"customer_id\", how=\"left\", validate=\"many_to_one\", indicator=True)\nassert len(joined) == len(orders)                      # a left join keeps every order\nunmatched = joined[joined[\"_merge\"] == \"left_only\"]\nassert list(unmatched[\"order_id\"]) == [4]              # order 4 has no customer: caught, not silent\n\n# validate stops a duplicate key from multiplying rows.\ndupes = pd.DataFrame({\"customer_id\": [10, 10], \"city\": [\"Pune\", \"Mumbai\"]})\ntry:\n    orders.merge(dupes, on=\"customer_id\", validate=\"many_to_one\")\n    raise AssertionError(\"expected a MergeError\")\nexcept pd.errors.MergeError:\n    pass\n\n# Group by: NaN keys are dropped unless you ask to keep them.\ndf = pd.DataFrame({\"city\": [\"Pune\", None, \"Pune\"], \"amount\": [1, 2, 3]})\nassert df.groupby(\"city\")[\"amount\"].sum().to_dict() == {\"Pune\": 4}\nassert df.groupby(\"city\", dropna=False)[\"amount\"].sum().shape[0] == 2\n",
+        "note": "Order 4 has no customer: indicator finds it. A repeated key raises a MergeError because of validate. NaN keys disappear unless dropna=False."
+      }
+    ],
+    "django": {},
+    "exercise": "Download any CSV with at least 100,000 rows (for example a public open-data file). Print its memory use, then reload it with usecols, category and downcast dtypes and print it again. Read the same file in chunks and total one column. Then split off a small lookup table, add a duplicate key on purpose, and show that merge with validate='many_to_one' raises an error while the plain merge silently adds rows. End with a group-by on a column that has missing values, once with dropna=True and once with dropna=False, and explain the difference in totals.",
+    "pitfalls": [
+      "Loading every column of a large file when only three are needed.",
+      "Merging on a key that repeats on both sides, so rows multiply and totals are too high.",
+      "Assuming a left join cannot change the row count; a repeated key on the right side does.",
+      "Letting groupby drop rows with a NaN key and never comparing totals.",
+      "Filling missing values with 0 without asking what 'missing' means for that column."
+    ],
+    "interview": [
+      {
+        "q": "A CSV is bigger than your memory. How do you process it with pandas?",
+        "a": "Load only the columns you need with usecols, use smaller dtypes such as category and downcast numbers, and read with chunksize so you hold one piece at a time and keep only small results such as running totals. If that is not enough, use a tool built for out-of-core work."
+      },
+      {
+        "q": "What is the danger of merging two DataFrames on a key?",
+        "a": "If the key repeats on both sides, pandas returns the Cartesian product of the matches, so rows multiply and sums are too high. Use validate such as many_to_one so pandas raises a MergeError, and compare row counts before and after."
+      },
+      {
+        "q": "How do you find rows that did not match in a merge?",
+        "a": "Use indicator=True. It adds a _merge column with left_only, right_only or both. Filter for left_only or right_only to see the unmatched rows."
+      },
+      {
+        "q": "How does pandas represent missing data, and how do you handle it?",
+        "a": "NaN for floats, NaT for dates and times, and pd.NA in the nullable dtypes. isna() finds them and also treats None as missing. Then dropna removes, fillna fills, or you keep a flag. The choice depends on what missing means for that column."
+      },
+      {
+        "q": "Does groupby include rows whose key is missing?",
+        "a": "Not by default. dropna defaults to True, so NaN keys are excluded. Pass dropna=False to keep them as their own group, and compare totals to be sure nothing was lost."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "pandas: Scaling to large datasets",
+        "url": "https://pandas.pydata.org/docs/user_guide/scale.html",
+        "kind": "pandas docs"
+      },
+      {
+        "title": "pandas: Merge, join, concatenate and compare",
+        "url": "https://pandas.pydata.org/docs/user_guide/merging.html",
+        "kind": "pandas docs"
+      },
+      {
+        "title": "pandas: Working with missing data",
+        "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+        "kind": "pandas docs"
+      },
+      {
+        "title": "pandas: Group by: split-apply-combine",
+        "url": "https://pandas.pydata.org/docs/user_guide/groupby.html",
+        "kind": "pandas docs"
+      }
+    ],
+    "basis": "Why it is here: the data track had SQL and pipeline lessons but nothing on the Python step where a raw file is loaded and cleaned; that gap is my own finding. From the four pandas pages I read: usecols and the Parquet columns argument, the category example (about 13.7 MB to about 1.05 MB), downcast, chunksize and the note that groupby is hard in chunks; the how values, validate, indicator and the Cartesian product warning for repeated keys; NaN, NaT and pd.NA, isna treating None as missing, and reductions skipping missing values by default; and groupby's dropna default of True. The reading tool could not show the merge page's default for how or the text on transform, so the lesson does not claim them. Both Python samples were run with pandas 3.1.1 in a throwaway virtual environment and pass their asserts; the tests in this project do not run them because pandas is not a project dependency. That a DataFrame can be much bigger than its file is general knowledge. The order of steps, the priority and the hours are my own judgment, not a published standard; the animation is illustrative, not a measurement.",
+    "sources": [
+      "pandas-scale",
+      "pandas-merging",
+      "pandas-missing-data",
+      "pandas-groupby"
+    ],
+    "viz": "stage",
+    "lab": "",
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "pandas",
+        "title": "A file becomes a checked table",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "rows read"
+          },
+          {
+            "kind": "write",
+            "label": "rows processed"
+          },
+          {
+            "kind": "query",
+            "label": "lookup"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The job",
+            "at": 0
+          },
+          {
+            "text": "Too big",
+            "at": 1
+          },
+          {
+            "text": "usecols",
+            "at": 2
+          },
+          {
+            "text": "dtypes",
+            "at": 3
+          },
+          {
+            "text": "Chunks",
+            "at": 4
+          },
+          {
+            "text": "Missing values",
+            "at": 5
+          },
+          {
+            "text": "Merge",
+            "at": 6
+          },
+          {
+            "text": "Unmatched rows",
+            "at": 7
+          },
+          {
+            "text": "Group by",
+            "at": 8
+          },
+          {
+            "text": "Write and check",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "csv",
+            "kind": "db",
+            "x": -4,
+            "y": 3.5,
+            "label": "CSV file",
+            "tone": "grey"
+          },
+          {
+            "id": "df",
+            "kind": "cube",
+            "x": 0,
+            "y": 2,
+            "label": "DataFrame\nin memory",
+            "icon": "grid",
+            "tone": "blue"
+          },
+          {
+            "id": "clean",
+            "kind": "cube",
+            "x": 4,
+            "y": 3.5,
+            "label": "Clean\nmissing values",
+            "icon": "gear",
+            "tone": "orange",
+            "from": 4
+          },
+          {
+            "id": "cust",
+            "kind": "db",
+            "x": 8,
+            "y": 3.5,
+            "label": "Customers",
+            "tone": "purple",
+            "from": 6
+          },
+          {
+            "id": "join",
+            "kind": "cube",
+            "x": 4,
+            "y": -1,
+            "label": "Merge",
+            "icon": "link",
+            "tone": "green",
+            "from": 6
+          },
+          {
+            "id": "grp",
+            "kind": "cube",
+            "x": 0,
+            "y": -3.6,
+            "label": "Group by",
+            "icon": "split",
+            "tone": "teal",
+            "from": 8
+          },
+          {
+            "id": "wh",
+            "kind": "db",
+            "x": 8,
+            "y": -3.6,
+            "label": "Warehouse",
+            "tone": "purple",
+            "from": 9
+          }
+        ],
+        "links": [
+          {
+            "a": "csv",
+            "b": "df",
+            "dir": "to"
+          },
+          {
+            "a": "df",
+            "b": "clean",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "clean",
+            "b": "join",
+            "dir": "to",
+            "from": 6
+          },
+          {
+            "a": "cust",
+            "b": "join",
+            "dir": "to",
+            "from": 6
+          },
+          {
+            "a": "join",
+            "b": "grp",
+            "dir": "to",
+            "from": 8
+          },
+          {
+            "a": "grp",
+            "b": "wh",
+            "dir": "to",
+            "from": 9
+          }
+        ],
+        "steps": [
+          {
+            "title": "The job: get a file into a clean table",
+            "tag": "technique",
+            "body": [
+              "Most data jobs start the same way. A file arrives (CSV, JSON, a database export). You read it, fix the problems, join it to other data, add things up, and save the result.",
+              "pandas does this in memory with a DataFrame: a table with named columns. It is the usual tool for a few million rows. Past that, the pandas docs point you to other tools."
+            ],
+            "short": "The job",
+            "hud": [
+              {
+                "k": "Input",
+                "v": "CSV file"
+              },
+              {
+                "k": "Tool",
+                "v": "pandas DataFrame"
+              }
+            ],
+            "flows": [
+              {
+                "path": [
+                  "csv",
+                  "df"
+                ],
+                "kind": "request",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Problem: the whole file does not fit",
+            "tag": "problem",
+            "body": [
+              "read_csv loads every row and every column. The table in memory can be far bigger than the file on disk, and the job can die with a memory error.",
+              "The pandas guide on scaling says it plainly: pandas works in memory, so load less data first."
+            ],
+            "short": "Too big",
+            "hud": [
+              {
+                "k": "File on disk",
+                "v": "large"
+              },
+              {
+                "k": "Memory used",
+                "v": "too high",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "df": {
+                "status": "hot",
+                "pill": {
+                  "text": "out of memory?",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "csv",
+                  "df"
+                ],
+                "kind": "fail",
+                "n": 3
+              }
+            ]
+          },
+          {
+            "title": "Load only the columns you need",
+            "tag": "technique",
+            "body": [
+              "Pass usecols=['order_id', 'country', 'amount'] to read_csv, and the other columns are never loaded. Fewer columns means less memory and a faster read.",
+              "The guide warns that not every file format can read a subset of columns. For Parquet, the matching argument is columns=."
+            ],
+            "short": "usecols",
+            "hud": [
+              {
+                "k": "Columns loaded",
+                "v": "3 of 5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "df": {
+                "status": "ok",
+                "pill": {
+                  "text": "usecols: 3 columns",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "csv",
+                  "df"
+                ],
+                "kind": "request",
+                "n": 1
+              }
+            ]
+          },
+          {
+            "title": "Use smaller types",
+            "tag": "technique",
+            "body": [
+              "A column of text with only a few different values (a country, a status) can be stored as a category. In the pandas guide's example this cut one column from about 13.7 MB to about 1.05 MB.",
+              "Numbers can be shrunk with pd.to_numeric(column, downcast='unsigned') or downcast='float'. Check the saving with df.memory_usage(deep=True)."
+            ],
+            "short": "dtypes",
+            "hud": [
+              {
+                "k": "country",
+                "v": "category",
+                "tone": "good"
+              },
+              {
+                "k": "amount",
+                "v": "float32",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "df": {
+                "pill": {
+                  "text": "category + downcast",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "predict": {
+              "question": "A column 'country' has 3 different values across 2 million rows. Which dtype is the best fit?",
+              "options": [
+                "object (plain text)",
+                "category",
+                "float64"
+              ],
+              "answer": 1,
+              "why": "A category stores each distinct value once and a small number per row. With few distinct values the saving is large."
+            }
+          },
+          {
+            "title": "Read in chunks",
+            "tag": "technique",
+            "body": [
+              "Pass chunksize=500 (or 500,000 for a real file) and read_csv gives you the file one piece at a time. You compute on each piece and keep only the small result.",
+              "Adding up counts or sums works well in chunks. The guide says groupby is much harder to do chunk by chunk, so plan for that."
+            ],
+            "short": "chunksize",
+            "hud": [
+              {
+                "k": "Rows in memory",
+                "v": "one chunk",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "clean": {
+                "pill": {
+                  "text": "one chunk at a time",
+                  "tone": "orange"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "csv",
+                  "df"
+                ],
+                "kind": "request",
+                "n": 3
+              },
+              {
+                "path": [
+                  "df",
+                  "clean"
+                ],
+                "kind": "write",
+                "n": 2,
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Find and handle missing values",
+            "tag": "technique",
+            "body": [
+              "pandas marks a missing number as NaN, a missing date as NaT, and in the newer nullable types as pd.NA. isna() finds all of them and also treats None as missing.",
+              "Then decide: dropna() removes the rows, fillna(0) fills a value, and some columns need a flag instead. pandas sums skip missing values by default; pass skipna=False to include them. Do not guess the meaning: 'missing amount' can mean unpaid, unknown or an error."
+            ],
+            "short": "Missing values",
+            "hud": [
+              {
+                "k": "Missing amounts",
+                "v": "1",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "clean": {
+                "pill": {
+                  "text": "fillna / dropna",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            },
+            "predict": {
+              "question": "A sum over a column with one NaN: what does df['amount'].sum() do by default?",
+              "options": [
+                "Returns NaN",
+                "Skips the NaN and adds the rest",
+                "Raises an error"
+              ],
+              "answer": 1,
+              "why": "Reductions skip missing values by default. Pass skipna=False when you want a missing value to make the result missing."
+            }
+          },
+          {
+            "title": "Merge with a safety check",
+            "tag": "technique",
+            "body": [
+              "orders.merge(customers, on='customer_id', how='left') keeps every order and adds the customer columns. The how argument takes left, right, inner, outer or cross, matching SQL joins.",
+              "Add validate='many_to_one'. If the customer table has a repeated key, pandas stops with a MergeError. Without it, repeated keys on both sides give the Cartesian product of the matches, so rows multiply and memory can overflow."
+            ],
+            "short": "merge + validate",
+            "hud": [
+              {
+                "k": "Join",
+                "v": "left"
+              },
+              {
+                "k": "validate",
+                "v": "many_to_one",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "cust": {
+                "pill": {
+                  "text": "one row per customer",
+                  "tone": "purple",
+                  "icon": "check"
+                }
+              },
+              "join": {
+                "pill": {
+                  "text": "validate=many_to_one",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "clean",
+                  "join"
+                ],
+                "kind": "write",
+                "n": 2
+              },
+              {
+                "path": [
+                  "cust",
+                  "join"
+                ],
+                "kind": "query",
+                "n": 1,
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "customers has two rows for customer 10. You merge orders on customer_id with no validate. What happens?",
+              "options": [
+                "pandas raises an error",
+                "Every order of customer 10 appears twice",
+                "The second customer row is ignored"
+              ],
+              "answer": 1,
+              "why": "Without validate, pandas does not complain. Each matching pair becomes a row, so the orders are duplicated and the totals are too high."
+            }
+          },
+          {
+            "title": "Catch rows that did not match",
+            "tag": "technique",
+            "body": [
+              "Add indicator=True. pandas adds a _merge column with left_only, right_only or both. Keep the rows marked left_only and look at them: those are orders with no customer.",
+              "Checking the row count before and after a left join is a cheap test too. A left join should never lose rows, and with validate it should not add any."
+            ],
+            "short": "indicator",
+            "hud": [
+              {
+                "k": "Unmatched orders",
+                "v": "1",
+                "tone": "warn"
+              },
+              {
+                "k": "Rows lost",
+                "v": "0",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "join": {
+                "pill": {
+                  "text": "_merge = left_only: 1",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              }
+            }
+          },
+          {
+            "title": "Group by: the NaN trap",
+            "tag": "technique",
+            "body": [
+              "df.groupby('city')['amount'].sum() splits the rows by city, adds each group and combines the results. By default rows whose key is NaN are left out, because dropna=True.",
+              "If a missing city must still be counted, pass dropna=False. Pass as_index=False to get the key back as a normal column."
+            ],
+            "short": "groupby",
+            "hud": [
+              {
+                "k": "Group key",
+                "v": "city"
+              },
+              {
+                "k": "NaN keys",
+                "v": "dropped by default",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "grp": {
+                "pill": {
+                  "text": "dropna=True drops NaN keys",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "join",
+                  "grp"
+                ],
+                "kind": "write",
+                "n": 2
+              }
+            ],
+            "callout": {
+              "kind": "warn",
+              "text": "A report that silently drops rows with a missing key is a classic wrong-total bug."
+            }
+          },
+          {
+            "title": "Write the result and recap",
+            "tag": "insight",
+            "body": [
+              "Save the clean table to the warehouse or a Parquet file. Before you do, assert the things you rely on: the row count, no unexpected missing keys, and the totals against the source."
+            ],
+            "short": "Recap",
+            "hud": [
+              {
+                "k": "Checks",
+                "v": "row count, keys, totals",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "wh": {
+                "pill": {
+                  "text": "checked data",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "grp": {
+                "pill": {
+                  "text": "totals compared",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "join": {
+                "pill": {
+                  "text": "row count checked",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "grp",
+                  "wh"
+                ],
+                "kind": "write",
+                "n": 2
+              }
+            ],
+            "card": {
+              "title": "Ingestion checklist",
+              "lines": [
+                "1 usecols and small dtypes",
+                "2 chunks for big files",
+                "3 decide what missing means",
+                "4 merge with validate",
+                "5 assert before you write"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Read a big spreadsheet-like file, tidy it, join it with another list and add things up, without running out of memory or losing rows.",
+      "story": "A shop gets a huge box of paper bills each month. The clerk does not spread them all on one desk. She takes a small stack at a time, sets aside bills with a missing amount, matches each bill to a customer card, and adds up the totals. Then she counts the bills again to make sure none are lost.",
+      "maps": [
+        [
+          "A small stack at a time",
+          "Reading a file in chunks"
+        ],
+        [
+          "Matching a bill to a customer card",
+          "A merge on a key"
+        ],
+        [
+          "Counting the bills again",
+          "Checking row counts and totals"
+        ]
+      ],
+      "words": [
+        [
+          "dtype",
+          "The kind of value a column holds, such as whole number, decimal or text."
+        ],
+        [
+          "chunk",
+          "One small piece of a big file read at a time."
+        ],
+        [
+          "merge",
+          "Join two tables by matching a shared key."
+        ],
+        [
+          "NaN",
+          "The marker pandas uses for a missing number."
+        ],
+        [
+          "key",
+          "The column used to match rows between two tables."
+        ]
+      ]
+    }
+  },
+  {
+    "id": "ml-gradient-descent",
+    "n": 135,
+    "level": 12,
+    "week": "Core",
+    "title": "Loss and Gradient Descent: How a Model Learns",
+    "tagline": "See how a model measures its mistakes and walks downhill to fix them, and what the learning rate, batch size and epochs change.",
+    "explain": [
+      "Machine learning interviews often ask 'how does a model actually learn?'. The answer is small enough to hold in your head and short enough to code by hand: measure the error, find which way reduces it, take a small step, repeat. This lesson uses linear regression, the simplest case, and follows the Google Machine Learning Crash Course.",
+      "## The model",
+      "Linear regression predicts a number from features. With one feature it is y' = b + w1x1, where y' is the prediction, x1 the feature, w1 the weight and b the bias. The weight and bias are parameters: training learns them. The feature values come from the data and are not changed. The course's example, y' = 34 + (-4.6)(x1), predicts a car's fuel economy from its weight and gives 15.6 for a 4,000 lb car.",
+      "## Loss",
+      "Loss is a single number for how wrong the predictions are. L2 loss for one example is (actual - predicted) squared; in the course's example 24 against 23.1 gives 0.81. Mean squared error (MSE) is the average over N examples, and RMSE is its square root. L1 loss uses absolute errors, and MAE is its average. Because MSE squares the error, big mistakes count far more, so it moves the model toward outliers more than MAE does. The goal of training is to make the loss as small as possible.",
+      "## Gradient descent",
+      "Gradient descent finds the weight and bias with the lowest loss by repeating four steps: compute the loss, find the direction that reduces it, move a small amount that way, and repeat until the loss cannot drop further. The direction comes from the gradient, the slope of the loss for each parameter. For MSE with prediction f = w*x + b over M examples, the weight slope is the average of (f - y) * 2x and the bias slope is the average of (f - y) * 2. The update is new weight = old weight - learning rate * weight slope, and the same for the bias. For a linear model the loss surface is convex, so there is one lowest point.",
+      "## Hyperparameters you choose",
+      "The learning rate, batch size and number of epochs are hyperparameters: you set them, the model does not learn them. Step size is learning rate times gradient. If the rate is too small, training takes too many iterations. If it is too large, the model never converges and bounces around the best values. Full batch uses all N examples for each update, stochastic gradient descent (SGD) uses one, and mini-batch SGD uses a number between and averages their gradients. An epoch is one pass over the data, so there are N divided by batch size updates per epoch.",
+      "## Know when to stop",
+      "@viz:loss-curve",
+      "Keep training until the loss has stabilised, and plot the loss curve to see it: it falls fast at first and then flattens. A curve that rises or jumps means the learning rate is too large. In an interview, write the update rule, say what each hyperparameter changes, and say what you would look at when training goes wrong."
+    ],
+    "keyPoints": [
+      "Linear model: y' = b + w1x1. Weight and bias are learned; features are not changed.",
+      "Loss measures error. MSE is the mean of squared errors and is pulled by outliers more than MAE.",
+      "Gradient descent: compute loss, find the slope, step downhill, repeat.",
+      "Update: new weight = old weight - learning rate * slope. Rate too small is slow; too large bounces or diverges.",
+      "An epoch is one pass over the data: updates per epoch = N / batch size. Stop when the loss curve flattens."
+    ],
+    "sql": [
+      {
+        "title": "Gradient descent for a line, with checks",
+        "lang": "py",
+        "code": "# Linear regression y' = w*x + b, trained with gradient descent and mean squared error.\nxs = [1.0, 2.0, 3.0, 4.0, 5.0]\nys = [3.0, 5.0, 7.0, 9.0, 11.0]          # the truth is y = 2x + 1\n\ndef mse(w, b):\n    return sum((w * x + b - y) ** 2 for x, y in zip(xs, ys)) / len(xs)\n\ndef train(learning_rate, epochs):\n    w, b = 0.0, 0.0                       # start at zero, as the Google course example does\n    for _ in range(epochs):\n        # slopes of the loss: (1/M) * sum((f - y) * 2x) and (1/M) * sum((f - y) * 2)\n        w_slope = sum((w * x + b - y) * 2 * x for x, y in zip(xs, ys)) / len(xs)\n        b_slope = sum((w * x + b - y) * 2 for x, y in zip(xs, ys)) / len(xs)\n        w -= learning_rate * w_slope     # new weight = old weight - learning rate * slope\n        b -= learning_rate * b_slope\n    return w, b\n\n# A sensible learning rate finds the line.\nw, b = train(0.05, 2000)\nassert abs(w - 2) < 0.01 and abs(b - 1) < 0.05\nassert mse(w, b) < 0.001\n\n# The loss goes down on the first steps.\nw1, b1 = train(0.05, 1)\nassert mse(w1, b1) < mse(0, 0)\n\n# Too small: after the same number of steps the model is still far away.\nw_slow, b_slow = train(0.0001, 100)\nassert mse(w_slow, b_slow) > 10\n\n# Too large: every step overshoots and the loss grows instead of shrinking.\nw_big, b_big = train(0.2, 20)\nassert mse(w_big, b_big) > mse(0, 0)\n\n# One worked number from the course: a model y' = 34 - 4.6x predicts 23.1 at x = 2.37; the actual value is 24.\nprediction = 34 + (-4.6) * 2.37\nassert round(prediction, 1) == 23.1\nassert abs((24 - prediction) ** 2 - 0.81) < 0.01      # the squared error, about 0.81\n",
+        "note": "Plain Python, no libraries. The asserts show convergence to y = 2x + 1, a rate that is too small, and a rate that is too large."
+      }
+    ],
+    "django": {},
+    "exercise": "Copy the sample and change one thing at a time. Print the loss every 10 steps for rates 0.001, 0.05 and 0.2 and plot or tabulate the three curves. Add a mini-batch version that uses 2 of the 5 points per update and count the updates in 20 epochs. Then add one outlier point (x = 3, y = 40) and compare the fitted line when the loss is MSE and when it is the mean of absolute errors. Write down what you see.",
+    "pitfalls": [
+      "Setting the learning rate once and never looking at the loss curve.",
+      "Reading a loss that rises as 'the model is learning'; it usually means the rate is too large.",
+      "Mixing up parameters (weight and bias, learned) with hyperparameters (rate, batch size, epochs, chosen).",
+      "Using MSE on data with large outliers without checking how much they pull the line.",
+      "Stopping after a fixed number of steps instead of checking that the loss has flattened."
+    ],
+    "interview": [
+      {
+        "q": "Explain gradient descent in a few sentences.",
+        "a": "It finds the parameters with the lowest loss by repeating a small step. Compute the loss, compute the gradient (the slope of the loss for each parameter), then move each parameter a little in the direction that lowers the loss: new weight = old weight - learning rate * slope. Repeat until the loss stops improving."
+      },
+      {
+        "q": "What happens if the learning rate is too small or too large?",
+        "a": "Too small: it takes too many iterations to converge. Too large: each step overshoots, so the model bounces around the best values or the loss grows and it never converges. Plot the loss curve to tell which one you have."
+      },
+      {
+        "q": "What is the difference between full batch, SGD and mini-batch?",
+        "a": "Full batch uses all N examples for each update. SGD uses one example per update, which is noisy. Mini-batch uses a number in between and averages their gradients. With N examples and batch size B there are N / B updates per epoch."
+      },
+      {
+        "q": "MSE or MAE: which would you pick?",
+        "a": "MSE squares errors, so large errors count much more and the model is pulled toward outliers. MAE treats all errors in proportion and is less affected by outliers. Pick MSE when big errors are much worse than small ones, MAE when outliers are noise."
+      },
+      {
+        "q": "How do you know training has converged?",
+        "a": "The loss stops improving: the loss curve flattens. For a linear model the loss surface is convex, so a converged model is at the lowest loss. For larger models, also check performance on held-out data."
+      }
+    ],
+    "hours": 4,
+    "priority": 3,
+    "references": [
+      {
+        "title": "Machine Learning Crash Course: Linear regression",
+        "url": "https://developers.google.com/machine-learning/crash-course/linear-regression",
+        "kind": "Google docs"
+      },
+      {
+        "title": "Machine Learning Crash Course: Loss",
+        "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/loss",
+        "kind": "Google docs"
+      },
+      {
+        "title": "Machine Learning Crash Course: Gradient descent",
+        "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent",
+        "kind": "Google docs"
+      },
+      {
+        "title": "Machine Learning Crash Course: Hyperparameters",
+        "url": "https://developers.google.com/machine-learning/crash-course/linear-regression/hyperparameters",
+        "kind": "Google docs"
+      }
+    ],
+    "basis": "Why it is here: the machine learning track had lessons on generalisation, metrics and system design but none on the maths of training itself; that gap is my own finding. The model equation, L1 and L2 loss, MAE, MSE and RMSE, the 0.81 worked example, the outlier remark, the four steps of gradient descent, the slope formulas and update rule, the near-zero start, the learning rate, batch and epoch definitions and the 1,000-example numbers are from the four Google Machine Learning Crash Course pages I read. The numbers for the line y = 2x + 1 (loss 57, 1.94, about 35 and about 794) come from running the sample in this lesson; they are illustrative values for this tiny data set, not results from any real model. The sample is plain Python and was run with its asserts. The priority and hours are my own judgment, not a published standard.",
+    "sources": [
+      "mlcc-linear-regression",
+      "mlcc-loss",
+      "mlcc-gradient-descent",
+      "mlcc-hyperparameters"
+    ],
+    "viz": "stage",
+    "lab": "",
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "gradient",
+        "title": "A model walks downhill",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "data in"
+          },
+          {
+            "kind": "response",
+            "label": "predictions"
+          },
+          {
+            "kind": "query",
+            "label": "slopes"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "sync",
+            "label": "new weights"
+          },
+          {
+            "kind": "fail",
+            "label": "overshoot"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The model",
+            "at": 0
+          },
+          {
+            "text": "Loss",
+            "at": 1
+          },
+          {
+            "text": "Find the bottom",
+            "at": 2
+          },
+          {
+            "text": "Gradient",
+            "at": 3
+          },
+          {
+            "text": "The update",
+            "at": 4
+          },
+          {
+            "text": "Rate too small",
+            "at": 5
+          },
+          {
+            "text": "Rate too large",
+            "at": 6
+          },
+          {
+            "text": "Batches",
+            "at": 7
+          },
+          {
+            "text": "Converge",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "data",
+            "kind": "db",
+            "x": -4.2,
+            "y": 3.2,
+            "label": "Training\ndata",
+            "tone": "grey"
+          },
+          {
+            "id": "model",
+            "kind": "cube",
+            "x": 0,
+            "y": 2.4,
+            "label": "Model\nw*x + b",
+            "icon": "cpu",
+            "tone": "blue"
+          },
+          {
+            "id": "loss",
+            "kind": "cube",
+            "x": 4.4,
+            "y": 3.2,
+            "label": "Loss\n(MSE)",
+            "icon": "gauge",
+            "tone": "orange",
+            "from": 1
+          },
+          {
+            "id": "grad",
+            "kind": "cube",
+            "x": 4.4,
+            "y": -1.6,
+            "label": "Gradient\nslopes",
+            "icon": "chevron",
+            "tone": "purple",
+            "from": 3
+          },
+          {
+            "id": "upd",
+            "kind": "cube",
+            "x": 0,
+            "y": -2.4,
+            "label": "Update\nw and b",
+            "icon": "repeat",
+            "tone": "green",
+            "from": 4
+          },
+          {
+            "id": "knob",
+            "kind": "cube",
+            "x": -4.2,
+            "y": -2.4,
+            "label": "Learning\nrate",
+            "icon": "gear",
+            "tone": "teal",
+            "from": 5
+          }
+        ],
+        "links": [
+          {
+            "a": "data",
+            "b": "model",
+            "dir": "to"
+          },
+          {
+            "a": "model",
+            "b": "loss",
+            "dir": "to",
+            "from": 1
+          },
+          {
+            "a": "loss",
+            "b": "grad",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "grad",
+            "b": "upd",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "upd",
+            "b": "model",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "knob",
+            "b": "upd",
+            "dir": "to",
+            "from": 5
+          }
+        ],
+        "steps": [
+          {
+            "title": "The model: a line with two numbers",
+            "tag": "technique",
+            "body": [
+              "Linear regression predicts a number from a feature. The Google course writes it as y' = b + w1x1: y' is the prediction, x1 the feature, w1 the weight and b the bias. Weight and bias are the parameters the model learns.",
+              "Its example: y' = 34 + (-4.6)(x1) predicts a car's fuel economy from its weight. For a 4,000 lb car (x1 = 4) it predicts 15.6 miles per gallon."
+            ],
+            "short": "The model",
+            "hud": [
+              {
+                "k": "Prediction",
+                "v": "y' = b + w1x1"
+              },
+              {
+                "k": "Learned",
+                "v": "w1 and b"
+              }
+            ],
+            "set": {
+              "model": {
+                "pill": {
+                  "text": "y' = 34 - 4.6x",
+                  "tone": "blue"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "data",
+                  "model"
+                ],
+                "kind": "request",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Loss: how wrong is the model?",
+            "tag": "technique",
+            "body": [
+              "Loss is one number for how wrong the predictions are. For one example, L2 loss is (actual - predicted) squared. In the course's example the model predicts 23.1 and the real value is 24, so the loss is (24 - 23.1) squared, which is 0.81.",
+              "Mean squared error (MSE) averages this over all N examples. Squaring makes big mistakes count much more, so MSE moves the model toward outliers more than MAE (the average of the absolute errors) does."
+            ],
+            "short": "Loss",
+            "hud": [
+              {
+                "k": "One example",
+                "v": "(24 - 23.1)^2 = 0.81"
+              },
+              {
+                "k": "Over all examples",
+                "v": "MSE = mean"
+              }
+            ],
+            "set": {
+              "loss": {
+                "pill": {
+                  "text": "MSE",
+                  "tone": "orange"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "model",
+                  "loss"
+                ],
+                "kind": "response",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "The goal: make the loss as small as possible",
+            "tag": "insight",
+            "body": [
+              "Training means finding the weight and bias with the lowest loss. For a linear model the loss, drawn against the weight and bias, is a single bowl (the course calls it convex). There is one lowest point, and any path downhill reaches it.",
+              "You cannot see the whole bowl, so you walk down it one step at a time. That walk is gradient descent."
+            ],
+            "short": "Find the bottom",
+            "set": {
+              "loss": {
+                "pill": {
+                  "text": "one low point",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "callout": {
+              "kind": "insight",
+              "text": "Think of walking down a hill in fog: you feel the slope under your feet and step downhill."
+            }
+          },
+          {
+            "title": "The gradient points the way",
+            "tag": "technique",
+            "body": [
+              "The gradient is the slope of the loss for each parameter. For MSE with prediction f = w*x + b over M examples, the weight slope is the average of (f - y) * 2x and the bias slope is the average of (f - y) * 2.",
+              "If the slope is positive, raising the weight raises the loss, so you lower it. If it is negative, you raise it. The slope tells you the direction downhill."
+            ],
+            "short": "Gradient",
+            "hud": [
+              {
+                "k": "Weight slope",
+                "v": "avg of (f - y) * 2x"
+              },
+              {
+                "k": "Bias slope",
+                "v": "avg of (f - y) * 2"
+              }
+            ],
+            "set": {
+              "grad": {
+                "pill": {
+                  "text": "slope = which way is down",
+                  "tone": "purple"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "loss",
+                  "grad"
+                ],
+                "kind": "query",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Take a small step and repeat",
+            "tag": "technique",
+            "body": [
+              "Update rule: new weight = old weight - learning rate * weight slope, and the same for the bias. Then compute the loss again and repeat. Start near zero; the course example starts at weight 0 and bias 0.",
+              "In this lesson's code, the data lie on y = 2x + 1. From w = 0 and b = 0 the loss is 57. After one step with learning rate 0.05 it is 1.94 (w = 2.5, b = 0.7). The numbers are from the sample below."
+            ],
+            "short": "The update",
+            "hud": [
+              {
+                "k": "Loss at start",
+                "v": "57",
+                "tone": "bad"
+              },
+              {
+                "k": "After 1 step",
+                "v": "1.94",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "upd": {
+                "pill": {
+                  "text": "w = w - lr * slope",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "model": {
+                "pill": {
+                  "text": "after 1 step: w 2.5, b 0.7",
+                  "tone": "blue"
+                }
+              },
+              "loss": {
+                "pill": {
+                  "text": "loss 57 to 1.94",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "grad",
+                  "upd"
+                ],
+                "kind": "write",
+                "n": 2
+              },
+              {
+                "path": [
+                  "upd",
+                  "model"
+                ],
+                "kind": "sync",
+                "n": 2,
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "The learning rate is your step size",
+            "tag": "technique",
+            "body": [
+              "The learning rate is a hyperparameter: you choose it, the model does not learn it. Step size is the learning rate times the gradient. In the course's example, a gradient of 2.5 and a rate of 0.01 changes the parameter by 0.025.",
+              "Too small and training 'can take too many iterations to converge'. In the sample, 100 steps at 0.0001 leave the loss at about 35, far from done."
+            ],
+            "short": "Too small",
+            "hud": [
+              {
+                "k": "Rate",
+                "v": "0.0001",
+                "tone": "warn"
+              },
+              {
+                "k": "Loss after 100 steps",
+                "v": "about 35",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "knob": {
+                "pill": {
+                  "text": "too small: slow",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              },
+              "model": {
+                "pill": {
+                  "text": "after 100 steps: w 0.45, b 0.13",
+                  "tone": "blue"
+                }
+              },
+              "loss": {
+                "pill": {
+                  "text": "loss still about 35",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              }
+            },
+            "predict": {
+              "question": "Training is very slow and the loss falls only a little each step. What do you try first?",
+              "options": [
+                "Lower the learning rate",
+                "Raise the learning rate a little",
+                "Remove half the data"
+              ],
+              "answer": 1,
+              "why": "A tiny step size is the usual cause of slow progress. Raise the rate a little and watch the loss curve. Raise it too much and training gets worse."
+            }
+          },
+          {
+            "title": "Too large: the steps overshoot",
+            "tag": "problem",
+            "body": [
+              "If the rate is too big, each step jumps past the bottom. The course says the model never converges and 'bounces around' the best weights. In the sample, with rate 0.2 the loss after one step is about 794, higher than the 57 it started with, and it keeps growing.",
+              "The loss curve tells you. A good run falls and then flattens. A bad run goes up or jumps around."
+            ],
+            "short": "Too large",
+            "hud": [
+              {
+                "k": "Rate",
+                "v": "0.2",
+                "tone": "bad"
+              },
+              {
+                "k": "Loss after 1 step",
+                "v": "about 794",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "knob": {
+                "status": "hot",
+                "pill": {
+                  "text": "too large: diverges",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              },
+              "model": {
+                "pill": {
+                  "text": "after 1 step: w 10, b 2.8",
+                  "tone": "blue"
+                }
+              },
+              "loss": {
+                "status": "hot",
+                "pill": {
+                  "text": "loss about 794, growing",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "upd",
+                  "model"
+                ],
+                "kind": "fail",
+                "n": 2
+              }
+            ]
+          },
+          {
+            "title": "Batch size and epochs",
+            "tag": "technique",
+            "body": [
+              "Full batch uses all N examples for each update. Stochastic gradient descent (SGD) uses one example. Mini-batch SGD uses a number in between and averages their gradients. An epoch is one pass over the training set, so updates per epoch = N / batch size.",
+              "The course's numbers: 1,000 examples and batch size 100 give 10 updates per epoch. Over 20 epochs that is 20 updates for full batch, 20,000 for SGD and 200 for mini-batch."
+            ],
+            "short": "Batches",
+            "hud": [
+              {
+                "k": "Updates per epoch",
+                "v": "N / batch size"
+              },
+              {
+                "k": "Example",
+                "v": "10 per epoch"
+              }
+            ],
+            "set": {
+              "data": {
+                "pill": {
+                  "text": "mini-batch of 100",
+                  "tone": "grey"
+                }
+              },
+              "knob": {
+                "status": "ok",
+                "pill": null
+              },
+              "loss": {
+                "status": "ok",
+                "pill": null
+              },
+              "model": {
+                "pill": {
+                  "text": "y' = b + w*x",
+                  "tone": "blue"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "data",
+                  "model"
+                ],
+                "kind": "request",
+                "n": 3
+              }
+            ],
+            "predict": {
+              "question": "1,000 examples, batch size 100, 20 epochs. How many parameter updates happen?",
+              "options": [
+                "20",
+                "200",
+                "20,000"
+              ],
+              "answer": 1,
+              "why": "Each epoch has 1,000 / 100 = 10 updates. Over 20 epochs that is 200."
+            }
+          },
+          {
+            "title": "When to stop: convergence",
+            "tag": "technique",
+            "body": [
+              "You train until the loss stops improving, which is called convergence. The loss curve drops fast at first and then flattens. In the sample, 2,000 steps at rate 0.05 reach w = 2.0 and b = 1.0 and a loss near zero.",
+              "For a linear model a converged result is the lowest loss there is. For bigger models there can be several low points, so the starting point and settings matter more."
+            ],
+            "short": "Converge",
+            "hud": [
+              {
+                "k": "After 5 steps",
+                "v": "loss 0.026"
+              },
+              {
+                "k": "After 100 steps",
+                "v": "loss 0.001",
+                "tone": "good"
+              },
+              {
+                "k": "After 2000 steps",
+                "v": "w = 2, b = 1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "loss": {
+                "status": "ok",
+                "pill": {
+                  "text": "flat curve = converged",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "model": {
+                "pill": {
+                  "text": "w = 2, b = 1",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A model has parameters. Loss measures the error. The gradient says which way is downhill. The learning rate sets the step size. Repeat until the loss flattens. Watch the loss curve: it shows if the rate is too small or too large."
+            ],
+            "short": "Recap",
+            "card": {
+              "title": "Say it in an interview",
+              "lines": [
+                "1 model: y' = b + w1x1",
+                "2 loss: MSE",
+                "3 gradient: slope of the loss",
+                "4 update: w = w - rate * slope",
+                "5 repeat until the loss flattens"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A model starts with a bad guess and fixes it a little at a time by walking downhill on a map of its own mistakes.",
+      "story": "You are on a foggy hill and want to reach the valley. You cannot see far. You feel which way the ground slopes under your feet and take one small step downhill. Then you feel again. Small steps are slow. Huge steps can throw you over the valley to the other side.",
+      "maps": [
+        [
+          "The height of the ground",
+          "The loss, or how wrong the model is"
+        ],
+        [
+          "Feeling the slope under your feet",
+          "The gradient"
+        ],
+        [
+          "The size of your step",
+          "The learning rate"
+        ]
+      ],
+      "words": [
+        [
+          "gradient",
+          "The slope that tells you which way makes the error smaller."
+        ],
+        [
+          "loss",
+          "One number that says how wrong the model is."
+        ],
+        [
+          "learning rate",
+          "How big a step the model takes each time."
+        ],
+        [
+          "epoch",
+          "One full pass over all the training data."
+        ],
+        [
+          "converge",
+          "Reach the point where the error stops getting smaller."
+        ]
+      ]
+    }
+  },
+  {
+    "id": "data-star-schema",
+    "n": 136,
+    "level": 10,
+    "week": "Core",
+    "title": "Data Modelling: Star Schema and Changing Dimensions",
+    "tagline": "Lay out tables so reports are easy and fast: facts that measure, dimensions that describe, and a way to keep history.",
+    "explain": [
+      "The database tables behind an app are designed to save each change safely, with little repeated data. Reports want something else: sales by month, by product, by region, over many rows. A star schema is a way to lay out tables for those questions. It is the most common warehouse design, and data engineering interviews often ask you to model a business process with it.",
+      "## Dimensions and facts",
+      "In a star schema every table is a dimension or a fact. A dimension table describes a business entity such as a product, a person, a place or a date. It has a key column that identifies each row, and it usually has relatively few rows. A fact table stores observations or events, for example one row per order line. It holds a key for each dimension and the numbers you add up, called measures. On a one-to-many relationship, the 'one' side is the dimension and the 'many' side is the fact. You filter and group by dimension columns and add up fact measures.",
+      "## Grain",
+      "The grain says what one row of the fact table means: one order line, one order, one day per product. The dimension keys in the fact table set the grain. Microsoft's guide gives the example of a target table keyed by date and product, where first-of-month dates make the grain one row per product per month. Decide the grain first, because every measure and every dimension must make sense at it. Putting a whole-order total on each order-line row is the classic mistake: a sum then counts the order many times.",
+      "## Wide dimensions or a snowflake",
+      "A snowflake dimension splits one entity into several normalized tables, such as product, subcategory and category. It repeats less text, but there are more tables to load, longer chains of joins, and you cannot build a hierarchy from columns in different tables. Microsoft's guidance is that, generally, the benefits of a single table outweigh the benefits of several. Keep dimensions wide unless you have a reason.",
+      "## Surrogate keys and history",
+      "A surrogate key is an identifier added to a table to support the star schema; it is not defined or stored in the source data. You need it for history. A slowly changing dimension describes how a dimension row changes over time. Type 1 overwrites the old value, so the table always shows the latest and old facts look as if they belong to the new value. Type 2 keeps versions: a new row for each change, with start and end dates and often an is-current flag, and it needs a surrogate key because the business key is no longer unique. Kimball's list also names Type 0 (retain original) and Type 3 (add a new attribute).",
+      "## Other pieces",
+      "A role-playing dimension is one table used in several roles, such as a date table used for order date and ship date. A degenerate dimension is an identifier, like an invoice number, kept in the fact table with no dimension table of its own. A factless fact table records that an event happened and holds no measure. In an interview, state the business process, then the grain, then the dimensions, then the measures, and say how you would handle a change in a customer's region."
+    ],
+    "keyPoints": [
+      "Fact tables hold events: dimension keys plus measures. Dimension tables describe entities and have a key.",
+      "Choose the grain first. Every measure must belong to it.",
+      "Queries join the fact to dimensions and group by dimension columns: one hop from the centre.",
+      "Keep dimensions wide (denormalized) unless there is a reason to snowflake.",
+      "Surrogate keys let you keep history. Type 1 overwrites, Type 2 adds a row with start and end dates."
+    ],
+    "sql": [
+      {
+        "title": "A small star schema with a Type 2 dimension",
+        "lang": "py",
+        "code": "import sqlite3\n\ndb = sqlite3.connect(\":memory:\")\ndb.executescript(\"\"\"\nCREATE TABLE dim_date    (date_key INTEGER PRIMARY KEY, day TEXT, month TEXT);\nCREATE TABLE dim_product (product_key INTEGER PRIMARY KEY, sku TEXT, name TEXT, category TEXT);\n-- Type 2 dimension: a new row for each version, with validity dates and a current flag.\nCREATE TABLE dim_customer (\n    customer_key INTEGER PRIMARY KEY,      -- surrogate key: made by the warehouse, not the source system\n    customer_id  TEXT,                     -- business key from the source: repeats across versions\n    region       TEXT,\n    valid_from   TEXT, valid_to TEXT, is_current INTEGER);\n-- Fact table: one row per order line (the grain), keys to dimensions plus numbers.\nCREATE TABLE fact_sales (\n    date_key INTEGER, product_key INTEGER, customer_key INTEGER,\n    quantity INTEGER, amount REAL);\n\"\"\")\ndb.executemany(\"INSERT INTO dim_date VALUES (?,?,?)\", [(1, \"2026-01-05\", \"2026-01\"), (2, \"2026-02-09\", \"2026-02\")])\ndb.executemany(\"INSERT INTO dim_product VALUES (?,?,?,?)\", [(1, \"P1\", \"Pen\", \"Stationery\"), (2, \"P2\", \"Desk\", \"Furniture\")])\ndb.executemany(\"INSERT INTO dim_customer VALUES (?,?,?,?,?,?)\", [\n    (1, \"C7\", \"West\", \"2025-01-01\", \"2026-02-01\", 0),     # old version\n    (2, \"C7\", \"North\", \"2026-02-01\", None, 1)])           # the customer moved: new row\ndb.executemany(\"INSERT INTO fact_sales VALUES (?,?,?,?,?)\", [\n    (1, 1, 1, 10, 50.0),      # January sale was made while the customer was in the West\n    (2, 2, 2, 1, 400.0)])     # February sale: North\n\n# Star query: join the fact to its dimensions, group by dimension attributes, add the measures.\nrows = db.execute(\"\"\"\n    SELECT c.region, d.month, SUM(f.amount)\n    FROM fact_sales f\n    JOIN dim_customer c ON c.customer_key = f.customer_key\n    JOIN dim_date d ON d.date_key = f.date_key\n    GROUP BY c.region, d.month ORDER BY d.month\"\"\").fetchall()\nassert rows == [(\"West\", \"2026-01\", 50.0), (\"North\", \"2026-02\", 400.0)]   # history keeps the region it had then\n\n# The business key repeats; the surrogate key does not.\nassert db.execute(\"SELECT COUNT(*), COUNT(DISTINCT customer_id), COUNT(DISTINCT customer_key) FROM dim_customer\").fetchone() == (2, 1, 2)\n\n# Exactly one current row per customer.\nassert db.execute(\"SELECT COUNT(*) FROM dim_customer WHERE customer_id='C7' AND is_current=1\").fetchone()[0] == 1\n",
+        "note": "Uses SQLite from the Python standard library. The February sale points to the new customer row, so January stays under West."
+      }
+    ],
+    "django": {},
+    "exercise": "Model an online food-delivery business as a star schema. Write the grain in one sentence, then list the fact table (keys and measures) and at least four dimensions. Say how you would store a restaurant that changes its cuisine type, using Type 2, and write the SQL for 'orders and revenue by cuisine and month' as it was at the time. Then list one measure that would break your grain and fix it.",
+    "pitfalls": [
+      "Not choosing the grain first, so the fact table mixes rows of different meanings.",
+      "Putting an order-level total on every order-line row, so sums count it many times.",
+      "Using the source system's business key as the dimension key and then losing history.",
+      "Snowflaking every dimension, so simple reports need long chains of joins.",
+      "Overwriting a dimension value (Type 1) when the business needs old facts to keep the old value."
+    ],
+    "interview": [
+      {
+        "q": "What is a star schema?",
+        "a": "A way to lay out warehouse tables for reports. A central fact table holds events as keys to dimensions plus numeric measures. Dimension tables describe the entities (product, customer, date) and are used to filter and group. Queries join the fact table to its dimensions."
+      },
+      {
+        "q": "What is the grain of a fact table and why does it come first?",
+        "a": "The grain says what one row means, for example one order line. Every measure and every dimension must make sense at that grain. If you mix grains, sums double count or become meaningless."
+      },
+      {
+        "q": "What is a surrogate key and why use one?",
+        "a": "An identifier the warehouse adds to a table; it is not defined or stored in the source data. It stays unique when the business key repeats, which happens when you keep several versions of a row, and it is not affected if the source changes or reuses keys."
+      },
+      {
+        "q": "Explain slowly changing dimensions Type 1 and Type 2.",
+        "a": "Type 1 overwrites the old value, so the table shows only the latest and old facts appear under the new value. Type 2 adds a new row for each version with start and end dates and often an is-current flag, so old facts keep pointing to the old version. Type 2 needs a surrogate key."
+      },
+      {
+        "q": "Star or snowflake?",
+        "a": "A star keeps each dimension in one wide table, which means fewer joins, simpler queries and easy hierarchies. A snowflake normalizes dimensions into linked tables, repeating less text but adding tables and joins. Generally prefer the star unless there is a clear reason."
+      }
+    ],
+    "hours": 4,
+    "priority": 2,
+    "references": [
+      {
+        "title": "Microsoft Learn: Understand star schema and the importance for Power BI",
+        "url": "https://learn.microsoft.com/en-us/power-bi/guidance/star-schema",
+        "kind": "Microsoft docs"
+      },
+      {
+        "title": "Kimball Group: Dimensional modeling techniques",
+        "url": "https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/",
+        "kind": "Kimball Group"
+      }
+    ],
+    "basis": "Why it is here: the data track covered analytical SQL and pipelines but not how to lay out the warehouse tables; that gap is my own finding. From the Microsoft Learn page I read: dimension and fact definitions, the one side and many side rule, key columns and measures, how dimension keys set the grain, normalized and snowflake dimensions and their drawbacks, the single-table recommendation, the surrogate key definition, Type 1 and Type 2 behaviour, and the names role-playing, junk and degenerate dimensions and factless fact tables. That page is written for Power BI, not for warehouses in general. The Kimball page I read is an index: it gave the names of the techniques (the four-step design process, grain, surrogate keys, conformed dimensions, and slowly changing dimension Types 0 to 3 as retain original, overwrite, add new row and add new attribute) but not their definitions. The four design steps as I list them, the idea that a measure must belong to the grain, and the Type 0 and Type 3 meanings beyond their names are general knowledge. The sample runs with SQLite and passes its asserts. The priority and hours are my own judgment, not a published standard; the animation is illustrative.",
+    "sources": [
+      "ms-star-schema",
+      "kimball-techniques"
+    ],
+    "viz": "stage",
+    "lab": "",
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "star",
+        "title": "A star schema around one fact table",
+        "legend": [
+          {
+            "kind": "write",
+            "label": "keys into the fact"
+          },
+          {
+            "kind": "query",
+            "label": "report query"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Why",
+            "at": 0
+          },
+          {
+            "text": "Dimensions",
+            "at": 1
+          },
+          {
+            "text": "Facts",
+            "at": 2
+          },
+          {
+            "text": "Grain",
+            "at": 3
+          },
+          {
+            "text": "Star query",
+            "at": 4
+          },
+          {
+            "text": "Snowflake",
+            "at": 5
+          },
+          {
+            "text": "Surrogate key",
+            "at": 6
+          },
+          {
+            "text": "SCD types",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "rep",
+            "kind": "device",
+            "x": -4.4,
+            "y": -3.2,
+            "label": "Report",
+            "icon": "laptop",
+            "tone": "grey"
+          },
+          {
+            "id": "oltp",
+            "kind": "db",
+            "x": 0,
+            "y": 0,
+            "label": "App tables\n(many joins)",
+            "tone": "grey",
+            "until": 0
+          },
+          {
+            "id": "fact",
+            "kind": "db",
+            "x": 0,
+            "y": 0,
+            "label": "fact_sales",
+            "tone": "orange",
+            "from": 2
+          },
+          {
+            "id": "dprod",
+            "kind": "cube",
+            "x": -4,
+            "y": 3.4,
+            "label": "dim_product",
+            "icon": "box",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "ddate",
+            "kind": "cube",
+            "x": 4,
+            "y": 3.4,
+            "label": "dim_date",
+            "icon": "calendar",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "dcust",
+            "kind": "cube",
+            "x": 4.4,
+            "y": -3.2,
+            "label": "dim_customer",
+            "icon": "users",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "snow",
+            "kind": "cube",
+            "x": -8,
+            "y": 3.4,
+            "label": "category\n(snowflake)",
+            "icon": "folder",
+            "tone": "grey",
+            "from": 5,
+            "until": 5
+          }
+        ],
+        "links": [
+          {
+            "a": "dprod",
+            "b": "fact",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "ddate",
+            "b": "fact",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "dcust",
+            "b": "fact",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "rep",
+            "b": "oltp",
+            "dir": "to",
+            "until": 0
+          },
+          {
+            "a": "rep",
+            "b": "fact",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "snow",
+            "b": "dprod",
+            "dir": "to",
+            "dash": true,
+            "from": 5,
+            "until": 5
+          }
+        ],
+        "steps": [
+          {
+            "title": "Why a separate model for reports?",
+            "tag": "problem",
+            "body": [
+              "The tables that run an app are built to save one order safely. Reports ask a different kind of question: sales by month, by product and by region. On the app's tables these questions need many joins and are hard for a person to write.",
+              "A star schema is a layout built for those questions. Every table is one of two kinds: a dimension or a fact."
+            ],
+            "short": "Why",
+            "hud": [
+              {
+                "k": "App tables",
+                "v": "good for saving"
+              },
+              {
+                "k": "Star schema",
+                "v": "good for asking",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "oltp": {
+                "status": "hot",
+                "pill": {
+                  "text": "report = many joins",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              },
+              "rep": {
+                "pill": {
+                  "text": "sales by month and region?",
+                  "tone": "orange"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "rep",
+                  "oltp"
+                ],
+                "kind": "query",
+                "n": 3
+              }
+            ]
+          },
+          {
+            "title": "Dimensions describe things",
+            "tag": "technique",
+            "body": [
+              "A dimension table describes a business thing: a product, a customer, a date, a place. It has a key column that identifies each row, plus descriptive columns such as name and category. It usually has relatively few rows.",
+              "You filter and group by dimension columns: 'by category', 'by month'."
+            ],
+            "short": "Dimensions",
+            "hud": [
+              {
+                "k": "dim_product",
+                "v": "sku, name, category"
+              },
+              {
+                "k": "dim_date",
+                "v": "day, month"
+              }
+            ],
+            "set": {
+              "dprod": {
+                "pill": {
+                  "text": "describes products",
+                  "tone": "blue"
+                }
+              },
+              "ddate": {
+                "pill": {
+                  "text": "describes dates",
+                  "tone": "blue"
+                }
+              },
+              "dcust": {
+                "pill": {
+                  "text": "describes customers",
+                  "tone": "blue"
+                }
+              }
+            }
+          },
+          {
+            "title": "A fact table records events",
+            "tag": "technique",
+            "body": [
+              "A fact table stores observations or events, such as one row for each order line. It holds a key for each dimension and numbers you add up, called measures: quantity and amount.",
+              "Microsoft's guide shows how to tell them apart: on a one-to-many relationship, the 'one' side is the dimension and the 'many' side is the fact."
+            ],
+            "short": "Facts",
+            "hud": [
+              {
+                "k": "fact_sales",
+                "v": "keys + measures"
+              },
+              {
+                "k": "Measures",
+                "v": "quantity, amount"
+              }
+            ],
+            "set": {
+              "fact": {
+                "pill": {
+                  "text": "one row per order line",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "dprod",
+                  "fact"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "ddate",
+                  "fact"
+                ],
+                "kind": "write",
+                "delay": 0.2
+              },
+              {
+                "path": [
+                  "dcust",
+                  "fact"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Pick the grain first",
+            "tag": "technique",
+            "body": [
+              "The grain says what one fact row means: one order line, one order, or one day per product. The Microsoft guide shows that the dimension keys set the grain: a target table keyed by date and product has one row per product per month if the dates are first-of-month.",
+              "Choose it before anything else, because every measure and every dimension has to make sense at that grain. Mixing grains in one table is the most common modelling mistake. Designing in four steps (business process, grain, dimensions, facts) is the usual Kimball method; Kimball's page lists these as titles, and the details here are general knowledge."
+            ],
+            "short": "Grain",
+            "hud": [
+              {
+                "k": "Grain",
+                "v": "one order line",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "fact": {
+                "pill": {
+                  "text": "grain: order line",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "predict": {
+              "question": "Each row of fact_sales is one order line. Which column would break that grain?",
+              "options": [
+                "quantity",
+                "order_total (the whole order's total, repeated on every line)",
+                "product_key"
+              ],
+              "answer": 1,
+              "why": "Repeating the order total on every line means a sum over the table counts the order several times. A measure must belong to the grain."
+            }
+          },
+          {
+            "title": "The star query",
+            "tag": "technique",
+            "body": [
+              "To answer 'sales by region and month' you join the fact table to the dimensions and group by their columns. Every join is one hop from the centre, which gives the star its name.",
+              "The sample below builds a tiny star in SQLite and runs this query."
+            ],
+            "short": "Star query",
+            "hud": [
+              {
+                "k": "Join depth",
+                "v": "1 hop",
+                "tone": "good"
+              },
+              {
+                "k": "Measures",
+                "v": "added up"
+              }
+            ],
+            "set": {
+              "rep": {
+                "pill": {
+                  "text": "by region and month",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "rep",
+                  "fact"
+                ],
+                "kind": "query",
+                "n": 2
+              },
+              {
+                "path": [
+                  "fact",
+                  "rep"
+                ],
+                "kind": "response",
+                "n": 2,
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "Snowflake or star?",
+            "tag": "technique",
+            "body": [
+              "If you split a dimension into several linked tables, such as product, subcategory and category, it is a snowflake dimension. It avoids repeating text but means more tables to load, longer chains of joins and trouble building a hierarchy across tables.",
+              "Microsoft's guide says that, generally, the benefits of a single model table outweigh those of several. So keep dimensions wide and repeated (denormalized) unless there is a good reason."
+            ],
+            "short": "Snowflake",
+            "hud": [
+              {
+                "k": "Joins per query",
+                "v": "more with snowflake",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "dprod": {
+                "pill": {
+                  "text": "one wide table",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "snow",
+                  "dprod"
+                ],
+                "kind": "query"
+              }
+            ]
+          },
+          {
+            "title": "Surrogate keys",
+            "tag": "technique",
+            "body": [
+              "A surrogate key is an identifier you add to a table. By definition it is not defined or stored in the source data. The warehouse makes it, usually a plain counter.",
+              "You need it because the source's business key (such as customer_id) may repeat when you keep history, and sources can reuse or change their keys."
+            ],
+            "short": "Surrogate key",
+            "hud": [
+              {
+                "k": "customer_id (business key)",
+                "v": "repeats",
+                "tone": "warn"
+              },
+              {
+                "k": "customer_key (surrogate)",
+                "v": "unique",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "dcust": {
+                "pill": {
+                  "text": "customer_key = 1, 2, 3...",
+                  "tone": "blue",
+                  "icon": "key"
+                }
+              }
+            }
+          },
+          {
+            "title": "When a customer moves: slowly changing dimensions",
+            "tag": "technique",
+            "body": [
+              "Type 1 overwrites the old value: the table always shows the latest, but the old facts now look as if they happened in the new region. Type 2 adds a new row for each version, with start and end dates and often an is-current flag. It needs a surrogate key because the business key repeats.",
+              "Kimball's list names Type 0 as retain original and Type 3 as add a new attribute. Type 2 is the one asked about most."
+            ],
+            "short": "SCD types",
+            "set": {
+              "dcust": {
+                "pill": {
+                  "text": "Type 2: a row per version",
+                  "tone": "teal",
+                  "icon": "check"
+                }
+              }
+            },
+            "predict": {
+              "question": "A customer moves from West to North. You must report last January's sales under West. Which type do you need?",
+              "options": [
+                "Type 1: overwrite",
+                "Type 2: add a new row",
+                "Neither: delete the old facts"
+              ],
+              "answer": 1,
+              "why": "Type 1 would move old sales to North. Type 2 keeps the old row, and old facts still point to it."
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Dimensions describe, facts measure. Pick the grain first. Join facts to dimensions and group by their columns. Keep dimensions wide unless you have a reason. Use surrogate keys, and Type 2 when history matters."
+            ],
+            "short": "Recap",
+            "set": {
+              "dprod": {
+                "pill": null
+              },
+              "dcust": {
+                "pill": null
+              },
+              "ddate": {
+                "pill": null
+              },
+              "fact": {
+                "pill": {
+                  "text": "grain first",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "rep": {
+                "pill": {
+                  "text": "simple, fast query",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "card": {
+              "title": "Star schema checklist",
+              "lines": [
+                "1 what is one fact row? (grain)",
+                "2 dimension keys + measures in the fact",
+                "3 wide dimensions, descriptive columns",
+                "4 surrogate keys",
+                "5 Type 2 if history matters"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Arrange your data like a wheel: one table of events in the middle, and small tables that describe things around it.",
+      "story": "A shop keeps a long list of sales in the middle of the counter: one line for each item sold, with the price and a code. Around it are small cards: one card per product, one per customer, one per day. To answer 'how much did we sell by city', you read the sales list and look up each customer card.",
+      "maps": [
+        [
+          "The long sales list",
+          "The fact table"
+        ],
+        [
+          "A card for a product or customer",
+          "A dimension table"
+        ],
+        [
+          "The code on the sales line",
+          "A key to a dimension"
+        ]
+      ],
+      "words": [
+        [
+          "fact table",
+          "A table of events with numbers, such as one row per item sold."
+        ],
+        [
+          "dimension",
+          "A table that describes a thing, such as a product or a customer."
+        ],
+        [
+          "grain",
+          "What one row of the fact table stands for."
+        ],
+        [
+          "surrogate key",
+          "A key the warehouse makes up, not taken from the source data."
+        ],
+        [
+          "measure",
+          "A number in a fact row that you add up, such as an amount."
+        ]
+      ]
+    }
   }
 ]
