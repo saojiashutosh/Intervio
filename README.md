@@ -1,23 +1,23 @@
 # Intervio
 
-An interview-prep portal for software engineers. It teaches 132 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
+An interview-prep portal for software engineers. It teaches 136 lessons in 12 tracks as short, step-by-step courses with animated diagrams, and adds a personal study roadmap, a coding problem bank, SQL drills and spaced-repetition flashcards.
 
 ## What it does
 
 | Track | Lessons |
 |---|---|
 | Database engineering (with the Django ORM angle) | 21 |
-| Python and Django core | 12 |
-| Behavioral and interview skills | 3 |
-| Data structures and algorithms | 11 |
+| Python and Django core | 13 |
+| Behavioral and interview skills | 4 |
+| Data structures and algorithms | 16 |
 | Low-level design (object-oriented) | 9 |
 | Computer science fundamentals | 4 |
-| Scaling and distributed systems (system design) | 35 |
+| Scaling and distributed systems (system design) | 39 |
 | Git, containers and deployment | 4 |
-| Frontend engineering | 8 |
-| Data engineering | 3 |
+| Frontend engineering | 9 |
+| Data engineering | 6 |
 | DevOps and reliability | 3 |
-| Machine learning engineering | 7 |
+| Machine learning engineering | 8 |
 
 - **A lesson is a short course, one screen at a time:** Picture it (a plain-words story and the hard words), Watch it (the animation), Read, Code (only if the lesson has code), Practice, Check yourself (interview questions) and Finish (sources, mark complete, next lesson). The step is in the URL (`/concept/acid?s=read`), so links and reloads keep your place.
 - **Animated diagrams:** every lesson has isometric step-through diagrams with live metrics, packets travelling along links, and prediction questions on selected steps. Keyboard: click the diagram, then `←` `→` to step, `R` to replay, `Space` to pause. Reduced-motion settings are respected.
