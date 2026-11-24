@@ -884,3 +884,60 @@ describe('appearance: colour and font', () => {
     document.documentElement.dataset.font = 'jakarta'
   })
 })
+
+describe('bugs that were fixed', () => {
+  /** Replace fetch for the length of one test: `handler` answers the calls it knows and returns undefined for the rest. */
+  async function withFetch(handler: (url: string, init?: RequestInit) => Response | undefined, body: () => Promise<void>) {
+    const before = globalThis.fetch
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => handler(String(input), init) ?? before(input, init))
+    try { await body() } finally { vi.stubGlobal('fetch', before) }
+  }
+  const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+
+  it('the Tab key in the code editor keeps the caret after the inserted spaces', async () => {
+    const c = await visit('/problems/two-sum', /Your code/)
+    const box = within(c).getByLabelText('Python code') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: 'ab' } })
+    box.selectionStart = box.selectionEnd = 1
+    fireEvent.keyDown(box, { key: 'Tab' })
+    expect(box.value).toBe('a    b')
+    await waitFor(() => expect(box.selectionStart).toBe(5))   // it used to jump to the end of the text (6)
+    expect(box.selectionEnd).toBe(5)
+  })
+
+  it('progress made while signed out is moved into the account at sign-in', async () => {
+    localStorage.setItem('intervio.token', 'tok')
+    localStorage.setItem('intervio.user', 'sam')
+    localStorage.setItem('intervio.progress', JSON.stringify(['concept:acid', 'concept:keys', 'not a key']))
+    const sent: string[] = []
+    await withFetch((url, init) => {
+      if (url.includes('/api/progress/toggle/')) {
+        const key = JSON.parse(String(init?.body)).key as string
+        sent.push(key)
+        return key === 'not a key' ? json({ error: 'Invalid key.' }, 400) : json({ key, done: true })
+      }
+      if (url.includes('/api/progress/')) return json({ keys: ['concept:acid'] })   // the account already has this one
+      if (url.includes('/api/profile/')) return json({ profile: null })
+    }, async () => {
+      await visit('/', /Learn how it really works/)
+      await waitFor(() => expect(localStorage.getItem('intervio.progress')).toBe('[]'))
+      expect(sent).toEqual(['concept:keys', 'not a key'])   // only what the account lacked, and the bad key is skipped, not fatal
+    })
+  })
+
+  it('a rejected saved token does not turn a public page into an error', async () => {
+    localStorage.setItem('intervio.token', 'stale')
+    localStorage.setItem('intervio.user', 'sam')
+    const withToken: (string | undefined)[] = []
+    await withFetch((url, init) => {
+      const auth = (init?.headers as Record<string, string> | undefined)?.Authorization
+      withToken.push(auth)
+      if (auth) return json({ detail: 'Invalid token.' }, 401)
+    }, async () => {
+      const c = await visit('/', /Learn how it really works/)
+      expect(c.textContent).not.toMatch(/service is down/)
+    })
+    expect(localStorage.getItem('intervio.token')).toBeNull()   // forgotten, so the next request is made as a visitor
+    expect(withToken.some((a) => a === undefined)).toBe(true)
+  })
+})

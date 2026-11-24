@@ -19,7 +19,7 @@ export class ApiError extends Error {
 
 const DOWN_MSG = 'Sorry, the service is down right now. We will be back soon. Please try again in a few minutes.'
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, mayRetry = true): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (store.token) headers.Authorization = `Token ${store.token}`
   let res: Response
@@ -29,9 +29,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     // Network failure, CORS error from a dead gateway, offline: never show the browser's raw "Failed to fetch".
     throw new ApiError(0, DOWN_MSG)
   }
-  const body = await res.json().catch(() => ({}))
+  // `?? {}` also covers a body that is the JSON value null, which would crash `body.error` below.
+  const body = (await res.json().catch(() => null)) ?? {}
   if (!res.ok) {
-    if (res.status === 401) store.clear()
+    if (res.status === 401) {
+      store.clear()
+      // The saved token was rejected (expired, or the account is gone). Forget it and try once more as a visitor, so a stale
+      // token never turns a public page into an error.
+      if (headers.Authorization && mayRetry) return request<T>(path, init, false)
+    }
     if (res.status >= 502 && res.status <= 504) throw new ApiError(res.status, DOWN_MSG)
     if (res.status === 429) throw new ApiError(429, 'Too many requests in a short time. Wait a minute, then reload the page.')
     throw new ApiError(res.status, body.error || body.detail || `Request failed (${res.status})`)

@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from datetime import timedelta
 
 from django.contrib.auth import authenticate, get_user_model
@@ -8,6 +9,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -24,10 +26,31 @@ User = get_user_model()
 PROGRESS_KEY_RE = re.compile(r"^[a-z]+(:[A-Za-z0-9_.-]{1,40}){1,3}$")
 
 
-class ContentView(APIView):
-    """All learning content in one request (about 70 KB). Public."""
+def _text(value):
+    """A string from user input, or "" if it is not a string or holds a NUL byte (PostgreSQL cannot put one in a query)."""
+    return value if isinstance(value, str) and "\x00" not in value else ""
 
+
+class ObjectBodyView(APIView):
+    """Views that read fields from the request body. A body that is valid JSON but not an object (a list, a number, null)
+    is a client mistake: answer 400 instead of crashing on `.get`."""
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if request.method in ("POST", "PUT", "PATCH") and not isinstance(request.data, Mapping):
+            raise ParseError("Send a JSON object.")
+
+
+class PublicView(APIView):
+    """Open to everyone. Credentials are not read at all, so a stale or invalid token kept in the browser cannot make a public
+    page fail (DRF answers 401 to any request that carries a bad token, even to an AllowAny view)."""
+
+    authentication_classes: list = []
     permission_classes = [AllowAny]
+
+
+class ContentView(PublicView):
+    """All learning content in one request (about 70 KB). Public."""
 
     def get(self, request):
         concepts = Concept.objects.select_related("level").prefetch_related("questions", "sources")
@@ -54,18 +77,20 @@ def _token_response(user):
     return Response({"token": token.key, "username": user.get_username()})
 
 
-class AuthThrottled(APIView):
-    permission_classes = [AllowAny]
+class AuthThrottled(ObjectBodyView, PublicView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
 
 class RegisterView(AuthThrottled):
     def post(self, request):
-        username = str(request.data.get("username", "")).strip()
-        password = str(request.data.get("password", ""))
+        username = _text(request.data.get("username")).strip()
+        password = _text(request.data.get("password"))
         if not re.fullmatch(r"[A-Za-z0-9_.-]{3,30}", username):
             return Response({"error": "Username must be 3-30 letters, digits, _ . or -"}, status=400)
+        # "Sam" and "sam" look like the same person to everyone else, so they count as one name.
+        if User.objects.filter(username__iexact=username).exists():
+            return Response({"error": "That username is taken."}, status=status.HTTP_409_CONFLICT)
         try:
             validate_password(password, user=User(username=username))
         except ValidationError as e:
@@ -80,7 +105,7 @@ class RegisterView(AuthThrottled):
 
 class LoginView(AuthThrottled):
     def post(self, request):
-        user = authenticate(username=request.data.get("username", ""), password=request.data.get("password", ""))
+        user = authenticate(username=_text(request.data.get("username")), password=_text(request.data.get("password")))
         if user is None:
             return Response({"error": "Invalid username or password."}, status=400)
         return _token_response(user)
@@ -101,7 +126,7 @@ def _profile_dict(profile):
     }
 
 
-class ProfileView(APIView):
+class ProfileView(ObjectBodyView):
     """The signed-in learner's saved answers. GET returns null if they haven't set any."""
 
     permission_classes = [IsAuthenticated]
@@ -126,10 +151,9 @@ class ProfileView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class RoadmapView(APIView):
+class RoadmapView(ObjectBodyView, PublicView):
     """Stateless: profile in, schedule out. Public so it works before sign-up."""
 
-    permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "roadmap"
 
@@ -156,7 +180,7 @@ class ProgressView(APIView):
         return Response({"keys": list(Progress.objects.filter(user=request.user).values_list("key", flat=True))})
 
 
-class ProgressToggleView(APIView):
+class ProgressToggleView(ObjectBodyView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -212,7 +236,7 @@ class FlashcardsView(APIView):
         )
 
 
-class FlashcardReviewView(APIView):
+class FlashcardReviewView(ObjectBodyView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -236,9 +260,8 @@ class FlashcardReviewView(APIView):
         return Response({"id": question.id, "box": state.box, "due_at": state.due_at})
 
 
-class ProblemListView(APIView):
+class ProblemListView(PublicView):
     """The problem bank. Public: the problems and their cases are teaching material, and the cases run in the browser."""
-    permission_classes = [AllowAny]
 
     def get(self, request):
         from .models import Problem
@@ -247,8 +270,7 @@ class ProblemListView(APIView):
                           "concept_title": p.concept.title if p.concept else None, "cases": len(p.cases)} for p in rows])
 
 
-class ProblemDetailView(APIView):
-    permission_classes = [AllowAny]
+class ProblemDetailView(PublicView):
 
     def get(self, request, slug):
         from django.shortcuts import get_object_or_404

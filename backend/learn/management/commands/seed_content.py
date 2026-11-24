@@ -1,7 +1,7 @@
 import json
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import models, transaction
 
 from learn.models import Concept, Domain, Problem, DomainTopic, Drill, Level, LevelBand, Note, Question, Source, SqlExercise, Track, WeekPlan
@@ -62,10 +62,14 @@ class Command(BaseCommand):
             )
 
         n_q = 0
+        concept_slugs: set[str] = set()
+        question_keys: set[str] = set()
+        problem_slugs: set[str] = set()
         # `n` is unique. When lessons are renumbered, updating one at a time can briefly give two lessons the same number,
         # so move every existing number out of the way first; each lesson then gets its real number below.
         Concept.objects.update(n=models.F("n") + 100000)
         for c in load("concepts.json"):
+            concept_slugs.add(c["id"])
             concept, _ = Concept.objects.update_or_create(
                 slug=c["id"],
                 defaults=dict(
@@ -92,6 +96,7 @@ class Command(BaseCommand):
             )
             concept.sources.set([sources[k] for k in c["sources"]])
             for i, qa in enumerate(c["interview"]):
+                question_keys.add(f"{c['id']}:{i}")
                 Question.objects.update_or_create(
                     key=f"{c['id']}:{i}",
                     defaults=dict(concept=concept, topic="concept", q=qa["q"], a=qa["a"]),
@@ -99,6 +104,7 @@ class Command(BaseCommand):
                 n_q += 1
 
         for i, pr in enumerate(load("problems.json")):
+            problem_slugs.add(pr["slug"])
             Problem.objects.update_or_create(
                 slug=pr["slug"],
                 defaults=dict(
@@ -109,23 +115,39 @@ class Command(BaseCommand):
             )
 
         for i, g in enumerate(load("general_questions.json")):
+            question_keys.add(f"general:{i}")
             Question.objects.update_or_create(
                 key=f"general:{i}",
                 defaults=dict(concept=None, topic=g["topic"], q=g["q"], a=g["a"]),
             )
             n_q += 1
 
-        for w in load("plan.json"):
+        plan = load("plan.json")
+        for w in plan:
             WeekPlan.objects.update_or_create(
                 week=w["week"],
                 defaults=dict(title=w["title"], days=w["days"], deliverable=w["deliverable"]),
             )
-        for e in load("exercises.json"):
+        exercises = load("exercises.json")
+        for e in exercises:
             SqlExercise.objects.update_or_create(
                 n=e["n"], defaults=dict(prompt=e["prompt"], hint=e["hint"], solution=e["solution"])
             )
-        for d in load("drills.json"):
+        drills = load("drills.json")
+        for d in drills:
             Drill.objects.update_or_create(name=d["name"], defaults=dict(strong=d["strong"]))
+
+        # The JSON files are the source of truth, so anything that is no longer in them goes. Without this, a lesson that was
+        # removed or renamed stays in the app forever (parked at number 100000 and up), and so does a question that was dropped.
+        # A file that loaded as empty is far more likely a mistake than a wish to delete everything, so refuse to prune then.
+        if not concept_slugs or not question_keys:
+            raise CommandError("concepts.json or the questions in it are empty; refusing to delete the existing content.")
+        Concept.objects.exclude(slug__in=concept_slugs).delete()   # also removes their questions (and those questions' card states)
+        Question.objects.exclude(key__in=question_keys).delete()
+        Problem.objects.exclude(slug__in=problem_slugs).delete()
+        WeekPlan.objects.exclude(week__in=[w["week"] for w in plan]).delete()
+        SqlExercise.objects.exclude(n__in=[e["n"] for e in exercises]).delete()
+        Drill.objects.exclude(name__in=[d["name"] for d in drills]).delete()
 
         self.stdout.write(
             self.style.SUCCESS(

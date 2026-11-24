@@ -106,6 +106,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Cookies (the /admin login session and its CSRF token) must never travel over plain HTTP.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -113,6 +116,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_THROTTLE_RATES": {"auth": "30/hour", "roadmap": "600/hour"},
+    # The rate limits identify a visitor by IP address. Behind nginx (which appends the real client address to X-Forwarded-For)
+    # that is the last address in the header: with 0 proxies counted, DRF would trust a header the client can write itself, and
+    # anyone could dodge the login limit by sending a different X-Forwarded-For each time. Set NUM_PROXIES to match your hops.
+    "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "0" if DEBUG else "1")),
     "COERCE_DECIMAL_TO_STRING": False,
 }
 

@@ -106,6 +106,12 @@ export async function runCases(prelude: string, code: string, cases: { name: str
       if (m.error) { resolve({ results: [], error: m.error }); return }
       resolve(JSON.parse(m.payload) as RunResult)
     }
+    // The worker can die in the middle of a run (for example when the code uses up all the memory). Without this the page
+    // would wait for an answer that never comes.
+    w.onerror = () => {
+      w.terminate(); worker = null; ready = null; stopCurrent = null
+      resolve({ results: [], error: 'The Python runtime stopped unexpectedly (it may have run out of memory). Try again.' })
+    }
     w.postMessage({ type: 'run', id, prelude, code, cases })
   })
 }

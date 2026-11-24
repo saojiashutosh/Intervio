@@ -42,7 +42,8 @@ function Shell() {
       <SearchPalette open={search} onClose={() => setSearch(false)} />
       <div className="layout">
         <Sidebar open={menu} onClose={() => setMenu(false)} />
-      <main className="container"><ErrorBoundary>
+      {/* keyed by page, so an error on one page does not stay on screen after the learner opens another */}
+      <main className="container"><ErrorBoundary key={pathname}>
         {notice && (
           <div className="card" role="alert" style={{ display: 'flex', gap: '.8rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>{notice}</span>

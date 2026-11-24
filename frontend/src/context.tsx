@@ -33,13 +33,23 @@ const PlanCtx = createContext<PlanState>({ profile: null, roadmap: null, roadmap
 export const usePlan = () => useContext(PlanCtx)
 
 const PROFILE_KEY = 'intervio.profile'
-const readLocalProfile = (): Profile | null => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') } catch { return null } }
+const readLocalProfile = (): Profile | null => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null')
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null
+  } catch { return null }
+}
 const writeLocalProfile = (p: Profile) => { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)) } catch { /* private mode */ } }
 
 const clearLocalProfile = () => { try { localStorage.removeItem(PROFILE_KEY) } catch { /* private mode */ } }
 
 const LOCAL_KEY ='intervio.progress'
-const readLocal = (): string[] => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') } catch { return [] } }
+const readLocal = (): string[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]')
+    return Array.isArray(v) ? v.filter((k): k is string => typeof k === 'string') : []   // new Set(non-array) would throw before the first paint
+  } catch { return [] }
+}
 const writeLocal = (keys: string[]) => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(keys)) } catch { /* private mode */ } }
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -56,8 +66,27 @@ export function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) { setDone(new Set(readLocal())); return }
-    // Sign out only when the token is rejected (401). An outage must not log everyone out.
-    api.progress().then((r) => setDone(new Set(r.keys))).catch((e) => { if (e instanceof ApiError && e.status === 401) setUser(null) })
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { keys } = await api.progress()
+        if (cancelled) return
+        setDone(new Set(keys))
+        // Progress made while signed out lives only in this browser. Move it into the account (the server toggles, so send only
+        // what it does not have yet), then drop the browser copy. If anything fails, the copy stays and the next sign-in retries.
+        const have = new Set(keys)
+        for (const k of readLocal().filter((x) => !have.has(x))) {
+          try { await api.toggle(k) } catch (e) { if (e instanceof ApiError && e.status === 400) continue; throw e }   // 400: not a valid key, skip it
+          if (cancelled) return
+          setDone((prev) => new Set(prev).add(k))
+        }
+        writeLocal([])
+      } catch (e) {
+        // Sign out only when the token is rejected (401). An outage must not log everyone out.
+        if (!cancelled && e instanceof ApiError && e.status === 401) setUser(null)
+      }
+    })()
+    return () => { cancelled = true }
   }, [user])
 
   // Signed in: the database is the only copy (loaded below). Signed out: kept in this browser until they sign up.
@@ -73,7 +102,7 @@ export function Providers({ children }: { children: ReactNode }) {
       // None in the database yet: move the one entered while signed out into the account, then drop the browser copy.
       const local = readLocalProfile()
       if (local) api.saveProfile(local).then(() => clearLocalProfile()).catch(() => setNotice('Could not save your profile. Please try again.'))
-    }).catch(() => {})
+    }).catch((e) => { if (e instanceof ApiError && e.status === 401) setUser(null) })
   }, [user])
 
   useEffect(() => {
@@ -119,13 +148,14 @@ export function Providers({ children }: { children: ReactNode }) {
         const next = new Set(prev)
         if (r.done) next.add(key); else next.delete(key)
         return next
-      })).catch(() => {
+      })).catch((e) => {
         // Not saved: undo the optimistic change so the screen never shows progress the server does not have.
         setDone((prev) => {
           const next = new Set(prev)
           if (next.has(key)) next.delete(key); else next.add(key)
           return next
         })
+        if (e instanceof ApiError && e.status === 401) { setUser(null); setNotice('You were signed out. Please sign in again.'); return }
         setNotice('Could not save your progress. Please check your connection and try again.')
       })
     }

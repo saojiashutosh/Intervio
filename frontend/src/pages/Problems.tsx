@@ -69,7 +69,13 @@ export function ProblemPage() {
   const { slug = '' } = useParams()
   const [p, setP] = useState<ProblemFull | null>(null)
   const [error, setError] = useState('')
-  useEffect(() => { setP(null); api.problem(slug).then(setP).catch((e) => setError(String(e.message ?? e))) }, [slug])
+  useEffect(() => {
+    // Clear the last problem and its error, and ignore an answer that arrives after the learner has moved on to another problem.
+    let live = true
+    setP(null); setError('')
+    api.problem(slug).then((r) => { if (live) setP(r) }).catch((e) => { if (live) setError(String(e.message ?? e)) })
+    return () => { live = false }
+  }, [slug])
   if (error) return <p role="alert">{error}</p>
   if (!p) return <p className="muted">Loading…</p>
   return <Workspace key={p.slug} p={p} />
@@ -93,10 +99,13 @@ function Workspace({ p }: { p: ProblemFull }) {
       e.preventDefault()
       const t = e.currentTarget
       const next = t.value.slice(0, t.selectionStart) + '    ' + t.value.slice(t.selectionEnd)
+      const caret = t.selectionStart + 4   // read now: after React re-renders the caret has already jumped to the end of the text
       save(next)
-      requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = t.selectionStart + 4 })
+      requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = caret })
     }
   }
+  // Leaving the page must not leave the learner's code running in the background (an infinite loop would keep a CPU core busy).
+  useEffect(() => stopRun, [])
   // While a run is going, count seconds so a learner can see that it is still working (there is no time limit, only Stop).
   useEffect(() => {
     if (status !== 'running') { setElapsed(0); return }
