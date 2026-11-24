@@ -6,11 +6,14 @@ import type { Profile, Roadmap } from '../types'
 
 const today = () => new Date().toLocaleDateString('en-CA') // local YYYY-MM-DD
 
-const DEFAULTS: Profile = { domain: 'django', goal: 'interview', experience_years: 1.5, weeks: 0, hours_per_day: 2, days_per_week: 6, start_date: today() }
+const defaults = (): Profile => ({ domain: 'django', goal: 'interview', experience_years: 1.5, weeks: 0, hours_per_day: 2, days_per_week: 6, start_date: today() })  // a function, so the date is today's even if the tab was opened days ago
 
 export default function ProfilePage() {
   const { profile, saveProfile } = usePlan()
-  const [p, setP] = useState<Profile>(profile ?? DEFAULTS)
+  const [p, setP] = useState<Profile>(() => profile ?? defaults())
+  // A signed-in learner's saved answers arrive from the server a moment after this page opens (for example on a reload):
+  // show them instead of the defaults, so pressing Update does not silently overwrite them.
+  useEffect(() => { if (profile) setP(profile) }, [profile])
   const [preview, setPreview] = useState<Roadmap['summary'] & { cuts: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)

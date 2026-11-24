@@ -65,6 +65,7 @@ export default function InterviewPage() {
   const [round, setRound] = useState(0)
   const [due, setDue] = useState<{ cards: Card[]; stats: CardStats } | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [saveErr, setSaveErr] = useState<string | null>(null)
 
   const all = useMemo(() => {
     if (!content) return []
@@ -73,9 +74,13 @@ export default function InterviewPage() {
   }, [content])
 
   useEffect(() => {
-    if (tab !== 'review' || !user) return
+    // Signed out: forget the last account's cards so the next person to sign in never sees them.
+    if (!user) { setDue(null); return }
+    if (tab !== 'review') return
+    let live = true   // ignore an answer that arrives after the learner changed tab, signed out or asked for another batch
     setErr(null)
-    api.cards(15).then(setDue).catch((e) => setErr(e.message))
+    api.cards(15).then((r) => { if (live) setDue(r) }).catch((e) => { if (live) setErr(e.message) })
+    return () => { live = false }
   }, [tab, user, round])
 
   const speed = useMemo(() => shuffle(all).slice(0, 10).map((q) => ({ id: q.id, q: q.q, a: q.a, meta: q.meta })), [all, round])
@@ -104,7 +109,9 @@ export default function InterviewPage() {
                 <span className="chip">new <b>{due.stats.new}</b></span><span className="chip">due <b>{due.stats.due}</b></span>
                 <span className="chip">mastered <b>{due.stats.mastered}</b></span><span className="chip">total <b>{due.stats.total}</b></span>
               </div>
-              <Deck cards={deck} finishLabel="Session complete" onGrade={(c, ok) => { api.review(c.id, ok).catch(() => setErr('Could not save that review.')) }} />
+              {/* a failed save is shown above the cards instead of replacing them, so the learner does not lose the session */}
+              {saveErr && <p className="note bad" role="alert">{saveErr}</p>}
+              <Deck cards={deck} finishLabel="Session complete" onGrade={(c, ok) => { setSaveErr(null); api.review(c.id, ok).catch(() => setSaveErr('Could not save that review. Check your connection; the card will come back later.')) }} />
               <button className="ghost" onClick={() => setRound((r) => r + 1)}>Load next batch</button>
             </>
           )
