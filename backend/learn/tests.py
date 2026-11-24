@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
@@ -1058,3 +1059,76 @@ class EverydayExampleTests(TestCase):
         concepts = r.json()["concepts"]
         self.assertEqual(len(concepts), Concept.objects.count())
         self.assertTrue(all(row.get("everyday", {}).get("story") for row in concepts))
+
+
+class BadInputTests(TestCase):
+    """Wrong-shaped input is the caller's mistake: it must get a 400, never crash the server with a 500."""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_content", verbosity=0)
+
+    def setUp(self):
+        cache.clear()  # the login limit counts every request from one address; do not let other tests use it up
+        self.client = APIClient()
+
+    def test_a_json_body_that_is_not_an_object_is_a_400(self):
+        for path in ("/api/auth/login/", "/api/auth/register/", "/api/roadmap/"):
+            for body in ("[1, 2]", '"text"', "5", "null"):
+                res = self.client.post(path, body, content_type="application/json")
+                self.assertEqual(res.status_code, 400, f"{path} {body}")
+
+    def test_the_other_write_endpoints_also_reject_non_objects(self):
+        self.client.post("/api/auth/register/", {"username": "bodytest", "password": "a-long-password-1"}, format="json")
+        token = self.client.post("/api/auth/login/", {"username": "bodytest", "password": "a-long-password-1"}, format="json").data["token"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+        self.assertEqual(self.client.put("/api/profile/", [1], format="json").status_code, 400)
+        self.assertEqual(self.client.post("/api/progress/toggle/", [1], format="json").status_code, 400)
+        self.assertEqual(self.client.post("/api/flashcards/1/review/", [1], format="json").status_code, 400)
+
+    def test_a_list_or_object_for_domain_and_goal_is_a_400(self):
+        for field in ("domain", "goal"):
+            for bad in ([], {}, ["django"], 5, None):
+                res = self.client.post("/api/roadmap/", {field: bad}, format="json")
+                self.assertEqual(res.status_code, 400, f"{field}={bad!r}")
+
+    def test_login_with_odd_values_is_a_clean_400(self):
+        for body in ({"username": {"a": 1}, "password": "x"}, {"username": "a" + chr(0) + "b", "password": "x"}, {"username": "x", "password": ["y"]}, {}):
+            self.assertEqual(self.client.post("/api/auth/login/", body, format="json").status_code, 400, body)
+
+    def test_register_does_not_accept_null_as_a_name(self):
+        res = self.client.post("/api/auth/register/", {"username": None, "password": "a-long-password-1"}, format="json")
+        self.assertEqual(res.status_code, 400)
+
+    def test_usernames_are_unique_ignoring_case(self):
+        self.assertEqual(self.client.post("/api/auth/register/", {"username": "Sam", "password": "a-long-password-1"}, format="json").status_code, 200)
+        res = self.client.post("/api/auth/register/", {"username": "sam", "password": "a-long-password-1"}, format="json")
+        self.assertEqual(res.status_code, 409)
+
+    def test_a_stale_token_does_not_break_public_pages(self):
+        """DRF answers 401 to a bad token even on an open view, which showed a false "service is down" screen."""
+        self.client.credentials(HTTP_AUTHORIZATION="Token not-a-real-token")
+        self.assertEqual(self.client.get("/api/content/").status_code, 200)
+        self.assertEqual(self.client.get("/api/problems/").status_code, 200)
+        self.assertEqual(self.client.post("/api/roadmap/", {}, format="json").status_code, 200)
+        self.assertEqual(self.client.post("/api/auth/login/", {"username": "nobody", "password": "x"}, format="json").status_code, 400)
+        # a private page still refuses a bad token
+        self.assertEqual(self.client.get("/api/progress/").status_code, 401)
+
+
+class SeedPrunesRemovedContentTests(TestCase):
+    """The JSON files are the source of truth: a lesson, question or problem that is no longer in them must not stay in the app."""
+
+    def test_removed_rows_are_deleted_and_real_ones_stay(self):
+        call_command("seed_content", verbosity=0)
+        lesson = Concept.objects.first()
+        before = Concept.objects.count()
+        ghost = Concept.objects.create(
+            slug="ghost-lesson", n=999999, level=lesson.level, week="w", title="Ghost", tagline="t", exercise="e", hours=1, priority=2)
+        Question.objects.create(key="ghost-lesson:0", concept=ghost, topic="concept", q="q", a="a")
+        Question.objects.create(key="general:99999", concept=None, topic="x", q="q", a="a")
+        call_command("seed_content", verbosity=0)
+        self.assertFalse(Concept.objects.filter(slug="ghost-lesson").exists())
+        self.assertFalse(Question.objects.filter(key__in=["ghost-lesson:0", "general:99999"]).exists())
+        self.assertEqual(Concept.objects.count(), before)
+        self.assertFalse(Concept.objects.filter(n__gte=100000).exists())

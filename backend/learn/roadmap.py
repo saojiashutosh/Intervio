@@ -119,9 +119,10 @@ def parse_profile(data: dict) -> dict:
 
     domain = data.get("domain", "django")
     goal = data.get("goal", "interview")
-    if domain not in DOMAINS:
+    # isinstance first: a list or object is not hashable, so `in DOMAINS` would raise TypeError (a 500) instead of this message.
+    if not isinstance(domain, str) or domain not in DOMAINS:
         raise ValueError("Unknown domain.")
-    if goal not in GOALS:
+    if not isinstance(goal, str) or goal not in GOALS:
         raise ValueError("Unknown goal.")
     start = data.get("start_date") or date.today().isoformat()
     try:
