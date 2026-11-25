@@ -99754,5 +99754,1060 @@
         ]
       ]
     }
+  },
+  {
+    "id": "maximum-subarray",
+    "n": 144,
+    "level": 14,
+    "week": "Core",
+    "title": "Maximum Subarray: Kadane's Algorithm",
+    "tagline": "Find the neighbouring block with the largest sum in one pass, by deciding at each number whether to start fresh or extend.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "The maximum subarray problem asks for the neighbouring block of numbers with the largest sum, when the numbers may be negative. For [-2, 1, -3, 4, -1, 2, 1, -5, 4] the best block is [4, -1, 2, 1], with sum 6. If every number is non-negative the whole array is the answer. If every number is negative, the answer is the largest single number.",
+      "## Slower ways first",
+      "Trying every start and end and summing each block is O(n cubed). Using prefix sums brings it to O(n squared). A divide and conquer solution splits the array in half and takes the best of three cases: entirely left, entirely right, or crossing the middle, for O(n log n). The Wikipedia article on the problem notes that these older solutions were followed by a linear one.",
+      "## Kadane's insight",
+      "Let cur be the largest sum of a block that ends at the current position. A block ending at position i either starts at i, or extends the best block that ended at i - 1. So cur = max(x, cur + x), where x is the current number. A second variable best keeps the largest cur seen anywhere. One pass, two variables, O(n) time and O(1) space.",
+      "- If cur + x is smaller than x, the old block was a burden, so start fresh at x.\n- If cur + x is larger, keep extending.\n- best = max(best, cur) after every step.",
+      "## Why it is correct",
+      "The best block that ends at i must end with x. Before x it is either empty, or the best block that ends at i - 1, because any worse block before x would only lower the total. So considering those two choices is enough, and checking every end position covers every possible answer.",
+      "> A worked example: for [-2, 1, -3, 4, -1, 2, 1, -5, 4] the values of cur are -2, 1, -2, 4, 3, 5, 6, 1, 5. The values of best are -2, 1, 1, 4, 4, 5, 6, 6, 6. The answer is 6.",
+      "## Getting the block, not only the sum",
+      "Remember the index where the current run started. When you start fresh, set start = i. Whenever cur beats best, save the pair (start, i). The saved pair gives the block.",
+      "## Edge cases",
+      "Start both variables from the first number, not from 0, so an all-negative array returns the largest number and not 0. If an empty block is allowed, then start best at 0 and use cur = max(0, cur + x). Ask the interviewer which version they want.",
+      "## Variations",
+      "Maximum product subarray needs both the largest and smallest product ending here, because a negative times a negative can become the largest. Circular maximum subarray is the larger of the normal answer and the total minus the minimum block. Best time to buy and sell stock is the same problem on daily price differences.",
+      "## How to talk through it",
+      "Explain the start fresh or extend choice before writing code. Then walk the example by hand with cur and best, and test an all-negative array, a single number and an array of zeros."
+    ],
+    "keyPoints": [
+      "cur = max(x, cur + x) is the best block ending here. best = max(best, cur) is the answer.",
+      "O(n) time and O(1) space, against O(n squared) with prefix sums and O(n log n) divide and conquer.",
+      "Start from nums[0] so an all-negative array returns the largest single number.",
+      "Track the start index of the current run to return the block itself.",
+      "Maximum product keeps both a maximum and a minimum, because negatives flip the sign."
+    ],
+    "sql": [
+      {
+        "title": "Kadane's algorithm, and the block itself",
+        "lang": "py",
+        "code": "def max_subarray(nums):\n    cur = best = nums[0]\n    for x in nums[1:]:\n        cur = max(x, cur + x)\n        best = max(best, cur)\n    return best\n\ndef max_subarray_block(nums):\n    cur = best = nums[0]\n    start = best_start = best_end = 0\n    for i in range(1, len(nums)):\n        if nums[i] > cur + nums[i]:\n            cur, start = nums[i], i          # start fresh here\n        else:\n            cur += nums[i]\n        if cur > best:\n            best, best_start, best_end = cur, start, i\n    return best, nums[best_start:best_end + 1]\n\ndata = [-2, 1, -3, 4, -1, 2, 1, -5, 4]\nassert max_subarray(data) == 6\nassert max_subarray_block(data) == (6, [4, -1, 2, 1])\nassert max_subarray([-3, -1, -2]) == -1\nassert max_subarray([5]) == 5"
+      },
+      {
+        "title": "Check it against the slow versions",
+        "lang": "py",
+        "code": "import random\n\ndef brute(nums):\n    return max(sum(nums[i:j + 1]) for i in range(len(nums)) for j in range(i, len(nums)))\n\ndef divide_and_conquer(nums, lo=0, hi=None):\n    hi = len(nums) - 1 if hi is None else hi\n    if lo == hi:\n        return nums[lo]\n    mid = (lo + hi) // 2\n    best_left = float(\"-inf\"); total = 0\n    for i in range(mid, lo - 1, -1):\n        total += nums[i]; best_left = max(best_left, total)\n    best_right = float(\"-inf\"); total = 0\n    for i in range(mid + 1, hi + 1):\n        total += nums[i]; best_right = max(best_right, total)\n    return max(divide_and_conquer(nums, lo, mid), divide_and_conquer(nums, mid + 1, hi), best_left + best_right)\n\ndef kadane(nums):\n    cur = best = nums[0]\n    for x in nums[1:]:\n        cur = max(x, cur + x)\n        best = max(best, cur)\n    return best\n\nrandom.seed(7)\nfor _ in range(200):\n    nums = [random.randint(-9, 9) for _ in range(random.randint(1, 12))]\n    assert kadane(nums) == brute(nums) == divide_and_conquer(nums)"
+      },
+      {
+        "title": "Variation: maximum product subarray",
+        "lang": "py",
+        "code": "def max_product(nums):\n    hi = lo = best = nums[0]\n    for x in nums[1:]:\n        candidates = (x, hi * x, lo * x)\n        hi, lo = max(candidates), min(candidates)\n        best = max(best, hi)\n    return best\n\nassert max_product([2, 3, -2, 4]) == 6\nassert max_product([-2, 0, -1]) == 0\nassert max_product([-2, 3, -4]) == 24"
+      }
+    ],
+    "django": {},
+    "exercise": "Write max_subarray and max_subarray_block, then test them against a brute-force version on random arrays with negative numbers. Next, write a version that allows an empty block (answer never below 0), and a version that works on a circular array. Say, in one sentence each, why the all-negative case breaks a version that starts best at 0.",
+    "pitfalls": [
+      "Starting best at 0 when the block may not be empty. An all-negative array then wrongly returns 0.",
+      "Resetting cur to 0 on a negative sum without comparing with x, which breaks the all-negative case.",
+      "Forgetting to update best after the last element.",
+      "Returning only the sum when the question asks for the block or its indexes.",
+      "Applying the same rule to products. A product needs both the maximum and the minimum, because of negative numbers."
+    ],
+    "interview": [
+      {
+        "q": "How does Kadane's algorithm work?",
+        "a": "At each number it decides between starting a new block at that number and extending the best block that ended just before it: cur = max(x, cur + x). A second variable keeps the largest cur seen. It is one pass with O(1) space."
+      },
+      {
+        "q": "What does it return for an array of all negative numbers?",
+        "a": "The largest single number, as long as cur and best start from the first element. Starting best at 0 would wrongly return 0 unless an empty block is allowed."
+      },
+      {
+        "q": "How would you also return the block?",
+        "a": "Track the index where the current run started. When you start fresh, set start to the current index. When cur beats best, store start and the current index."
+      },
+      {
+        "q": "How is this related to dynamic programming?",
+        "a": "The best block ending at i depends only on the best block ending at i - 1. That is a one-dimensional recurrence, and because it needs only the previous value, the table shrinks to one variable."
+      }
+    ],
+    "references": [
+      {
+        "title": "Maximum subarray problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Maximum_subarray_problem",
+        "kind": "Reference"
+      },
+      {
+        "title": "Prefix sum (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Prefix_sum",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: Kadane's algorithm is one of the most common array questions in coding interviews. The definition, the example, the O(n) time and O(1) space bounds and the edge cases come from the Wikipedia page cited, which I read. The explanation of why it works, the product variation and the interview advice are my judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-maximum-subarray",
+      "wikipedia-prefix-sum",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "kadane",
+        "title": "Maximum subarray, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Start fresh",
+            "at": 2
+          },
+          {
+            "text": "Extend",
+            "at": 5
+          },
+          {
+            "text": "The answer",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "m0",
+            "kind": "cube",
+            "x": -3.6,
+            "y": 3.6,
+            "label": "-2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m1",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 2.7,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m2",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 1.8,
+            "label": "-3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m3",
+            "kind": "cube",
+            "x": -0.9,
+            "y": 0.9,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m4",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "-1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m5",
+            "kind": "cube",
+            "x": 0.9,
+            "y": -0.9,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m6",
+            "kind": "cube",
+            "x": 1.8,
+            "y": -1.8,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m7",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -2.7,
+            "label": "-5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m8",
+            "kind": "cube",
+            "x": 3.6,
+            "y": -3.6,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The question: the block with the biggest sum",
+            "tag": "technique",
+            "body": [
+              "Given numbers that may be negative, find the neighbouring block with the largest sum. For -2, 1, -3, 4, -1, 2, 1, -5, 4 the answer is the block 4, -1, 2, 1, with sum 6.",
+              "A negative number can ruin a block, but a block that starts with a bad stretch can still pay off later. The question is when to give up on the current block."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "9 numbers"
+              },
+              {
+                "k": "Answer",
+                "v": "6 (block 4 -1 2 1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "One idea: best sum of a block that ends here",
+            "tag": "technique",
+            "body": [
+              "At each position i keep cur, the largest sum of a block that ends at i. There are only two choices: start fresh at i, or extend the best block that ended at i - 1.",
+              "That gives cur = max(x, cur + x). Keep a second number, best, which is the largest cur seen so far."
+            ],
+            "short": "The rule",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "max(x, cur + x)"
+              },
+              {
+                "k": "best",
+                "v": "max(best, cur)"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Kadane's rule",
+              "lines": [
+                "cur = max(x, cur + x)",
+                "best = max(best, cur)",
+                "start fresh when cur + x < x"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Start: -2, then 1",
+            "tag": "solution",
+            "body": [
+              "At -2, cur = -2 and best = -2. At 1, the old block has sum -2, which only hurts. So start fresh: cur = max(1, -2 + 1) = 1 and best = 1.",
+              "Whenever the running block is negative, throw it away."
+            ],
+            "short": "Start fresh",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "1"
+              },
+              {
+                "k": "best",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "green",
+                "pill": {
+                  "text": "cur 1  best 1",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m0",
+                  "m1"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "-3 drags the block down, but best stays",
+            "tag": "problem",
+            "body": [
+              "At -3, cur = max(-3, 1 - 3) = -2. The block is now negative, and best remains 1.",
+              "We never undo best. It remembers the highest cur ever seen."
+            ],
+            "short": "Dip",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "-2",
+                "tone": "warn"
+              },
+              {
+                "k": "best",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur -2  best 1",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "m3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m1",
+                  "m2"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "The next number is 4 and cur is -2. What is cur after it?",
+              "options": [
+                "2",
+                "4",
+                "-2"
+              ],
+              "answer": 1,
+              "why": "cur = max(4, -2 + 4) = max(4, 2) = 4. Carrying the negative block would be worse than starting fresh."
+            }
+          },
+          {
+            "title": "4 starts a new block",
+            "tag": "solution",
+            "body": [
+              "cur = max(4, -2 + 4) = 4, so a fresh block starts at 4. Best becomes 4.",
+              "The old stretch is gone: it would only have lowered the sum."
+            ],
+            "short": "Restart at 4",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "4"
+              },
+              {
+                "k": "best",
+                "v": "4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": {
+                  "text": "cur 4  best 4",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "m4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m2",
+                  "m3"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Extend through -1 and 2",
+            "tag": "solution",
+            "body": [
+              "At -1, cur = max(-1, 4 - 1) = 3. At 2, cur = max(2, 3 + 2) = 5, and best becomes 5.",
+              "A small negative number is worth carrying when the block before it is large."
+            ],
+            "short": "Extend",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "5"
+              },
+              {
+                "k": "best",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "green",
+                "pill": {
+                  "text": "cur 5  best 5",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "m6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m3",
+                  "m4",
+                  "m5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "1 gives the best block: sum 6",
+            "tag": "solution",
+            "body": [
+              "At 1, cur = 5 + 1 = 6 and best becomes 6. The best block is 4, -1, 2, 1.",
+              "We also remember where the block started, to report the block itself and not only the sum."
+            ],
+            "short": "Peak",
+            "hud": [
+              {
+                "k": "cur",
+                "v": "6"
+              },
+              {
+                "k": "best",
+                "v": "6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "green",
+                "pill": {
+                  "text": "cur 6  best 6",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m5",
+                  "m6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "-5 and 4 cannot beat it",
+            "tag": "insight",
+            "body": [
+              "At -5, cur drops to 1. At 4, cur = max(4, 1 + 4) = 5. Best stays 6, so we have our answer.",
+              "One pass, two variables. That is O(n) time and O(1) space."
+            ],
+            "short": "Finish",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "6",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur 5  best 6",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m6",
+                  "m7",
+                  "m8"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The answer block",
+            "tag": "insight",
+            "body": [
+              "The final answer is the block 4, -1, 2, 1 with sum 6. Earlier solutions took O(n squared) with prefix sums, then O(n log n) with divide and conquer, before this linear scan.",
+              "Edge case: if every number is negative, the answer is the largest single number. Starting best at the first element handles this."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Best block",
+                "v": "4 -1 2 1",
+                "tone": "good"
+              },
+              {
+                "k": "All negative?",
+                "v": "largest single item"
+              }
+            ],
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "cur = best = nums[0]",
+                "for x in nums[1:]:",
+                "    cur = max(x, cur + x)",
+                "    best = max(best, cur)"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Maximum subarray is a dynamic programming idea in disguise: the best block ending at i depends only on the best block ending at i - 1. That is why one variable is enough.",
+              "The same pattern solves maximum product subarray, best time to buy and sell stock and circular variants, with small changes to the rule."
+            ],
+            "short": "Recap",
+            "set": {
+              "m0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 cur = best block ending here",
+                "2 max(start fresh, extend)",
+                "3 best = max over all cur",
+                "4 init with nums[0], not 0"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Kadane's idea is to keep a running mood: if your streak so far is making things worse, drop it and start again.",
+      "story": "Imagine walking along a path, collecting coins and paying tolls. Your wallet balance since your last fresh start is your streak. If the streak ever goes below what you would have by starting fresh at the next stop, you forget it and start fresh. You also write down the best balance you ever saw. That best balance is the answer.",
+      "maps": [
+        [
+          "Coins and tolls",
+          "Positive and negative numbers"
+        ],
+        [
+          "Balance since a fresh start",
+          "cur"
+        ],
+        [
+          "Best balance ever seen",
+          "best"
+        ],
+        [
+          "Forgetting a bad streak",
+          "Starting a new block"
+        ]
+      ],
+      "words": [
+        [
+          "subarray",
+          "A block of neighbouring numbers inside an array."
+        ],
+        [
+          "Kadane's algorithm",
+          "A one-pass method that finds the largest-sum block."
+        ],
+        [
+          "extend",
+          "Add the next number to the current block."
+        ],
+        [
+          "negative",
+          "A number below zero."
+        ],
+        [
+          "running",
+          "Updated as you move along, one step at a time."
+        ]
+      ]
+    }
   }
 ]
