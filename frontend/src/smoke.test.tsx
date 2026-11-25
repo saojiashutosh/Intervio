@@ -611,7 +611,8 @@ describe('data structures, low-level design and interview-skills lessons', () =>
 
 describe('stage lessons: isometric step-through diagrams', () => {
   const STAGE = ['request-path', 'scaling-stateless', 'load-balancing', 'caching-at-scale', 'consistent-hashing', 'message-queues',
-    'rate-limiting', 'timeouts-retries', 'consensus-leader-election', 'design-url-shortener']
+    'rate-limiting', 'timeouts-retries', 'consensus-leader-election', 'design-url-shortener',
+    'memory-and-pointers', 'divide-and-conquer']
   const rail = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
   const heading = (c: HTMLElement) => c.querySelector('.stage-text h4')?.textContent ?? ''
 
