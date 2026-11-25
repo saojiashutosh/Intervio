@@ -96474,5 +96474,1043 @@
         ]
       ]
     }
+  },
+  {
+    "id": "in-place-two-pointers",
+    "n": 141,
+    "level": 14,
+    "week": "Core",
+    "title": "In-Place Two Pointers: Dedupe, Move Zeroes and Partition",
+    "tagline": "Rewrite an array in its own memory with a read pointer and a write pointer, and reverse or partition it from both ends.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Many array questions say do it in place, using O(1) extra space. The tool for this is two indexes that walk over the same array. In one family, a read pointer and a write pointer move in the same direction. In the other, a left pointer and a right pointer start at the two ends and move towards each other. Both turn a nested loop into one pass of O(n).",
+      "## Read and write pointers",
+      "The read pointer r looks at every item once. The write pointer w marks the next free slot, and it never moves past r. When the item at r should be kept, copy it to a[w] and advance w. When it should not, only r moves. After the loop, a[:w] holds the answer and everything after w is leftover that the caller ignores.",
+      "- Remove duplicates from a sorted array: keep a[r] when it differs from the last kept item a[w - 1].\n- Move zeroes to the end: keep every non-zero item, then fill the rest with zeroes.\n- Remove all copies of a value: keep a[r] when it is not that value.",
+      "The loop invariant is what makes it safe. Everything before w is already final. Everything from w to r has been checked and can be overwritten. Because w never passes r, a write never destroys an item you have not read yet.",
+      "## Pointers from both ends",
+      "Reverse an array by swapping a[left] and a[right], moving left up and right down, and stopping when they meet. Each pointer moves at most n / 2 times. The same shape finds a pair in a sorted array with a given sum, tests for a palindrome and partitions around a pivot.",
+      "## Three-way partition",
+      "The Dutch national flag problem sorts an array that holds only 0, 1 and 2 in one pass and O(1) space. Keep three regions: zeros before low, twos after high, and an unseen region in between, scanned by mid. Swap each 0 to the low side, each 2 to the high side, and leave 1s alone. The only subtle step is that after swapping a 2 from the high side you must not advance mid, because the item you swapped in has not been inspected.",
+      "> A worked example: move zeroes. For [0, 1, 0, 3, 12], keep the non-zero items in order: w ends at 3 with [1, 3, 12], then write zeroes into the remaining cells. The result is [1, 3, 12, 0, 0] in O(n) time and O(1) space, and the order of the non-zero items is preserved.",
+      "## Common mistakes",
+      "Writing before reading, so you overwrite an item you still need. Starting w at 0 when the first item is always kept. Forgetting that a[:w] is the answer and the tail is garbage. Using pop or insert inside the loop, which silently makes it O(n squared).",
+      "## How to talk through it",
+      "Name the two pointers and their jobs, state the invariant, then walk a short example by hand. Finish by testing an empty array, a single item and an array where every item is equal."
+    ],
+    "keyPoints": [
+      "Read pointer r scans every item. Write pointer w marks the next free slot and never passes r.",
+      "Keep rule changes per problem: a[r] != a[w - 1] dedupes a sorted array, a[r] != 0 moves zeroes.",
+      "Pointers from both ends reverse, check palindromes and find pairs in sorted data.",
+      "Dutch national flag: three regions and one pass. Do not advance mid after swapping from the high side.",
+      "State the invariant out loud: what is true left of w, and between w and r."
+    ],
+    "sql": [
+      {
+        "title": "Remove duplicates and move zeroes in place",
+        "lang": "py",
+        "code": "def remove_duplicates(a):\n    if not a:\n        return 0\n    w = 1\n    for r in range(1, len(a)):\n        if a[r] != a[w - 1]:\n            a[w] = a[r]\n            w += 1\n    return w\n\ndef move_zeroes(a):\n    w = 0\n    for r in range(len(a)):\n        if a[r] != 0:\n            a[w] = a[r]\n            w += 1\n    for i in range(w, len(a)):\n        a[i] = 0\n    return a\n\nnums = [1, 1, 2, 2, 2, 3, 3]\nk = remove_duplicates(nums)\nassert k == 3 and nums[:k] == [1, 2, 3]\nassert remove_duplicates([]) == 0 and remove_duplicates([7, 7, 7]) == 1\nassert move_zeroes([0, 1, 0, 3, 12]) == [1, 3, 12, 0, 0]\nassert move_zeroes([0, 0]) == [0, 0]"
+      },
+      {
+        "title": "Reverse and palindrome check from both ends",
+        "lang": "py",
+        "code": "def reverse_in_place(a):\n    left, right = 0, len(a) - 1\n    while left < right:\n        a[left], a[right] = a[right], a[left]\n        left, right = left + 1, right - 1\n    return a\n\ndef is_palindrome(s):\n    cleaned = [c.lower() for c in s if c.isalnum()]\n    left, right = 0, len(cleaned) - 1\n    while left < right:\n        if cleaned[left] != cleaned[right]:\n            return False\n        left, right = left + 1, right - 1\n    return True\n\nassert reverse_in_place([1, 2, 3, 4, 5]) == [5, 4, 3, 2, 1]\nassert reverse_in_place([]) == []\nassert is_palindrome(\"A man, a plan, a canal: Panama\")\nassert not is_palindrome(\"hello\")"
+      },
+      {
+        "title": "Dutch national flag: sort 0, 1 and 2 in one pass",
+        "lang": "py",
+        "code": "def sort_colors(a):\n    low, mid, high = 0, 0, len(a) - 1\n    while mid <= high:\n        if a[mid] == 0:\n            a[low], a[mid] = a[mid], a[low]\n            low += 1\n            mid += 1\n        elif a[mid] == 2:\n            a[mid], a[high] = a[high], a[mid]\n            high -= 1                      # do not advance mid: the swapped-in item is unchecked\n        else:\n            mid += 1\n    return a\n\nassert sort_colors([2, 0, 2, 1, 1, 0]) == [0, 0, 1, 1, 2, 2]\nassert sort_colors([2, 0, 1]) == [0, 1, 2]\nassert sort_colors([1]) == [1] and sort_colors([]) == []"
+      }
+    ],
+    "django": {},
+    "exercise": "Implement remove_duplicates, move_zeroes, reverse_in_place and sort_colors without creating a second list. For each one, write the invariant as a comment. Then write remove_element(a, val), which removes every copy of val in place and returns the new length, and test it with an empty list, a list that contains no val and a list of only val.",
+    "pitfalls": [
+      "Writing a[w] before you have read the item at r. Always read first, write second.",
+      "Starting w at 0 for deduplication. The first item is always kept, so w starts at 1.",
+      "Using list.pop or list.insert inside the loop. Each call is O(n), and the whole loop becomes O(n squared).",
+      "Advancing mid after swapping from the high side in the Dutch flag problem. The swapped-in item was never inspected.",
+      "Assuming the data is sorted for the dedupe trick. It only works when equal values are neighbours."
+    ],
+    "interview": [
+      {
+        "q": "How do you remove duplicates from a sorted array in place?",
+        "a": "Keep a write pointer w starting at 1 and scan with r. When a[r] differs from a[w - 1], copy it to a[w] and advance w. Return w, and the first w cells hold the unique values. It is O(n) time and O(1) space."
+      },
+      {
+        "q": "Why is it safe to overwrite cells while scanning?",
+        "a": "The write pointer never passes the read pointer, so a write only lands on a cell that has already been read. Everything before w is final and everything between w and r is no longer needed."
+      },
+      {
+        "q": "How do you sort an array of 0s, 1s and 2s in one pass?",
+        "a": "Use three pointers: low for the end of the zeros, high for the start of the twos, and mid to scan. Swap 0s to the low side, 2s to the high side, and skip 1s. This is the Dutch national flag algorithm."
+      },
+      {
+        "q": "When do you use pointers from both ends?",
+        "a": "When the data is sorted or the problem is symmetric: reversing, palindromes, pair sums in sorted data, and partitioning around a pivot."
+      }
+    ],
+    "references": [
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "How are lists implemented in CPython? (Python docs FAQ)",
+        "url": "https://docs.python.org/3/faq/design.html#how-are-lists-implemented-in-cpython",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: in-place array questions are a staple of the coding rounds the big-company prep pages describe. The cost of list operations comes from the Python documentation cited, which I read. The read and write pointer framing, the Dutch flag walkthrough and the interview advice are my judgment, and the algorithms are standard computer science. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-time-complexity",
+      "py-faq-design-lists",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "inplace",
+        "title": "In-place two pointers, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "write or shift"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Read and write",
+            "at": 0
+          },
+          {
+            "text": "Skip or keep",
+            "at": 1
+          },
+          {
+            "text": "Result",
+            "at": 5
+          },
+          {
+            "text": "Both ends",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -3.3,
+            "y": 3.3,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -2.2,
+            "y": 2.2,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -1.1,
+            "y": 1.1,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": 1.1,
+            "y": -1.1,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 2.2,
+            "y": -2.2,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 3.3,
+            "y": -3.3,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Rewrite the array in the same memory",
+            "tag": "technique",
+            "body": [
+              "Task: remove duplicates from a sorted array in place, and return how many unique values remain. No second array allowed, so extra space must be O(1).",
+              "Two indexes do it. The read pointer r scans every item. The write pointer w marks the next slot where a kept item will be placed."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Input",
+                "v": "1 1 2 2 2 3 3"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "blue",
+                "pill": {
+                  "text": "kept (first item)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "blue",
+                "pill": {
+                  "text": "w and r",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "w = 1                    # next slot to write",
+                "for r in range(1, len(a)):",
+                "    ... decide whether a[r] is new"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Equal to the last kept item: skip it",
+            "tag": "technique",
+            "body": [
+              "At r = 1 the value is 1, the same as a[w - 1]. It is a duplicate, so we do nothing and only r moves forward.",
+              "The rule is a[r] != a[w - 1]. Since the array is sorted, equal values are always next to each other."
+            ],
+            "short": "Skip",
+            "hud": [
+              {
+                "k": "r",
+                "v": "2"
+              },
+              {
+                "k": "w",
+                "v": "1"
+              },
+              {
+                "k": "Kept",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "blue",
+                "pill": {
+                  "text": "w",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": {
+                  "text": "r",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A new value: write it and move w",
+            "tag": "solution",
+            "body": [
+              "At r = 2 the value 2 differs from a[w - 1] = 1. It is new, so copy it to a[w] and increase w.",
+              "The cell at w was a duplicate we no longer need, so overwriting it is safe. This is the key idea: w never passes r."
+            ],
+            "short": "Keep",
+            "hud": [
+              {
+                "k": "r",
+                "v": "2"
+              },
+              {
+                "k": "w",
+                "v": "2"
+              },
+              {
+                "k": "Kept",
+                "v": "1 2",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "wrote 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": {
+                  "text": "w",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c2",
+                  "c1"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "Now r moves to the 2 at index 3. What does the algorithm do?",
+              "options": [
+                "Writes it, w becomes 3",
+                "Skips it: it equals the last kept item, 2",
+                "Stops"
+              ],
+              "answer": 1,
+              "why": "a[3] = 2 and the last kept item a[w - 1] = 2 are equal, so it is a duplicate and only r moves."
+            }
+          },
+          {
+            "title": "More duplicates are skipped",
+            "tag": "technique",
+            "body": [
+              "The next two 2s are equal to a[w - 1], so r moves past them while w stays where it is.",
+              "Every item is looked at exactly once, so the work so far is linear."
+            ],
+            "short": "Skip more",
+            "hud": [
+              {
+                "k": "r",
+                "v": "5"
+              },
+              {
+                "k": "w",
+                "v": "2"
+              },
+              {
+                "k": "Kept",
+                "v": "1 2"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": {
+                  "text": "w",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": {
+                  "text": "r",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c6": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c2",
+                  "c3",
+                  "c4",
+                  "c5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The 3 is new: write it",
+            "tag": "solution",
+            "body": [
+              "At r = 5 the value 3 differs from a[w - 1] = 2. Write it at a[2] and move w to 3.",
+              "Cell 2 held a duplicate 2 that was already counted, so no information is lost."
+            ],
+            "short": "Keep 3",
+            "hud": [
+              {
+                "k": "r",
+                "v": "6"
+              },
+              {
+                "k": "w",
+                "v": "3"
+              },
+              {
+                "k": "Kept",
+                "v": "1 2 3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "wrote 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": {
+                  "text": "w",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "3",
+                "tone": "blue",
+                "pill": {
+                  "text": "r",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c5",
+                  "c2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The last 3 is a duplicate. Done.",
+            "tag": "insight",
+            "body": [
+              "r reaches the end after skipping the final 3. The answer is w = 3: the first three cells hold 1, 2, 3.",
+              "What lies after index w does not matter. We return w and the caller reads only a[:w]."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Returned",
+                "v": "w = 3",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "2",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "c4": {
+                "label": "2",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "c5": {
+                "label": "3",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "c6": {
+                "label": "3",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def remove_duplicates(a):",
+                "    w = 1",
+                "    for r in range(1, len(a)):",
+                "        if a[r] != a[w - 1]:",
+                "            a[w] = a[r]; w += 1",
+                "    return w"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Same shape, different rule: move zeroes, partition",
+            "tag": "technique",
+            "body": [
+              "Read and write pointers solve many in-place problems by changing only the keep rule. Keep non-zero items to move zeroes to the end. Keep items below a pivot to partition.",
+              "The invariant is always the same: everything before w is final, everything between w and r has been checked and is not needed."
+            ],
+            "short": "Same shape",
+            "hud": [
+              {
+                "k": "Dedupe rule",
+                "v": "a[r] != a[w-1]"
+              },
+              {
+                "k": "Move zeroes rule",
+                "v": "a[r] != 0"
+              },
+              {
+                "k": "Partition rule",
+                "v": "a[r] < pivot"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Pointers from both ends: reverse in place",
+            "tag": "technique",
+            "body": [
+              "Put one pointer at each end. Swap the two items, move the pointers towards each other, and stop when they meet. Reversing an array this way uses O(1) extra space.",
+              "The same two-ends shape finds pairs in sorted data and checks palindromes."
+            ],
+            "short": "From both ends",
+            "hud": [
+              {
+                "k": "Swaps",
+                "v": "n / 2"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "blue",
+                "pill": {
+                  "text": "left",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "7",
+                "tone": "blue",
+                "pill": {
+                  "text": "right",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c6"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "After the swaps the pointers meet",
+            "tag": "solution",
+            "body": [
+              "After three swaps the pointers meet at the middle and the array reads 7 6 5 4 3 2 1. An odd-length array leaves the middle item in place.",
+              "Each pointer moves at most n / 2 times, so the whole thing is O(n)."
+            ],
+            "short": "Meet",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "4",
+                "tone": "green",
+                "pill": {
+                  "text": "left meets right",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c4": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Two pointers over an array let you rewrite it in place. Same-direction pointers (read and write) filter and compact. Opposite-direction pointers (left and right) reverse, pair up and partition.",
+              "Say the invariant before you code: what is true about everything left of w, and about everything between w and r."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 name each pointer's job",
+                "2 state the invariant",
+                "3 each pointer moves one way only",
+                "4 test empty, one item, all equal"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Two pointers are like one person reading a list of names and another writing the clean list on the same page.",
+      "story": "Imagine proofreading a line of tickets stuck on a wall. You walk along reading every ticket. A helper stands behind you and only moves forward when you hand them a ticket worth keeping, and then they place it in their next free spot. When you reach the end, the helper's spots hold exactly the tickets to keep, in order. Nobody had to bring a second wall.",
+      "maps": [
+        [
+          "The wall of tickets",
+          "The array"
+        ],
+        [
+          "You, reading every ticket",
+          "The read pointer"
+        ],
+        [
+          "The helper placing good tickets",
+          "The write pointer"
+        ],
+        [
+          "Not needing a second wall",
+          "O(1) extra space"
+        ]
+      ],
+      "words": [
+        [
+          "in place",
+          "Changing the array itself instead of building a new one."
+        ],
+        [
+          "pointer",
+          "A number that marks a position in the array."
+        ],
+        [
+          "invariant",
+          "A fact that stays true after every step of the loop."
+        ],
+        [
+          "partition",
+          "Rearrange items into groups, such as small ones before big ones."
+        ],
+        [
+          "duplicate",
+          "A value that appears again."
+        ]
+      ]
+    }
   }
 ]
