@@ -117366,5 +117366,1331 @@
         ]
       ]
     }
+  },
+  {
+    "id": "monotonic-queue",
+    "n": 161,
+    "level": 14,
+    "week": "Core",
+    "title": "Monotonic Queue: Sliding Window Maximum",
+    "tagline": "Keep window candidates in a deque so the maximum of every window is at the front, in O(n) time overall.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "A monotonic queue is a deque that keeps its items in sorted order, so that the best candidate is always at the front. It is the right tool for questions about the maximum or the minimum of every sliding window. A naive scan of each window costs O(n x k) for n numbers and windows of size k. The monotonic queue does it in O(n).",
+      "## The sliding window maximum",
+      "Given nums and a window size k, report the maximum of nums[i - k + 1] to nums[i] for each i from k - 1. For 1, 3, -1, -3, 5, 3, 6, 7 and k = 3, the answers are 3, 3, 5, 5, 6, 7. Keep a deque of indexes whose values are in falling order from front to back. The value at the front is the maximum of the current window.",
+      "- Back: before adding index i, pop indexes from the back while nums[back] <= nums[i]. They are older and not larger, so they can never be a maximum while i is in the window.\n- Add i at the back.\n- Front: if the front index is i - k or older, pop it, because it has left the window.\n- Once i >= k - 1, report nums[front].",
+      "## Why the deque stores indexes",
+      "You need to know both the value, to compare, and the age, to expire. An index gives both: the value is nums[index], and the age is i minus the index. For 9, 1, 2, 3 with k = 2, the 9 stays at the front through the first window. When 2 arrives at index 2, the window is 1, 2, and the front index 0 is too old, so it is popped from the front.",
+      "## Why it is O(n)",
+      "Every index is added once and removed at most once, either from the back by a bigger value or from the front by age. So the total work over the whole array is O(n). The deque holds at most k items, so the extra space is O(k). A deque is the right structure because it is O(1) at both ends, as the Python docs state.",
+      "> A worked example: at the values 3, -1, -3 the deque holds all three, in falling order. When 5 arrives, it is bigger than every item, so all three are popped from the back and only 5 remains. The window -1, -3, 5 has the maximum 5, at the front.",
+      "## The minimum, and other uses",
+      "For the sliding minimum, flip the comparison so the deque rises from front to back. A monotonic queue also speeds up dynamic programming, where each state takes the best of the last k states, and it solves the shortest subarray with a sum of at least K when numbers can be negative. For that, keep prefix sums in a deque and pop from the front while the window is valid, and from the back while a smaller prefix sum arrives.",
+      "## Monotonic stack versus monotonic queue",
+      "A monotonic stack trims only one end, the top, and answers questions about neighbours. A monotonic queue trims both ends, the back by value and the front by age, and answers questions about windows. If a question has a window of fixed size, you need the queue.",
+      "## How to talk through it",
+      "Explain the candidate idea first: why smaller older numbers are useless. Then give the two pops, the deque of indexes and the invariant. Test k = 1, k equal to the length of the array, all equal values and a rising array."
+    ],
+    "keyPoints": [
+      "A deque of indexes with falling values. The front is the maximum of the current window.",
+      "Back: pop while nums[back] <= x. Front: pop if the index is out of the window (<= i - k).",
+      "Each index enters and leaves once, so the time is O(n) and the space is O(k).",
+      "Flip the comparison for a sliding minimum. Store indexes, not values, so you can expire the front.",
+      "Used for window maximum and minimum, DP over a window, and shortest subarray with sum at least K using prefix sums."
+    ],
+    "sql": [
+      {
+        "title": "Sliding window maximum and minimum",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef sliding_window_max(nums, k):\n    dq, out = deque(), []                    # indexes; values fall from front to back\n    for i, x in enumerate(nums):\n        while dq and nums[dq[-1]] <= x:      # drop smaller candidates behind the new one\n            dq.pop()\n        dq.append(i)\n        if dq[0] <= i - k:                   # the front has left the window\n            dq.popleft()\n        if i >= k - 1:\n            out.append(nums[dq[0]])\n    return out\n\ndef sliding_window_min(nums, k):\n    dq, out = deque(), []\n    for i, x in enumerate(nums):\n        while dq and nums[dq[-1]] >= x:\n            dq.pop()\n        dq.append(i)\n        if dq[0] <= i - k:\n            dq.popleft()\n        if i >= k - 1:\n            out.append(nums[dq[0]])\n    return out\n\nassert sliding_window_max([1, 3, -1, -3, 5, 3, 6, 7], 3) == [3, 3, 5, 5, 6, 7]\nassert sliding_window_max([9, 1, 2, 3], 2) == [9, 2, 3]\nassert sliding_window_max([4, 2], 1) == [4, 2]\nassert sliding_window_max([1, 2, 3], 3) == [3]\nassert sliding_window_min([1, 3, -1, -3, 5, 3, 6, 7], 3) == [-1, -3, -3, -3, 3, 3]"
+      },
+      {
+        "title": "Check against brute force",
+        "lang": "py",
+        "code": "import random\nfrom collections import deque\n\ndef sliding_window_max(nums, k):\n    dq, out = deque(), []\n    for i, x in enumerate(nums):\n        while dq and nums[dq[-1]] <= x:\n            dq.pop()\n        dq.append(i)\n        if dq[0] <= i - k:\n            dq.popleft()\n        if i >= k - 1:\n            out.append(nums[dq[0]])\n    return out\n\ndef brute(nums, k):\n    return [max(nums[i:i + k]) for i in range(len(nums) - k + 1)]\n\nrandom.seed(8)\nfor _ in range(300):\n    nums = [random.randint(-5, 5) for _ in range(random.randint(1, 14))]\n    k = random.randint(1, len(nums))\n    assert sliding_window_max(nums, k) == brute(nums, k)"
+      },
+      {
+        "title": "Shortest subarray with a sum of at least K (negatives allowed)",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef shortest_subarray(nums, k):\n    prefix = [0]\n    for x in nums:\n        prefix.append(prefix[-1] + x)\n    dq, best = deque(), float(\"inf\")             # indexes into prefix, with rising prefix values\n    for i, p in enumerate(prefix):\n        while dq and p - prefix[dq[0]] >= k:     # a valid subarray ends here\n            best = min(best, i - dq.popleft())\n        while dq and prefix[dq[-1]] >= p:        # a smaller, later start beats a larger, earlier one\n            dq.pop()\n        dq.append(i)\n    return best if best != float(\"inf\") else -1\n\nassert shortest_subarray([1], 1) == 1\nassert shortest_subarray([1, 2], 4) == -1\nassert shortest_subarray([2, -1, 2], 3) == 3\nassert shortest_subarray([84, -37, 32, 40, 95], 167) == 3"
+      }
+    ],
+    "django": {},
+    "exercise": "Write sliding_window_max and sliding_window_min with a deque of indexes. Test k = 1, k equal to len(nums) and a list of equal numbers, and compare against a brute-force version on 300 random inputs. Then write shortest_subarray with prefix sums, and explain why a plain sliding window fails when numbers can be negative.",
+    "pitfalls": [
+      "Storing values in the deque instead of indexes, so you cannot tell when the front has left the window.",
+      "Using < instead of <= when popping the back. It still works, but equal values pile up and the deque can grow.",
+      "Reporting before the first window is full. Report only when i >= k - 1.",
+      "Popping the front before comparing, or checking the wrong boundary. The front expires when its index is i - k or older.",
+      "Using a list and pop(0) for the front, which makes the whole algorithm O(n x k)."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the maximum of every sliding window in O(n)?",
+        "a": "Keep a deque of indexes whose values fall from front to back. For each new element, pop from the back while the value is not larger than the new one, add the new index, and pop the front if it has left the window. The front is the maximum of the current window."
+      },
+      {
+        "q": "Why is each window maximum found in amortized O(1)?",
+        "a": "Every index enters the deque once and leaves at most once. The total number of pops over the whole array is at most n, so the work per step averages to a constant."
+      },
+      {
+        "q": "Why does the deque store indexes and not values?",
+        "a": "You need the value to compare and the age to expire the front. An index gives both: the value is nums[index] and the age is the current index minus it."
+      },
+      {
+        "q": "What is the difference between a monotonic stack and a monotonic queue?",
+        "a": "A monotonic stack removes only at the top and answers neighbour questions such as the next greater element. A monotonic queue removes at both ends, the back by value and the front by age, and answers questions about sliding windows."
+      }
+    ],
+    "references": [
+      {
+        "title": "collections.deque (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Double-ended queue (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Double-ended_queue",
+        "kind": "Reference"
+      },
+      {
+        "title": "All nearest smaller values (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/All_nearest_smaller_values",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: sliding window maximum is a well-known hard-ish coding question that tests the deque and the monotonic idea. The O(1) end operations of a deque come from the Python collections page, which I read in part, and the pop-the-dominated-items argument is the same one used for the monotonic stack in the Wikipedia article on all nearest smaller values, which I read in full. The monotonic queue algorithm, the window-minimum flip and the shortest-subarray trick are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-deque",
+      "wikipedia-deque",
+      "wikipedia-all-nearest-smaller-values",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "monoqueue",
+        "title": "A monotonic queue, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "scan or read"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result found"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 1
+          },
+          {
+            "text": "First window",
+            "at": 3
+          },
+          {
+            "text": "A big value clears the deque",
+            "at": 5
+          },
+          {
+            "text": "Back and front",
+            "at": 9
+          },
+          {
+            "text": "Why O(n)",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "w0",
+            "kind": "cube",
+            "x": -4.95,
+            "y": 2.75,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w1",
+            "kind": "cube",
+            "x": -3.85,
+            "y": 1.65,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w2",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 0.55,
+            "label": "-1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w3",
+            "kind": "cube",
+            "x": -1.65,
+            "y": -0.55,
+            "label": "-3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w4",
+            "kind": "cube",
+            "x": -0.55,
+            "y": -1.65,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w5",
+            "kind": "cube",
+            "x": 0.55,
+            "y": -2.75,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w6",
+            "kind": "cube",
+            "x": 1.65,
+            "y": -3.85,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "w7",
+            "kind": "cube",
+            "x": 2.75,
+            "y": -4.95,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "dq0",
+            "kind": "cube",
+            "x": -0.5,
+            "y": 2.7,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "dq1",
+            "kind": "cube",
+            "x": 1.1,
+            "y": 1.1,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "dq2",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -0.5,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the maximum of every window of 3",
+            "tag": "technique",
+            "body": [
+              "Slide a window of 3 numbers along 1, 3, -1, -3, 5, 3, 6, 7 and report the largest number in each window. The answers are 3, 3, 5, 5, 6, 7.",
+              "Scanning each window costs O(n x k). A deque brings it to O(n)."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Naive",
+                "v": "O(n x k)",
+                "tone": "bad"
+              },
+              {
+                "k": "Monotonic queue",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": true
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "The idea: keep only candidates that could still be the maximum",
+            "tag": "technique",
+            "body": [
+              "If a bigger number arrives later, any smaller number before it can never be the maximum of a window that contains both. So we throw those away. What stays is a list of candidates, in falling order, with the largest at the front.",
+              "That list is a monotonic queue, kept in a deque. The front is always the answer for the current window."
+            ],
+            "short": "The idea",
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": true
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "while dq and nums[dq[-1]] <= x: dq.pop()   # drop smaller",
+                "dq.append(i)",
+                "if dq[0] <= i - k: dq.popleft()      # drop expired",
+                "answer = nums[dq[0]]"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "1, then 3: 3 removes 1",
+            "tag": "solution",
+            "body": [
+              "1 enters the deque. Then 3 arrives. 1 is smaller than 3 and will never beat it while both are in a window, so 1 is removed from the back. The deque holds 3.",
+              "The window does not have 3 numbers yet, so there is no answer to report."
+            ],
+            "short": "1 and 3",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "3"
+              },
+              {
+                "k": "Window",
+                "v": "not full yet"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w1": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "-1 joins: the first window is full",
+            "tag": "solution",
+            "body": [
+              "-1 is smaller than 3, so it is added behind it. The deque is 3, -1, in falling order. The window 1, 3, -1 is complete, and its maximum is the front: 3.",
+              "The front is the answer, and we read it without searching."
+            ],
+            "short": "First window",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "3 -1"
+              },
+              {
+                "k": "Window",
+                "v": "1 3 -1"
+              },
+              {
+                "k": "Maximum",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w1": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": false,
+                "label": "-1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "-3 joins: the maximum is still 3",
+            "tag": "solution",
+            "body": [
+              "-3 is smaller than the last candidate, so it joins at the back. The deque is 3, -1, -3. The window is now 3, -1, -3, and its maximum is still the front: 3.",
+              "The number 1 has left the window, but it was already gone from the deque."
+            ],
+            "short": "-3",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "3 -1 -3"
+              },
+              {
+                "k": "Window",
+                "v": "3 -1 -3"
+              },
+              {
+                "k": "Maximum",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w2": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": false,
+                "label": "-1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "dq2": {
+                "hidden": false,
+                "label": "-3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The deque holds 3, -1, -3. The next number is 5. How many items does 5 remove from the back?",
+              "options": [
+                "0",
+                "1",
+                "3"
+              ],
+              "answer": 2,
+              "why": "5 is bigger than -3, -1 and 3. All three can never be the maximum while 5 is in the window, so all three are removed."
+            }
+          },
+          {
+            "title": "5 arrives: it clears the whole deque",
+            "tag": "solution",
+            "body": [
+              "5 beats -3, then -1, then 3. All are removed from the back. Only 5 remains. The window -1, -3, 5 has the maximum 5.",
+              "A big new value wipes out all the smaller candidates behind it. This is the monotonic part."
+            ],
+            "short": "5",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "5"
+              },
+              {
+                "k": "Window",
+                "v": "-1 -3 5"
+              },
+              {
+                "k": "Maximum",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w3": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w4": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "w5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "3 arrives: it joins behind 5",
+            "tag": "solution",
+            "body": [
+              "3 is smaller than 5, so it joins behind it. The deque is 5, 3. The window -3, 5, 3 has the maximum 5.",
+              "3 is kept because after 5 leaves the window, 3 may become the maximum."
+            ],
+            "short": "3",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "5 3"
+              },
+              {
+                "k": "Window",
+                "v": "-3 5 3"
+              },
+              {
+                "k": "Maximum",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w4": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "w6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "6 arrives: it removes 3 and 5",
+            "tag": "solution",
+            "body": [
+              "6 beats 3 and 5, so both are removed. The deque holds 6, and the window 5, 3, 6 has the maximum 6.",
+              "The old 5 would have expired soon anyway, but it was removed because 6 is bigger and later."
+            ],
+            "short": "6",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "6"
+              },
+              {
+                "k": "Window",
+                "v": "5 3 6"
+              },
+              {
+                "k": "Maximum",
+                "v": "6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w6": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 6",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "w7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "6",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "7 arrives: the last window",
+            "tag": "solution",
+            "body": [
+              "7 beats 6, which is removed. The deque holds 7, and the last window 3, 6, 7 has the maximum 7.",
+              "The answers are 3, 3, 5, 5, 6, 7."
+            ],
+            "short": "7",
+            "hud": [
+              {
+                "k": "Deque",
+                "v": "7"
+              },
+              {
+                "k": "Window",
+                "v": "3 6 7"
+              },
+              {
+                "k": "All maxima",
+                "v": "3 3 5 5 6 7",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w6": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w7": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Two kinds of removal: by value at the back, by age at the front",
+            "tag": "insight",
+            "body": [
+              "The back is trimmed because of value: a new bigger number removes smaller ones. The front is trimmed because of age: if the front index is older than i - k + 1, it has left the window and is popped.",
+              "That is why the deque stores indexes, not values, so you can check how old the front is. Here the front never expired, but with 9, 1, 2, 3 and k = 2, the 9 expires when 2 arrives."
+            ],
+            "short": "Back and front",
+            "hud": [
+              {
+                "k": "Back: by value",
+                "v": "pop while <= new"
+              },
+              {
+                "k": "Front: by age",
+                "v": "pop while index too old"
+              },
+              {
+                "k": "Stores",
+                "v": "indexes"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w6": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w7": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Why O(n), and where else it is used",
+            "tag": "insight",
+            "body": [
+              "Each index enters the deque once and leaves at most once, so the total work is O(n) and the space is O(k). The deque helps you because it works at both ends in O(1).",
+              "Flip the comparison for a sliding minimum. The same trick speeds up dynamic programming over a window, and finds the shortest subarray with a sum of at least K when numbers can be negative, when combined with prefix sums."
+            ],
+            "short": "Why O(n)",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(k)",
+                "tone": "good"
+              },
+              {
+                "k": "Sliding minimum",
+                "v": "flip the comparison"
+              }
+            ],
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w6": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w7": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A monotonic queue keeps window candidates in order in a deque. Pop from the back while the new value beats the last candidate, and pop from the front when its index is outside the window. The front is the answer.",
+              "Say the invariant: the deque is falling from front to back, and every candidate is inside the current window."
+            ],
+            "short": "Recap",
+            "set": {
+              "w0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "w5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w6": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "w7": {
+                "tone": "orange",
+                "pill": {
+                  "text": "max 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "dq0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "front = max",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dq1": {
+                "hidden": true
+              },
+              "dq2": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 deque of indexes, falling values",
+                "2 back: pop while value <= new",
+                "3 front: pop if index <= i - k",
+                "4 answer = nums[dq[0]]"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A monotonic queue is like keeping only the tallest contenders in a moving group photo.",
+      "story": "A group walks past a camera, and only the last three people in the line count at any moment. You want the tallest of those three at each moment. When a tall person arrives, any shorter person standing behind them in the list can never be the tallest again, so they are dropped. And when someone walks out of the last three, they are dropped from the front. The first person on your list is always the tallest.",
+      "maps": [
+        [
+          "The last three people",
+          "The sliding window"
+        ],
+        [
+          "The shortlist of contenders",
+          "The deque"
+        ],
+        [
+          "A taller person arriving",
+          "Popping smaller items from the back"
+        ],
+        [
+          "Someone leaving the group",
+          "Popping the expired front"
+        ]
+      ],
+      "words": [
+        [
+          "monotonic queue",
+          "A deque kept in sorted order so the best item is at the front."
+        ],
+        [
+          "sliding window",
+          "A block of neighbouring items that moves along one step at a time."
+        ],
+        [
+          "candidate",
+          "An item that could still turn out to be the answer."
+        ],
+        [
+          "expire",
+          "Fall out of the window because it is too old."
+        ],
+        [
+          "prefix sum",
+          "The total of all items from the start up to a point."
+        ]
+      ]
+    }
   }
 ]
