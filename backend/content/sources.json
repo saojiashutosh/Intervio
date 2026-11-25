@@ -1934,6 +1934,96 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "T(n) = aT(n/b) + f(n); critical exponent log_b a; the three cases; worked results for binary search, tree traversal and merge sort."
+    },
+    {
+      "key": "py-faq-design-lists",
+      "title": "Design and History FAQ: how are lists implemented in CPython? (Python docs)",
+      "url": "https://docs.python.org/3/faq/design.html#how-are-lists-implemented-in-cpython",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "CPython lists are variable-length arrays of references, not linked lists; indexing costs the same for any index; append over-allocates so the next few appends need no resize; sort() sorts in place and returns None."
+    },
+    {
+      "key": "py-time-complexity",
+      "title": "Time complexity of operations on built-in types (Python docs)",
+      "url": "https://docs.python.org/3/builtins/time-complexity.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "List: append O(1) amortized, insert and delete O(n-k), get and set item O(1), slice O(j-i), x in l O(n), sort O(n log n); string: concatenation is O(len(s)+len(t)), substring search O(n) with a two-way algorithm."
+    },
+    {
+      "key": "wikipedia-dynamic-array",
+      "title": "Dynamic array (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_array",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Growing by a constant factor makes n appends cost O(n) in total, so amortized O(1); insert at the front or middle is Theta(n); CPython list growth factor is about 1.125."
+    },
+    {
+      "key": "wikipedia-amortized-analysis",
+      "title": "Amortized analysis (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Amortized_analysis",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Amortized analysis averages operation costs over a sequence; aggregate, accounting and potential methods; dynamic array push is O(1) amortized; two-list queue dequeue is O(1) amortized."
+    },
+    {
+      "key": "wikipedia-prefix-sum",
+      "title": "Prefix sum (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Prefix_sum",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Cumulative sum y_i = y_(i-1) + x_i; inclusive and exclusive scans; needs only an associative operator; used by counting sort; a Fenwick tree supports updates with logarithmic time."
+    },
+    {
+      "key": "py-itertools-accumulate",
+      "title": "itertools.accumulate (Python docs)",
+      "url": "https://docs.python.org/3/library/itertools.html#itertools.accumulate",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "accumulate(iterable, func, initial=None) yields running totals; the default function is addition; initial adds one extra leading element."
+    },
+    {
+      "key": "wikipedia-maximum-subarray",
+      "title": "Maximum subarray problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Maximum_subarray_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Kadane's algorithm solves it in O(n) time and O(1) space; the example [-2, 1, -3, 4, -1, 2, 1, -5, 4] has answer 6; all-negative arrays return the largest single element; older O(n^2) and O(n log n) solutions."
+    },
+    {
+      "key": "wikipedia-string-searching",
+      "title": "String-searching algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/String-searching_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Naive search O(mn) worst case; Rabin-Karp O(n) average and O(mn) worst; KMP Theta(m) preprocessing and Theta(n) matching; Boyer-Moore and two-way variants."
+    },
+    {
+      "key": "wikipedia-kmp",
+      "title": "Knuth-Morris-Pratt algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "KMP uses a failure table so the text is never re-read; table build is O(k) and search is O(n); naive search can take O(k*n); published 1977."
+    },
+    {
+      "key": "wikipedia-row-column-major",
+      "title": "Row- and column-major order (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Row-_and_column-major_order",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Row-major stores each row contiguously, column-major each column; C is row-major with offset x + Nx*y; Fortran, MATLAB and Julia are column-major; NumPy defaults to row-major; looping row-wise is preferred in C."
     }
   ],
   "levels": [
