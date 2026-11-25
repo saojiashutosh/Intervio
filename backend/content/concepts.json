@@ -112306,5 +112306,1015 @@
         ]
       ]
     }
+  },
+  {
+    "id": "balanced-brackets",
+    "n": 156,
+    "level": 14,
+    "week": "Core",
+    "title": "Balanced Brackets: Matching with a Stack",
+    "tagline": "Check that every opener has the right closer in the right order, name the three ways it fails, and reuse the idea for longest-valid and fewest-additions questions.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A string of brackets is balanced when every opening bracket is closed by a bracket of the same kind, and the pairs nest properly. The string {[()]} is balanced. The string {[(])} has the right number of each kind of bracket but is not balanced, because ] arrives while ( is still open. Counting cannot find that. A stack can, and this problem is the standard way to learn it.",
+      "## The algorithm",
+      "Read the characters from left to right. When you see an opener, push it onto the stack. When you see a closer, the stack must be non-empty and its top must be the matching opener. Pop it and carry on. If either check fails, return False. After the last character, return True only if the stack is empty. The most recent opener must always be closed first, which is exactly the LIFO order of a stack.",
+      "- Keep a dictionary that maps each closer to its opener: {')': '(', ']': '[', '}': '{'}.\n- Time is O(n), because each character is pushed at most once and popped at most once.\n- Space is O(n) in the worst case, when the string is all openers.",
+      "## The three ways to fail",
+      "- A closer does not match the top opener, as in (].\n- A closer arrives while the stack is empty, as in ).\n- The string ends with openers still on the stack, as in ((.",
+      "Many wrong solutions forget the second or the third. A reliable habit is to write the three cases before you write the loop.",
+      "## Parsing and the call stack",
+      "The same idea sits inside compilers and expression parsers, which use a stack to keep track of nested structure. The Wikipedia article on all nearest smaller values lists matching parentheses as one of the applications of its stack algorithm, which shows how general the pattern is.",
+      "> A worked example: for {[(])}, push {, [ and (. The next character ] expects [ on top, but the top is (. Return False immediately. The remaining characters are never read, which is why a reliable answer can arrive before the end of the string.",
+      "## Storing indexes",
+      "If the question asks where the first error is, store the index of each opener on the stack, together with or instead of the character. On a mismatch you know the position. If the stack is not empty at the end, the bottom index is where the first unmatched opener was.",
+      "## Longest valid parentheses and fewest additions",
+      "For the length of the longest valid run, keep a stack of indexes, started with -1 as a floor. On an opener push its index. On a closer pop, and if the stack is now empty push the closer's index as the new floor. Otherwise the run length is the current index minus the index at the top. For the fewest brackets to add, you do not need a stack when there is only one bracket type: count the openers still open, and count the closers that found none open. The answer is the sum.",
+      "## How to talk through it",
+      "Say that you use a stack and why. Name the three failure modes. Walk one good and one bad string by hand, then test the empty string, a single bracket and a long run of openers."
+    ],
+    "keyPoints": [
+      "Push openers. On a closer, the stack must be non-empty and its top must match. Pop it.",
+      "Balanced only if no check failed and the stack is empty at the end.",
+      "Three failures: wrong type on top, closer on an empty stack, openers left over.",
+      "O(n) time, O(n) space. Counting alone cannot detect wrong order such as {[(])}.",
+      "Index stack for error positions and the longest valid run. Counters for the fewest additions with one bracket type."
+    ],
+    "sql": [
+      {
+        "title": "Is the string balanced?",
+        "lang": "py",
+        "code": "def is_balanced(s):\n    pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n    stack = []\n    for ch in s:\n        if ch in pairs.values():\n            stack.append(ch)\n        elif ch in pairs:\n            if not stack or stack.pop() != pairs[ch]:\n                return False\n    return not stack\n\nassert is_balanced(\"{[()]}\")\nassert is_balanced(\"\") and is_balanced(\"()[]{}\")\nassert not is_balanced(\"{[(])}\")\nassert not is_balanced(\")\")\nassert not is_balanced(\"((\")\nassert not is_balanced(\"(]\")\nassert is_balanced(\"a(b[c]{d}e)f\")"
+      },
+      {
+        "title": "Where is the first error?",
+        "lang": "py",
+        "code": "def first_error(s):\n    pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n    stack = []                                   # (character, index)\n    for i, ch in enumerate(s):\n        if ch in pairs.values():\n            stack.append((ch, i))\n        elif ch in pairs:\n            if not stack or stack[-1][0] != pairs[ch]:\n                return i                         # a closer with nothing or the wrong opener\n            stack.pop()\n    return stack[0][1] if stack else -1          # oldest unmatched opener, or no error\n\nassert first_error(\"{[()]}\") == -1\nassert first_error(\"{[(])}\") == 3\nassert first_error(\")\") == 0\nassert first_error(\"(()\") == 0\nassert first_error(\"()(\") == 2"
+      },
+      {
+        "title": "Longest valid run and fewest additions",
+        "lang": "py",
+        "code": "def longest_valid(s):\n    stack, best = [-1], 0                        # -1 is the floor before the string\n    for i, ch in enumerate(s):\n        if ch == \"(\":\n            stack.append(i)\n        else:\n            stack.pop()\n            if not stack:\n                stack.append(i)                  # this closer becomes the new floor\n            else:\n                best = max(best, i - stack[-1])\n    return best\n\ndef min_additions(s):\n    open_count = added = 0\n    for ch in s:\n        if ch == \"(\":\n            open_count += 1\n        elif open_count:\n            open_count -= 1\n        else:\n            added += 1                           # a closer with nothing to close\n    return added + open_count                    # plus openers left unclosed\n\nassert longest_valid(\"(()\") == 2\nassert longest_valid(\")()())\") == 4\nassert longest_valid(\"()(())\") == 6\nassert longest_valid(\"\") == 0\nassert min_additions(\"())\") == 1\nassert min_additions(\"(((\") == 3\nassert min_additions(\"()))((\") == 4\nassert min_additions(\"\") == 0"
+      }
+    ],
+    "django": {},
+    "exercise": "Write is_balanced for three bracket types and test the three failure modes separately. Then write first_error, longest_valid and min_additions. Finally, write a function that removes the fewest parentheses to make a string valid and returns one valid result, and say how many different answers can exist.",
+    "pitfalls": [
+      "Popping from an empty stack when a closer arrives first. Check that the stack is not empty.",
+      "Returning True without checking that the stack is empty at the end, so (( passes.",
+      "Comparing counts of each bracket and ignoring order, so {[(])} passes.",
+      "Using a list pop(0) as the stack pop. The top is the last item.",
+      "Forgetting characters that are not brackets in strings like a(b)c. Skip them."
+    ],
+    "interview": [
+      {
+        "q": "How do you check that brackets are balanced?",
+        "a": "Scan left to right. Push each opener. For a closer, the stack must be non-empty and the top must be the matching opener, which you pop. After the scan the stack must be empty. It is O(n) time and O(n) space."
+      },
+      {
+        "q": "Why does counting brackets not work?",
+        "a": "Counting ignores order and type. In {[(])} every kind appears equally often, but ] arrives while ( is still open. A stack remembers the most recent unclosed opener, so it detects the wrong order."
+      },
+      {
+        "q": "What are the ways a bracket string can be invalid?",
+        "a": "A closer that does not match the top opener, a closer when the stack is empty, and openers left on the stack at the end."
+      },
+      {
+        "q": "How do you find the longest valid parentheses substring?",
+        "a": "Keep a stack of indexes starting with -1. Push the index of each opener. On a closer, pop; if the stack is empty push the closer's index as the new floor, otherwise the length is the current index minus the index on top."
+      }
+    ],
+    "references": [
+      {
+        "title": "Stack (abstract data type) (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Stack_(abstract_data_type)",
+        "kind": "Reference"
+      },
+      {
+        "title": "All nearest smaller values (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/All_nearest_smaller_values",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: balanced brackets is one of the most frequently asked stack questions. The stack operations come from the Wikipedia stack article, which I read in part, and the mention of matching parentheses as an application of the stack algorithm comes from the Wikipedia page on all nearest smaller values, which I read in full. The three failure modes, the index stack and the counter variations are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-stack-adt",
+      "wikipedia-all-nearest-smaller-values",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "brackets",
+        "title": "Balanced brackets, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Push openers",
+            "at": 2
+          },
+          {
+            "text": "Match closers",
+            "at": 5
+          },
+          {
+            "text": "A bad string",
+            "at": 8
+          },
+          {
+            "text": "Failure modes",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "i0",
+            "kind": "cube",
+            "x": -4.35,
+            "y": 2.15,
+            "label": "{",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i1",
+            "kind": "cube",
+            "x": -3.05,
+            "y": 0.85,
+            "label": "[",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i2",
+            "kind": "cube",
+            "x": -1.75,
+            "y": -0.45,
+            "label": "(",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i3",
+            "kind": "cube",
+            "x": -0.45,
+            "y": -1.75,
+            "label": ")",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i4",
+            "kind": "cube",
+            "x": 0.85,
+            "y": -3.05,
+            "label": "]",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i5",
+            "kind": "cube",
+            "x": 2.15,
+            "y": -4.35,
+            "label": "}",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "p0",
+            "kind": "cube",
+            "x": -0.7,
+            "y": 2.5,
+            "label": "{",
+            "icon": "plate",
+            "tone": "purple",
+            "from": 2
+          },
+          {
+            "id": "p1",
+            "kind": "cube",
+            "x": 0.9,
+            "y": 0.9,
+            "label": "[",
+            "icon": "plate",
+            "tone": "blue",
+            "from": 3
+          },
+          {
+            "id": "p2",
+            "kind": "cube",
+            "x": 2.5,
+            "y": -0.7,
+            "label": "(",
+            "icon": "plate",
+            "tone": "orange",
+            "from": 4
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: do the brackets match?",
+            "tag": "technique",
+            "body": [
+              "A string of brackets is balanced when every opener has a matching closer of the same kind, and they close in the right order. {[()]} is balanced. {[(])} is not, even though it has the right number of each bracket.",
+              "Counting is not enough, because the order and the types matter. That nesting is exactly what a stack is for."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "{[()]}",
+                "v": "balanced",
+                "tone": "good"
+              },
+              {
+                "k": "{[(])}",
+                "v": "not balanced",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The rule: push openers, match closers",
+            "tag": "technique",
+            "body": [
+              "Read the string left to right. When you see an opener, push it. When you see a closer, it must match the opener on top of the stack, so pop it and compare.",
+              "The most recent opener is always the one that must be closed first. That is the stack's LIFO order."
+            ],
+            "short": "The rule",
+            "set": {
+              "i0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for ch in s:",
+                "    if ch in '([{': stack.append(ch)",
+                "    else:",
+                "        if not stack or stack.pop() != pairs[ch]: return False",
+                "return not stack"
+              ],
+              "hl": [
+                1,
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Read {: push it",
+            "tag": "solution",
+            "body": [
+              "The first character is {, an opener. Push it onto the stack.",
+              "Nothing can be decided yet. The stack remembers what is still waiting to be closed."
+            ],
+            "short": "Push {",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "{"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "i1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "pill": {
+                  "text": "{ waits",
+                  "tone": "purple",
+                  "icon": "box"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i0",
+                  "p0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Read [: push it",
+            "tag": "solution",
+            "body": [
+              "Another opener. Push [ on top of {. The stack now says: [ must close before {.",
+              "This is how nesting is remembered."
+            ],
+            "short": "Push [",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "{ ["
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "i2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "pill": null
+              },
+              "p1": {
+                "pill": {
+                  "text": "[ waits",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i1",
+                  "p1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Read (: push it",
+            "tag": "solution",
+            "body": [
+              "Push ( as well. Three openers are waiting, and ( is on top.",
+              "The next closer must be ), or the string is not balanced."
+            ],
+            "short": "Push (",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "{ [ ("
+              },
+              {
+                "k": "Next closer must be",
+                "v": ")",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "i3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "pill": null
+              },
+              "p2": {
+                "pill": {
+                  "text": "( on top",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i2",
+                  "p2"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The stack holds { [ ( with ( on top. The next character is ). What happens?",
+              "options": [
+                "Pop (: it matches, so continue",
+                "Return False: nothing matches",
+                "Push )"
+              ],
+              "answer": 0,
+              "why": "The closer ) matches the opener ( on top, so we pop it and carry on."
+            }
+          },
+          {
+            "title": "Read ): it matches the top, so pop",
+            "tag": "solution",
+            "body": [
+              "The closer ) arrives. The top of the stack is (, which matches. Pop it. The stack is now { [.",
+              "A match removes one item. A mismatch would end the whole check with False."
+            ],
+            "short": "Match )",
+            "hud": [
+              {
+                "k": "Popped",
+                "v": "("
+              },
+              {
+                "k": "Stack",
+                "v": "{ [",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "i4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "( popped",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "p2",
+                  "i3"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Read ]: matches [",
+            "tag": "solution",
+            "body": [
+              "The closer ] arrives, and the top is [. They match, so pop. The stack is now {.",
+              "Each closer undoes exactly the most recent unclosed opener."
+            ],
+            "short": "Match ]",
+            "hud": [
+              {
+                "k": "Popped",
+                "v": "["
+              },
+              {
+                "k": "Stack",
+                "v": "{",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": true
+              },
+              "p1": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "[ popped",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "p1",
+                  "i4"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Read }: matches {, and the stack is empty",
+            "tag": "solution",
+            "body": [
+              "The last closer } matches the opener { on top. Pop it. The string is finished and the stack is empty, so it is balanced.",
+              "Both conditions matter: no mismatches along the way, and nothing left waiting at the end."
+            ],
+            "short": "Balanced",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "balanced",
+                "tone": "good"
+              },
+              {
+                "k": "Stack at the end",
+                "v": "empty",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "tone": "orange",
+                "pill": {
+                  "text": "reading",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "p1": {
+                "hidden": true
+              },
+              "p0": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "{ popped",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "p0",
+                  "i5"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "A bad string: ] meets a ( on top",
+            "tag": "problem",
+            "body": [
+              "Now check {[(])}. After three pushes the stack holds { [ (. The next character is ], but the top is (. They do not match, so the answer is False.",
+              "The counts are equal, so counting alone would have said yes. The stack catches the wrong order."
+            ],
+            "short": "Mismatch",
+            "hud": [
+              {
+                "k": "{[(])}",
+                "v": "not balanced",
+                "tone": "bad"
+              },
+              {
+                "k": "Reason",
+                "v": "] does not match ("
+              }
+            ],
+            "set": {
+              "p0": {
+                "hidden": false,
+                "tone": "purple",
+                "status": null,
+                "pill": null
+              },
+              "p1": {
+                "hidden": false,
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p2": {
+                "hidden": false,
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "top is (",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              },
+              "i0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "]",
+                "tone": "red",
+                "status": "hot",
+                "pill": {
+                  "text": "needs ) here",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "i4": {
+                "label": ")"
+              },
+              "i5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "p2",
+                  "i3"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "The three ways a string can fail",
+            "tag": "insight",
+            "body": [
+              "One: a closer does not match the top, as above. Two: a closer arrives when the stack is empty, as in the string ). Three: the string ends with openers still on the stack, as in ((.",
+              "Return True only when no closer failed and the stack is empty at the end."
+            ],
+            "short": "Failure modes",
+            "hud": [
+              {
+                "k": "Wrong type",
+                "v": "mismatch"
+              },
+              {
+                "k": "Extra closer",
+                "v": "stack empty"
+              },
+              {
+                "k": "Leftover openers",
+                "v": "stack not empty"
+              }
+            ],
+            "set": {
+              "p0": {
+                "hidden": true
+              },
+              "p1": {
+                "hidden": true
+              },
+              "p2": {
+                "hidden": true
+              },
+              "i3": {
+                "label": ")",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "]"
+              }
+            }
+          },
+          {
+            "title": "Variations: indexes, longest valid, fewest additions",
+            "tag": "technique",
+            "body": [
+              "Store indexes on the stack instead of characters when you must report where the first error is, or measure a length. For the longest valid run of parentheses, the index under the top marks where the run started.",
+              "To count the fewest brackets to add, you only need counters for parentheses: how many openers are open, and how many closers had nothing to close."
+            ],
+            "short": "Variations",
+            "hud": [
+              {
+                "k": "Index stack",
+                "v": "positions of openers"
+              },
+              {
+                "k": "Longest valid run",
+                "v": "i - index under top"
+              },
+              {
+                "k": "Fewest additions",
+                "v": "counters, no stack"
+              }
+            ]
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Balanced brackets is the classic stack problem. Push openers, and for each closer pop and compare. Fail on a mismatch or an empty stack, and succeed only if the stack ends empty.",
+              "O(n) time and O(n) space. Say the three failure modes before you code them."
+            ],
+            "short": "Recap",
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 push openers",
+                "2 closer: pop and compare",
+                "3 empty stack on a closer: fail",
+                "4 stack not empty at the end: fail"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Matching brackets is like putting on layers of clothes and taking them off in the reverse order.",
+      "story": "You put on a vest, then a jacket, then a raincoat. To get undressed, you must take off the raincoat first, then the jacket, then the vest. You cannot take off the jacket while the raincoat is still over it. A stack remembers what you put on last, so it can tell you what has to come off first.",
+      "maps": [
+        [
+          "Putting on a layer",
+          "Pushing an opener"
+        ],
+        [
+          "Taking off the outer layer",
+          "Popping to match a closer"
+        ],
+        [
+          "The raincoat on top",
+          "The top of the stack"
+        ],
+        [
+          "Undressed at the end",
+          "The stack is empty"
+        ]
+      ],
+      "words": [
+        [
+          "balanced",
+          "Every opener has a matching closer in the right order."
+        ],
+        [
+          "opener",
+          "A bracket that starts a pair, such as ( or [."
+        ],
+        [
+          "closer",
+          "A bracket that ends a pair, such as ) or ]."
+        ],
+        [
+          "nesting",
+          "Pairs placed inside other pairs."
+        ],
+        [
+          "mismatch",
+          "A closer that does not fit the opener on top."
+        ]
+      ]
+    }
   }
 ]
