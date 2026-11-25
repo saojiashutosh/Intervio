@@ -94946,5 +94946,811 @@
         ]
       ]
     }
+  },
+  {
+    "id": "arrays",
+    "n": 139,
+    "level": 14,
+    "week": "Core",
+    "title": "Arrays: Memory Layout and What Each Operation Costs",
+    "tagline": "See why reading by index is instant while inserting or deleting near the front is slow, and what a slice really does.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 1,
+    "explain": [
+      "An array stores its items in one unbroken block of memory. Every cell is the same size and the cells sit next to each other. The array only needs to remember where the block starts. To find item i it computes start + i x cell_size and jumps straight there. That single calculation is why an array can read or write any index in O(1) time, whether the index is 3 or 3 million.",
+      "## How Python lists relate to arrays",
+      "The Python FAQ states that CPython lists are variable-length arrays, not linked lists. A list keeps a contiguous array of references to its items, plus a count. Because every reference has the same size, indexing works exactly as described above. The items themselves can be any type and live elsewhere in memory.",
+      "## What each operation costs",
+      "The official time-complexity table gives the numbers for a Python list of n items.",
+      "- Get or set an item by index: O(1).\n- Append at the end: O(1) amortized. The next lesson explains the word amortized.\n- Insert at index k or delete at index k: O(n - k), because everything after k shifts.\n- Pop from the end: O(1). Pop from the front: O(n).\n- Slice a[i:j]: O(j - i), because it copies those cells into a new list.\n- x in a: O(n), because an unsorted array has to be checked cell by cell.\n- Sort: O(n log n).",
+      "## Why shifting is the expensive part",
+      "Inserting 25 at index 2 means the items at indexes 2, 3, 4 and onward each move one cell right. You must start from the last item and work backwards, or you overwrite data you still need. Deleting works the other way: close the gap by moving items left, starting from the item just after the hole. Inserting or deleting at the front is the worst case, since every item moves.",
+      "> A worked example: rotate an array by k places in place. Reverse the whole array, then reverse the first k items, then reverse the rest. Each reversal swaps pairs with two indexes, so the whole thing is O(n) time and O(1) extra space.",
+      "## Strings are arrays of characters",
+      "A string behaves like an array of characters: s[k] is O(1) and a slice costs O(j - i). The big difference is that Python strings are immutable. Changing one letter means building a whole new string, and building a string with += in a loop is quadratic in the worst case. Collect pieces in a list and join them once.",
+      "## What interviewers look for",
+      "Most array questions are about avoiding unnecessary shifting. Prefer writing into a new list or using two indexes over inserting in the middle. State the cost of every operation you use, and watch for hidden copies from slicing inside a loop.",
+      "## How to talk through it",
+      "Say what the input size is, whether you may change the input, and what extra space you are allowed. Then name the cost of the operations you choose, and test the empty array, one item and the full array."
+    ],
+    "keyPoints": [
+      "An array is one block of equal-size cells, so a[i] is one calculation: O(1).",
+      "Insert or delete at index k shifts every later item: O(n - k). The front is the worst case.",
+      "Append and pop at the end are O(1). Slices copy: O(j - i). Searching unsorted data is O(n).",
+      "A CPython list is a variable-length array of references, not a linked list.",
+      "Strings index like arrays but cannot be changed in place. Build with join, not +=."
+    ],
+    "sql": [
+      {
+        "title": "A fixed-capacity array that counts its shifts",
+        "lang": "py",
+        "code": "class FixedArray:\n    def __init__(self, capacity):\n        self.cells = [None] * capacity\n        self.size = 0\n        self.moves = 0\n\n    def append(self, x):\n        if self.size == len(self.cells):\n            raise OverflowError(\"full\")\n        self.cells[self.size] = x\n        self.size += 1\n\n    def insert(self, index, x):\n        if self.size == len(self.cells):\n            raise OverflowError(\"full\")\n        for i in range(self.size, index, -1):      # shift right, last item first\n            self.cells[i] = self.cells[i - 1]\n            self.moves += 1\n        self.cells[index] = x\n        self.size += 1\n\n    def delete(self, index):\n        for i in range(index, self.size - 1):      # shift left, first item first\n            self.cells[i] = self.cells[i + 1]\n            self.moves += 1\n        self.size -= 1\n        self.cells[self.size] = None\n\n    def items(self):\n        return self.cells[:self.size]\n\na = FixedArray(7)\nfor x in (10, 20, 30, 40, 50):\n    a.append(x)\na.append(60)\na.insert(2, 25)\nassert a.items() == [10, 20, 25, 30, 40, 50, 60] and a.moves == 4\na.delete(0)\nassert a.items() == [20, 25, 30, 40, 50, 60] and a.moves == 4 + 6"
+      },
+      {
+        "title": "Slices copy, strings do not change in place",
+        "lang": "py",
+        "code": "a = [1, 2, 3, 4]\nb = a[1:3]\nb[0] = 99\nassert a == [1, 2, 3, 4]            # the slice is a separate list\nassert b == [99, 3]\n\ns = \"cat\"\ntry:\n    s[0] = \"b\"\nexcept TypeError:\n    pass\nelse:\n    raise AssertionError(\"strings are immutable\")\nassert \"b\" + s[1:] == \"bat\"          # build a new string instead\n\nparts = []\nfor ch in \"hello\":\n    parts.append(ch.upper())\nassert \"\".join(parts) == \"HELLO\"     # one join, not repeated +="
+      },
+      {
+        "title": "Rotate in place with three reversals",
+        "lang": "py",
+        "code": "def reverse(a, i, j):\n    while i < j:\n        a[i], a[j] = a[j], a[i]\n        i, j = i + 1, j - 1\n\ndef rotate_right(a, k):\n    n = len(a)\n    if n == 0:\n        return a\n    k %= n\n    reverse(a, 0, n - 1)\n    reverse(a, 0, k - 1)\n    reverse(a, k, n - 1)\n    return a\n\nassert rotate_right([1, 2, 3, 4, 5, 6, 7], 3) == [5, 6, 7, 1, 2, 3, 4]\nassert rotate_right([1, 2], 5) == [2, 1]\nassert rotate_right([], 3) == []"
+      }
+    ],
+    "django": {},
+    "exercise": "Build the FixedArray from the first sample without using list.insert or list.pop. Add a method that returns the number of items moved by each call, and print the move counts for appending 1,000 items, inserting 1,000 items at the front and deleting them from the front. Then implement rotate_right and test k = 0, k = n and k > n.",
+    "pitfalls": [
+      "Using list.insert(0, x) or list.pop(0) in a loop. Each call is O(n), so the loop is O(n squared). Use collections.deque.",
+      "Shifting items from the front when inserting, which overwrites data you still need.",
+      "Forgetting that a slice is a copy. Slicing inside a loop adds a hidden O(n) per round.",
+      "Building a string with += in a loop. Collect the pieces and join once.",
+      "Off-by-one on the last index. An array of n items has indexes 0 to n - 1."
+    ],
+    "interview": [
+      {
+        "q": "Why is reading an array element O(1)?",
+        "a": "All cells have the same size and sit in one block, so the address of a[i] is start + i x cell_size. The computer calculates it and jumps there, no matter how large i is."
+      },
+      {
+        "q": "Why is inserting at the front of an array O(n)?",
+        "a": "Every existing item has to move one cell to the right to open the gap, and there are n of them. Inserting at the end moves nothing."
+      },
+      {
+        "q": "Is a Python list a linked list?",
+        "a": "No. CPython lists are variable-length arrays holding references. Indexing is O(1) and inserting or deleting near the front is O(n)."
+      },
+      {
+        "q": "How do you rotate an array by k places in O(1) extra space?",
+        "a": "Reverse the whole array, then reverse the first k items, then reverse the remaining items. Each reversal is a two-index swap loop, so the total is O(n) time."
+      }
+    ],
+    "references": [
+      {
+        "title": "How are lists implemented in CPython? (Python docs FAQ)",
+        "url": "https://docs.python.org/3/faq/design.html#how-are-lists-implemented-in-cpython",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: the big-company prep pages list arrays and strings among the core structures. The CPython list layout and the operation costs come from the two Python documentation pages cited, which I read. The rotation trick and the interview advice are my judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-faq-design-lists",
+      "py-time-complexity",
+      "amazon-topics",
+      "ms-tech-interview"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "arrays",
+        "title": "Arrays and their costs, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "write or shift"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Memory layout",
+            "at": 0
+          },
+          {
+            "text": "Index is O(1)",
+            "at": 1
+          },
+          {
+            "text": "Append",
+            "at": 2
+          },
+          {
+            "text": "Insert and delete",
+            "at": 3
+          },
+          {
+            "text": "All the costs",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -2.0,
+            "y": 2.0,
+            "label": "20",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -1.0,
+            "y": 1.0,
+            "label": "30",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "40",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": 1.0,
+            "y": -1.0,
+            "label": "50",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 2.0,
+            "y": -2.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "One block of memory, cells side by side",
+            "tag": "technique",
+            "body": [
+              "An array stores its items in one unbroken block of memory. Each cell has the same size, and the cells sit next to each other with no gaps.",
+              "The array remembers only where the block starts. Every other cell is found by arithmetic from that start."
+            ],
+            "short": "Block",
+            "hud": [
+              {
+                "k": "Layout",
+                "v": "one contiguous block"
+              },
+              {
+                "k": "Cell size",
+                "v": "same for every cell"
+              }
+            ],
+            "set": {
+              "a0": {
+                "pill": {
+                  "text": "start address",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              }
+            },
+            "card": {
+              "title": "Idea",
+              "lines": [
+                "address of a[i] = start + i * cell_size",
+                "no searching, no pointers to follow"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Reading by index is one calculation",
+            "tag": "technique",
+            "body": [
+              "To read a[3] the computer does start + 3 x cell_size and goes straight there. It never walks past the first three cells.",
+              "That is why reading or writing by index is O(1), and the same for index 3 or index 3 million. The CPython documentation says the cost is independent of the list size and the index."
+            ],
+            "short": "Index",
+            "hud": [
+              {
+                "k": "a[i] read",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Steps taken",
+                "v": "1 calculation",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a3": {
+                "status": "live",
+                "tone": "orange",
+                "pill": {
+                  "text": "a[3]",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "a3"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "The array has 1,000,000 cells. About how many cells does the computer skip over to read a[999999]?",
+              "options": [
+                "None: it jumps straight there",
+                "999,999 cells",
+                "About 20 cells"
+              ],
+              "answer": 0,
+              "why": "The address is start + 999999 x cell_size, one calculation. Nothing is walked over."
+            }
+          },
+          {
+            "title": "Append at the end: write into the free slot",
+            "tag": "solution",
+            "body": [
+              "If there is a free slot after the last item, appending just writes there. Nothing else moves, so the cost is O(1).",
+              "The two grey cells at the end are spare capacity. Here we use the first one for 60."
+            ],
+            "short": "Append",
+            "hud": [
+              {
+                "k": "append",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Items moved",
+                "v": "0",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "10",
+                "tone": "blue"
+              },
+              "a1": {
+                "label": "20",
+                "tone": "blue"
+              },
+              "a2": {
+                "label": "30",
+                "tone": "blue"
+              },
+              "a3": {
+                "label": "40",
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "label": "50",
+                "tone": "blue"
+              },
+              "a5": {
+                "label": "60",
+                "tone": "green",
+                "pill": {
+                  "text": "new",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "a6": {
+                "label": "·",
+                "tone": "grey"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a4",
+                  "a5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert in the middle: everything after it shifts",
+            "tag": "problem",
+            "body": [
+              "To put 25 at index 2 you must first open a gap. Every item from index 2 onward moves one cell to the right, starting with the last, so nothing is overwritten.",
+              "That is up to n moves, so insert in the middle is O(n). Inserting at the front is the worst case."
+            ],
+            "short": "Insert",
+            "hud": [
+              {
+                "k": "Items moved",
+                "v": "4 of 7",
+                "tone": "warn"
+              },
+              {
+                "k": "insert at index i",
+                "v": "O(n - i)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "10",
+                "tone": "blue"
+              },
+              "a1": {
+                "label": "20",
+                "tone": "blue"
+              },
+              "a2": {
+                "label": "25",
+                "tone": "orange",
+                "pill": {
+                  "text": "25 goes here",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              },
+              "a3": {
+                "label": "30",
+                "tone": "blue"
+              },
+              "a4": {
+                "label": "40",
+                "tone": "blue"
+              },
+              "a5": {
+                "label": "50",
+                "tone": "blue",
+                "pill": null
+              },
+              "a6": {
+                "label": "60",
+                "tone": "blue"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a5",
+                  "a6"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "a4",
+                  "a5"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              },
+              {
+                "path": [
+                  "a3",
+                  "a4"
+                ],
+                "kind": "write",
+                "delay": 0.8
+              },
+              {
+                "path": [
+                  "a2",
+                  "a3"
+                ],
+                "kind": "write",
+                "delay": 1.2
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "items.insert(2, 25)   # shifts 4 items",
+                "items.insert(0, x)    # shifts all of them"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "callout": {
+              "kind": "warn",
+              "text": "Always shift from the end towards the gap. Shifting from the front overwrites items you still need."
+            }
+          },
+          {
+            "title": "Delete from the front: close the gap",
+            "tag": "problem",
+            "body": [
+              "Removing the first item leaves a hole at index 0. Every other item moves one cell to the left to close it.",
+              "Deleting at index i costs O(n - i). Deleting the last item costs O(1), because nothing needs to move."
+            ],
+            "short": "Delete",
+            "hud": [
+              {
+                "k": "Items moved",
+                "v": "6",
+                "tone": "bad"
+              },
+              {
+                "k": "delete at index 0",
+                "v": "O(n)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "20",
+                "tone": "orange",
+                "pill": {
+                  "text": "was 10",
+                  "tone": "orange",
+                  "icon": "x"
+                }
+              },
+              "a1": {
+                "label": "25",
+                "tone": "blue"
+              },
+              "a2": {
+                "label": "30",
+                "tone": "blue",
+                "pill": null
+              },
+              "a3": {
+                "label": "40",
+                "tone": "blue"
+              },
+              "a4": {
+                "label": "50",
+                "tone": "blue"
+              },
+              "a5": {
+                "label": "60",
+                "tone": "blue"
+              },
+              "a6": {
+                "label": "·",
+                "tone": "grey"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a1",
+                  "a0"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "a2",
+                  "a1"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "a3",
+                  "a2"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              },
+              {
+                "path": [
+                  "a4",
+                  "a3"
+                ],
+                "kind": "write",
+                "delay": 0.9
+              },
+              {
+                "path": [
+                  "a5",
+                  "a4"
+                ],
+                "kind": "write",
+                "delay": 1.2
+              },
+              {
+                "path": [
+                  "a6",
+                  "a5"
+                ],
+                "kind": "write",
+                "delay": 1.5
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "items.pop(0)   # O(n): moves everything",
+                "items.pop()    # O(1)"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Slices and searches walk the cells",
+            "tag": "technique",
+            "body": [
+              "Reading a slice a[i:j] copies j - i cells, so it costs O(j - i). The new list is separate from the old one.",
+              "Asking whether a value is in the array has no shortcut for unsorted data. The computer checks cell after cell, which is O(n)."
+            ],
+            "short": "Walk",
+            "hud": [
+              {
+                "k": "x in items",
+                "v": "O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "items[i:j]",
+                "v": "O(j - i)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null
+              },
+              "a1": {
+                "label": "25",
+                "tone": "blue"
+              },
+              "a2": {
+                "label": "30",
+                "tone": "blue"
+              },
+              "a3": {
+                "label": "40",
+                "tone": "orange",
+                "status": "live",
+                "pill": {
+                  "text": "found 40",
+                  "tone": "orange",
+                  "icon": "search"
+                }
+              },
+              "a4": {
+                "label": "50",
+                "tone": "blue"
+              },
+              "a5": {
+                "label": "60",
+                "tone": "blue"
+              },
+              "a6": {
+                "label": "·",
+                "tone": "grey"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "a1",
+                  "a2",
+                  "a3"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "What each operation costs",
+            "tag": "insight",
+            "body": [
+              "Read and write by index: O(1). Append when there is room: O(1). Insert or delete at the front or middle: O(n). Search an unsorted array: O(n).",
+              "Strings follow the same rules. s[k] is O(1), and a slice copies. Python strings cannot be changed in place, so changing one letter builds a new string."
+            ],
+            "short": "Costs",
+            "hud": [
+              {
+                "k": "Read / write",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Append at end",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Insert / delete early",
+                "v": "O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Search unsorted",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "20",
+                "tone": "blue"
+              },
+              "a1": {
+                "label": "25",
+                "tone": "blue"
+              },
+              "a2": {
+                "label": "30",
+                "tone": "blue"
+              },
+              "a3": {
+                "label": "40",
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "label": "50",
+                "tone": "blue"
+              },
+              "a5": {
+                "label": "60",
+                "tone": "blue"
+              },
+              "a6": {
+                "label": "·",
+                "tone": "grey"
+              }
+            },
+            "card": {
+              "title": "Cheat sheet",
+              "lines": [
+                "a[i]            O(1)",
+                "a.append(x)     O(1)",
+                "a.insert(0, x)  O(n)",
+                "a.pop(0)        O(n)",
+                "x in a          O(n)"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "An array trades flexibility for speed: jump to any index instantly, pay to move items around. If you insert and delete at the front a lot, use a deque. If you search a lot, sort first or use a set.",
+              "Next lesson: what happens when the array is full."
+            ],
+            "short": "Recap",
+            "hud": [
+              {
+                "k": "Strength",
+                "v": "random access",
+                "tone": "good"
+              },
+              {
+                "k": "Weakness",
+                "v": "shifting items",
+                "tone": "warn"
+              }
+            ],
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 index = O(1)",
+                "2 end append = O(1)",
+                "3 front or middle = O(n)",
+                "4 membership = O(n)",
+                "5 slices copy"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "An array is a row of equal lockers with numbers, so you can open any locker straight away.",
+      "story": "Picture a long row of lockers, all the same size, numbered from zero. If you know the number, you walk straight to it without checking the others. But if you want to squeeze a new locker into the middle of the row, every locker after it must slide along by one place. Adding at the very end is easy, because nothing has to move.",
+      "maps": [
+        [
+          "A row of lockers",
+          "The array"
+        ],
+        [
+          "The locker number",
+          "The index"
+        ],
+        [
+          "Walking straight to a locker",
+          "Reading by index"
+        ],
+        [
+          "Sliding all lockers along",
+          "Insert or delete in the middle"
+        ]
+      ],
+      "words": [
+        [
+          "array",
+          "A row of equal-size cells stored one after another in memory."
+        ],
+        [
+          "index",
+          "The number of a cell, starting from zero."
+        ],
+        [
+          "contiguous",
+          "Stored side by side with no gaps."
+        ],
+        [
+          "shift",
+          "Move items one cell to make room or close a gap."
+        ],
+        [
+          "slice",
+          "A copy of a part of an array."
+        ]
+      ]
+    }
   }
 ]
