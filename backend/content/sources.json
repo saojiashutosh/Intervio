@@ -2069,6 +2069,78 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "LRU discards the least recently used items first and must track what was used and when; also FIFO, MRU, LFU, random and the pseudo-LRU used by CPUs; LRU is a family including 2Q and LRU/K."
+    },
+    {
+      "key": "wikipedia-stack-adt",
+      "title": "Stack (abstract data type) (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Stack_(abstract_data_type)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Push and pop, LIFO order, peek; underflow on pop or peek of an empty stack and overflow on a full bounded stack; array and linked-list implementations; dynamic-array end operations are amortized O(1); the call stack."
+    },
+    {
+      "key": "wikipedia-queue-adt",
+      "title": "Queue (abstract data type) (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Queue_(abstract_data_type)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Enqueue at the rear, dequeue from the front, FIFO; insert and delete O(1); overflow and underflow; circular arrays and linked lists; the two-list amortized queue; uses such as buffering and breadth-first search."
+    },
+    {
+      "key": "wikipedia-circular-buffer",
+      "title": "Circular buffer (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Circular_buffer",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A fixed-size buffer treated as connected end to end; start and end indexes; start == end cannot tell full from empty, fixed by keeping one slot free or by keeping a count; overwrite or error when full; all queue operations O(1)."
+    },
+    {
+      "key": "wikipedia-deque",
+      "title": "Double-ended queue (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Double-ended_queue",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Insertion and deletion at both ends; input- and output-restricted variants; implemented by a doubly linked list or a modified dynamic array; random access is O(1) in an array deque and O(n) in a linked one; Python's deque is a doubly linked list of fixed-length subarrays."
+    },
+    {
+      "key": "wikipedia-all-nearest-smaller-values",
+      "title": "All nearest smaller values (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/All_nearest_smaller_values",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The stack algorithm pops while the top is not smaller than the new value; it is linear because each inner-loop pass removes an item pushed earlier; applications include matching parentheses and building a Cartesian tree."
+    },
+    {
+      "key": "py-tutorial-lists-stacks",
+      "title": "Using lists as stacks and queues (Python tutorial)",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "append and pop on a list make a stack; inserts and pops at the front of a list are slow; use collections.deque for a queue."
+    },
+    {
+      "key": "py-deque",
+      "title": "collections.deque (Python docs)",
+      "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Thread-safe appends and pops from either side with O(1) performance; maxlen discards from the opposite end when full; indexing is O(1) at the ends and O(n) in the middle; rotate, extendleft and the moving average recipe."
+    },
+    {
+      "key": "py-queue-module",
+      "title": "queue: a synchronized queue class (Python docs)",
+      "url": "https://docs.python.org/3/library/queue.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Queue, LifoQueue and PriorityQueue; maxsize blocks put when full; get blocks when empty; Full and Empty exceptions; task_done and join; the classes are thread safe."
     }
   ],
   "levels": [
