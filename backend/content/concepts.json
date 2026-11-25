@@ -93050,7 +93050,7 @@
     "tagline": "See how a variable points to an object, why two names can share one list, and how to avoid the copy bugs interviews love.",
     "viz": "stage",
     "hours": 3,
-    "priority": 1,
+    "priority": 2,
     "explain": [
       "When you write a = [1, 2, 3], Python builds a list object in memory and ties the name a to it. The name is not the box that holds the data. It is a label that says where the box is. That label is called a reference, and in other languages the same idea is called a pointer. Almost every data structure in the coming lessons, from linked lists to trees to graphs, is made of objects that hold references to other objects, so this picture comes first.",
       "## Identity, type and value",
@@ -94956,7 +94956,7 @@
     "tagline": "See why reading by index is instant while inserting or deleting near the front is slow, and what a slice really does.",
     "viz": "stage",
     "hours": 3,
-    "priority": 1,
+    "priority": 2,
     "explain": [
       "An array stores its items in one unbroken block of memory. Every cell is the same size and the cells sit next to each other. The array only needs to remember where the block starts. To find item i it computes start + i x cell_size and jumps straight there. That single calculation is why an array can read or write any index in O(1) time, whether the index is 3 or 3 million.",
       "## How Python lists relate to arrays",
