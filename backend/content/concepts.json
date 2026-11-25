@@ -97512,5 +97512,1041 @@
         ]
       ]
     }
+  },
+  {
+    "id": "sliding-window-strings",
+    "n": 142,
+    "level": 14,
+    "week": "Core",
+    "title": "Sliding Window on Strings: Longest Unique Substring",
+    "tagline": "Keep two pointers and a small record so a question about every substring becomes one pass of O(n).",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A sliding window is a pair of pointers, L and R, that mark a block of neighbouring items in an array or string, plus a small summary of what is inside the block. R moves right to take in a new item. L moves right to drop an old item. Because neither pointer ever moves backwards, the whole scan is O(n), where checking every block separately would be O(n squared) or worse.",
+      "## When to reach for it",
+      "Look for a question about a contiguous block that must be longest, shortest or counted, together with a rule the block must satisfy. Longest substring without repeats, longest run with at most k changes, shortest block with a sum of at least a target and smallest substring that contains every needed letter are all window problems.",
+      "## The longest unique substring",
+      "For abcabcbb, grow R while each new letter is not in the window. When the new letter is already inside, move L right until the repeat is gone. After every step of R, compare the window length with the best seen so far. For this string the answer is 3, from abc. We store a set of the letters inside, or better, a dict from each letter to its latest index, so L can jump straight past the earlier copy.",
+      "## Why it is O(n)",
+      "R visits each position once. L also visits each position at most once. So there are at most 2n pointer moves, and each move does O(1) work with a set or dict. This is the key sentence to say in an interview: each element enters the window once and leaves at most once.",
+      "## Two shapes of window",
+      "- Longest window that is valid: shrink only when the window becomes invalid, and record the length after fixing it.\n- Shortest window that is valid: grow until the window is valid, then shrink while it stays valid, recording the length each time before you shrink.",
+      "> A worked example: smallest substring that contains all letters of a pattern. Keep a count of how many of each needed letter you still lack. Move R until nothing is lacking, then move L as far as possible while nothing is lacking, and record the length. Repeat until R reaches the end.",
+      "## Fixed-size windows",
+      "If the size k is fixed, the window slides one step at a time: add the entering item and remove the leaving one. A running sum then updates in O(1) per step. Numbers that can be negative break the shrink-when-too-big rule for sum problems, so use prefix sums with a dict instead.",
+      "## Mistakes to avoid",
+      "Moving L only one step when several repeats must go. Using a dict of last positions without checking that the stored position is inside the window. Forgetting to update the best length after the last move. Slicing the string inside the loop, which copies and turns the scan into O(n squared).",
+      "## How to talk through it",
+      "State the rule that makes a window valid, what you store about the window, and when L moves. Run a short example by hand, then test the empty string, one character and a string where every letter is the same."
+    ],
+    "keyPoints": [
+      "A window is pointers L and R plus a summary (a set, a dict of counts, or a running sum).",
+      "R moves forward every round. L only moves forward. At most 2n moves means O(n).",
+      "Longest valid window: shrink only when invalid. Shortest valid window: shrink while valid.",
+      "A dict of last positions lets L jump past the earlier copy of a repeated letter.",
+      "Negative numbers break shrink-when-too-big for sums. Use prefix sums and a dict then."
+    ],
+    "sql": [
+      {
+        "title": "Longest substring without repeating characters",
+        "lang": "py",
+        "code": "def longest_unique(s):\n    last = {}                       # letter -> index of its latest copy\n    left = best = 0\n    for right, ch in enumerate(s):\n        if ch in last and last[ch] >= left:\n            left = last[ch] + 1     # jump past the earlier copy\n        last[ch] = right\n        best = max(best, right - left + 1)\n    return best\n\nassert longest_unique(\"abcabcbb\") == 3\nassert longest_unique(\"bbbbb\") == 1\nassert longest_unique(\"pwwkew\") == 3\nassert longest_unique(\"\") == 0\nassert longest_unique(\"abba\") == 2"
+      },
+      {
+        "title": "Longest substring with at most k distinct letters",
+        "lang": "py",
+        "code": "from collections import defaultdict\n\ndef longest_k_distinct(s, k):\n    counts = defaultdict(int)\n    left = best = 0\n    for right, ch in enumerate(s):\n        counts[ch] += 1\n        while len(counts) > k:\n            counts[s[left]] -= 1\n            if counts[s[left]] == 0:\n                del counts[s[left]]\n            left += 1\n        best = max(best, right - left + 1)\n    return best\n\nassert longest_k_distinct(\"eceba\", 2) == 3\nassert longest_k_distinct(\"aa\", 1) == 2\nassert longest_k_distinct(\"abc\", 0) == 0"
+      },
+      {
+        "title": "Smallest window that contains every letter of a pattern",
+        "lang": "py",
+        "code": "from collections import Counter\n\ndef min_window(s, t):\n    need = Counter(t)\n    missing = len(t)\n    left = 0\n    best = (float(\"inf\"), 0, 0)\n    for right, ch in enumerate(s):\n        if need[ch] > 0:\n            missing -= 1\n        need[ch] -= 1\n        if missing == 0:\n            while need[s[left]] < 0:        # shrink while the window stays valid\n                need[s[left]] += 1\n                left += 1\n            if right - left + 1 < best[0]:\n                best = (right - left + 1, left, right + 1)\n            need[s[left]] += 1              # drop one needed letter, so the window is invalid\n            missing += 1\n            left += 1\n    return \"\" if best[0] == float(\"inf\") else s[best[1]:best[2]]\n\nassert min_window(\"ADOBECODEBANC\", \"ABC\") == \"BANC\"\nassert min_window(\"a\", \"a\") == \"a\"\nassert min_window(\"a\", \"aa\") == \"\""
+      }
+    ],
+    "django": {},
+    "exercise": "Implement longest_unique, longest_k_distinct and min_window. For each one, write down in a comment what makes a window valid, what you store, and when L moves. Then write max_sum_window(a, k), the largest sum of any k neighbouring numbers, using a running sum that adds one number and removes one per step. Check it with negative numbers.",
+    "pitfalls": [
+      "With a dict of last positions, forgetting the check last[ch] >= left. An old position outside the window must be ignored.",
+      "Shrinking only once when a repeat may need several steps. Use a while loop, or the dict jump.",
+      "Updating the best length before fixing the window, so you record an invalid window.",
+      "Using a sliding window on sum problems with negative numbers. Shrinking no longer lowers the sum. Use prefix sums.",
+      "Slicing the string inside the loop. Every slice copies, so the scan becomes O(n squared)."
+    ],
+    "interview": [
+      {
+        "q": "How does the sliding window find the longest substring without repeats in O(n)?",
+        "a": "R moves forward once per letter. When the new letter is already inside the window, L jumps to just after its earlier copy. Each letter enters once and leaves at most once, so there are at most 2n pointer moves."
+      },
+      {
+        "q": "When can you not use a sliding window?",
+        "a": "When shrinking the window does not move the answer in a known direction. A sum problem with negative numbers is the classic case, because dropping an item might raise the sum. Use prefix sums with a hash map instead."
+      },
+      {
+        "q": "What is the difference between a longest-valid and a shortest-valid window?",
+        "a": "For the longest window you shrink only when the window becomes invalid. For the shortest window you grow until valid, then shrink while it is still valid and record the length at each valid state."
+      },
+      {
+        "q": "What do you store inside the window?",
+        "a": "Whatever lets you test validity in O(1): a set for uniqueness, a dict of counts for at most k distinct letters or letter coverage, or a running sum for numeric targets."
+      }
+    ],
+    "references": [
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "collections: Counter and defaultdict (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: substring and window questions appear across the coding rounds described by the big-company prep pages. The costs of string and dict operations come from the Python documentation pages cited, which I read. The window framing, the two shapes and the walkthrough are my judgment, and the algorithms are standard computer science. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-time-complexity",
+      "py-collections",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "slidewin",
+        "title": "Sliding window on a string, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The window",
+            "at": 1
+          },
+          {
+            "text": "Grow",
+            "at": 2
+          },
+          {
+            "text": "Shrink",
+            "at": 3
+          },
+          {
+            "text": "Answer",
+            "at": 7
+          },
+          {
+            "text": "Variations",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -3.5,
+            "y": 3.5,
+            "label": "a",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -2.5,
+            "y": 2.5,
+            "label": "b",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": -1.5,
+            "y": 1.5,
+            "label": "c",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": -0.5,
+            "y": 0.5,
+            "label": "a",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s4",
+            "kind": "cube",
+            "x": 0.5,
+            "y": -0.5,
+            "label": "b",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s5",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -1.5,
+            "label": "c",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s6",
+            "kind": "cube",
+            "x": 2.5,
+            "y": -2.5,
+            "label": "b",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s7",
+            "kind": "cube",
+            "x": 3.5,
+            "y": -3.5,
+            "label": "b",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The question: longest stretch with no repeated letter",
+            "tag": "technique",
+            "body": [
+              "Find the longest substring of abcabcbb in which no letter appears twice. A substring is a block of neighbouring letters.",
+              "Checking every substring would take O(n squared) starts, and checking each for repeats makes it worse. A sliding window does it in one pass."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "String",
+                "v": "abcabcbb"
+              },
+              {
+                "k": "Brute force",
+                "v": "O(n cubed) or O(n squared)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "blue"
+              },
+              "s1": {
+                "tone": "blue"
+              },
+              "s2": {
+                "tone": "blue"
+              },
+              "s3": {
+                "tone": "blue"
+              },
+              "s4": {
+                "tone": "blue"
+              },
+              "s5": {
+                "tone": "blue"
+              },
+              "s6": {
+                "tone": "blue"
+              },
+              "s7": {
+                "tone": "blue"
+              }
+            }
+          },
+          {
+            "title": "A window is two pointers and a record of what is inside",
+            "tag": "technique",
+            "body": [
+              "L is the left end and R is the right end of the window. The window holds the letters from L to R. We also keep the set of letters currently inside, so we can spot a repeat in O(1).",
+              "Rule: move R right to take in a new letter. If that creates a repeat, move L right until the repeat is gone."
+            ],
+            "short": "The window",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "a"
+              },
+              {
+                "k": "Best length",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "green",
+                "pill": {
+                  "text": "L = R",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s1": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "seen = set()",
+                "left = best = 0",
+                "for right, ch in enumerate(s):",
+                "    while ch in seen: ... shrink ..."
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Grow the window while every letter is new",
+            "tag": "solution",
+            "body": [
+              "R moves to b, then c. Both are new, so the window grows to abc. This is the longest so far, with length 3.",
+              "Growing costs nothing extra: each step adds one letter to the set."
+            ],
+            "short": "Grow",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "abc",
+                "tone": "good"
+              },
+              {
+                "k": "Best length",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s1": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": {
+                  "text": "R",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s0",
+                  "s1",
+                  "s2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "A repeat: shrink from the left until it is gone",
+            "tag": "problem",
+            "body": [
+              "R moves to the second a. The window would hold a twice, so we must shrink. L moves right, dropping the first a. Now the window is bca.",
+              "We never need to re-check the letters that remain, because they were already unique."
+            ],
+            "short": "Shrink",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "bca"
+              },
+              {
+                "k": "Best length",
+                "v": "3"
+              },
+              {
+                "k": "L moved",
+                "v": "1 step"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "grey",
+                "pill": {
+                  "text": "dropped",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "s1": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s3": {
+                "tone": "red",
+                "pill": {
+                  "text": "repeat",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s3",
+                  "s0"
+                ],
+                "kind": "fail"
+              }
+            ],
+            "predict": {
+              "question": "The window is bca and R moves to the next letter, b. Where must L move?",
+              "options": [
+                "It stays at b",
+                "To just after the old b, so the window becomes cab",
+                "Back to the start"
+              ],
+              "answer": 1,
+              "why": "The old b is at index 1, so L moves to index 2, just past it. The window then reads cab."
+            }
+          },
+          {
+            "title": "Another repeat, another shrink",
+            "tag": "problem",
+            "body": [
+              "The new letter b matches the b inside the window, so L drops it. The window becomes cab, still length 3.",
+              "Each letter has entered the window once and will leave at most once."
+            ],
+            "short": "Shrink again",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "cab"
+              },
+              {
+                "k": "Best length",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "tone": "grey",
+                "pill": {
+                  "text": "dropped",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s4": {
+                "tone": "red",
+                "pill": {
+                  "text": "repeat",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s4",
+                  "s1"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Keep sliding along the string",
+            "tag": "technique",
+            "body": [
+              "R takes the next c, which repeats the c at L, so L moves one step and the window is abc again. The best length does not change.",
+              "The window now moves like a caterpillar: the head moves forward, and the tail catches up only when it has to."
+            ],
+            "short": "Slide",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "abc"
+              },
+              {
+                "k": "Best length",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "tone": "grey",
+                "pill": {
+                  "text": "dropped",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "s3": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s4": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s5": {
+                "tone": "red",
+                "pill": {
+                  "text": "repeat",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s5",
+                  "s2"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Repeated letters next to each other leave a short window",
+            "tag": "problem",
+            "body": [
+              "Next R takes b. The previous b is inside, so L must jump past it, and the window shrinks to cb. Then the final b shrinks it to b alone.",
+              "The window can get shorter, but the best length we recorded stays at 3."
+            ],
+            "short": "Shrink to one",
+            "hud": [
+              {
+                "k": "Window",
+                "v": "b"
+              },
+              {
+                "k": "Best length",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "green",
+                "pill": {
+                  "text": "L = R",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s7",
+                  "s6"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Answer: the longest unique substring has length 3",
+            "tag": "insight",
+            "body": [
+              "R has reached the end. The best window we ever saw was abc, with length 3.",
+              "We read each letter once with R and dropped it at most once with L. That is at most 2n moves, so the time is O(n)."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Best length",
+                "v": "3",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(alphabet)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "green",
+                "pill": {
+                  "text": "abc",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": "ok"
+              },
+              "s1": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": {
+                  "text": "R",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def longest_unique(s):",
+                "    last = {}",
+                "    left = best = 0",
+                "    for r, ch in enumerate(s):",
+                "        if ch in last and last[ch] >= left: left = last[ch] + 1",
+                "        last[ch] = r; best = max(best, r - left + 1)",
+                "    return best"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Other windows: at most k distinct, minimum window",
+            "tag": "technique",
+            "body": [
+              "The same machine solves other problems by changing what is stored and when to shrink. At most k distinct letters: keep a count per letter and shrink while the number of distinct letters exceeds k.",
+              "Smallest window that holds every needed letter: grow until the window is valid, then shrink as far as it stays valid, recording the length each time."
+            ],
+            "short": "Variations",
+            "hud": [
+              {
+                "k": "Grow R",
+                "v": "until the window is valid"
+              },
+              {
+                "k": "Shrink L",
+                "v": "while it stays valid"
+              }
+            ],
+            "set": {
+              "s0": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s1": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": {
+                  "text": "R",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Which loop?",
+              "lines": [
+                "longest valid: shrink only when invalid",
+                "shortest valid: shrink while valid",
+                "keep counts, not just a set"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A sliding window is a pair of pointers plus a summary of what lies between them. R moves forward every round, and L only moves forward. Each moves at most n times, so the total is O(n).",
+              "Say what the window must satisfy, what you store about it, and when you shrink."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "tone": "green",
+                "pill": {
+                  "text": "L",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s1": {
+                "tone": "green",
+                "pill": null,
+                "status": "live"
+              },
+              "s2": {
+                "tone": "green",
+                "pill": {
+                  "text": "R",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 what makes a window valid?",
+                "2 what do I store about it?",
+                "3 when do I move L?",
+                "4 empty string and all-equal string"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A sliding window is like a caterpillar crawling along a line of letters.",
+      "story": "A caterpillar crawls along a row of leaves. Its head eats ahead to a new leaf. If it meets a leaf of a kind it already holds, its tail lets go of leaves behind it until that kind is gone. The caterpillar never walks backwards, and every leaf is picked up once and dropped once. The longest the caterpillar ever got is your answer.",
+      "maps": [
+        [
+          "The caterpillar",
+          "The window"
+        ],
+        [
+          "Its head moving on",
+          "The right pointer R"
+        ],
+        [
+          "Its tail letting go",
+          "The left pointer L"
+        ],
+        [
+          "The longest it ever got",
+          "The best length so far"
+        ]
+      ],
+      "words": [
+        [
+          "sliding window",
+          "A block of neighbouring items that grows at one end and shrinks at the other."
+        ],
+        [
+          "substring",
+          "A block of neighbouring letters inside a string."
+        ],
+        [
+          "pointer",
+          "A number that marks a position in a list or string."
+        ],
+        [
+          "repeat",
+          "A letter that appears a second time."
+        ],
+        [
+          "distinct",
+          "Different from each other."
+        ]
+      ]
+    }
   }
 ]
