@@ -2024,6 +2024,51 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "Row-major stores each row contiguously, column-major each column; C is row-major with offset x + Nx*y; Fortran, MATLAB and Julia are column-major; NumPy defaults to row-major; looping row-wise is preferred in C."
+    },
+    {
+      "key": "wikipedia-linked-list",
+      "title": "Linked list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Linked_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A linked list is a linear collection whose order is not given by physical placement in memory; insert or remove is constant time when the node before it is already held; no random access; insert/delete at the beginning is constant, at the end constant only if the end is known; arrays have better cache locality; sentinel nodes give every list a first and last node."
+    },
+    {
+      "key": "wikipedia-doubly-linked-list",
+      "title": "Doubly linked list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Doubly_linked_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Each node has previous and next links; it can be seen as two singly linked lists in opposite orders; head and tail are immediately accessible and traversal runs either way; insertAfter sets new.prev and updates next.prev; removing the first or last node needs special handling; sentinels remove the special cases."
+    },
+    {
+      "key": "wikipedia-cycle-detection",
+      "title": "Cycle detection (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Cycle_detection",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Floyd's tortoise and hare uses two pointers at different speeds; after they meet, resetting the tortoise to the start and stepping both one at a time finds the cycle start (mu), then the cycle length (lambda); O(lambda + mu) time and O(1) storage; Brent's algorithm is another constant-storage method."
+    },
+    {
+      "key": "wikipedia-merge-sort",
+      "title": "Merge sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Merge_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Most implementations are stable; O(n log n) worst and average; auxiliary space O(1) with linked lists; the left run is taken on ties for stability; top-down and bottom-up variants; efficient for sequentially accessed data such as linked lists."
+    },
+    {
+      "key": "wikipedia-cache-replacement",
+      "title": "Cache replacement policies (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Cache_replacement_policies",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "LRU discards the least recently used items first and must track what was used and when; also FIFO, MRU, LFU, random and the pseudo-LRU used by CPUs; LRU is a family including 2Q and LRU/K."
     }
   ],
   "levels": [
