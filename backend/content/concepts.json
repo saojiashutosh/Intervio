@@ -107240,5 +107240,1132 @@
         ]
       ]
     }
+  },
+  {
+    "id": "fast-slow-pointers",
+    "n": 151,
+    "level": 14,
+    "week": "Core",
+    "title": "Fast and Slow Pointers: Loop Start, Loop Length and Palindromes",
+    "tagline": "Run two pointers at different speeds to find loops, the start of a loop, the middle of a list and palindromes in O(1) memory.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "The fast and slow pointer method, also called Floyd's tortoise and hare, moves two pointers through a list at different speeds. The slow pointer moves one node per round and the fast pointer moves two. Because the pointers need no extra storage, it solves several classic problems in O(n) time and O(1) space. The basic linked-list lesson showed the middle and the yes or no loop test. This lesson goes further: where the loop starts, how long it is, and how the trick extends.",
+      "## Detecting a loop",
+      "If the list ends, the fast pointer reaches None and there is no loop. If there is a loop, both pointers end up inside it. From then on, each round the fast pointer gains exactly one node on the slow one, measured around the loop, so it cannot jump over the slow pointer. The gap shrinks one by one until they stand on the same node. Seeing slow is fast means there is a loop.",
+      "## Finding where the loop starts",
+      "Wikipedia describes the second phase of Floyd's algorithm. When the pointers meet, keep fast where it is, move slow back to the head, and now move both one node per round. They meet again at the first node of the loop, called mu in the article.",
+      "- Let a be the number of nodes before the loop, and c the loop length.\n- When they first meet, slow has moved a + x steps, where x is how far into the loop it is. Fast has moved twice as far.\n- Fast has done the same steps plus whole laps, so a + x equals k laps of c.\n- Therefore a = k x c - x. Walking a steps from the meeting point lands on the loop start, and so does walking a steps from the head.",
+      "## Loop length",
+      "From any node inside the loop, walk until you return to it, counting steps. That count is the loop length, called lambda in the article. Together, Floyd's method finds both numbers in O(lambda + mu) time and O(1) storage.",
+      "> A worked example: nodes 0 to 6, where 6 points back to 3. Slow and fast meet on node 4. Reset slow to node 0 and step both. After three rounds both are on node 3, the loop start. One lap from node 3 is 4 steps, so the loop has length 4.",
+      "## The same trick on lists without a loop",
+      "- Middle node: when fast reaches the end, slow is at the middle. For an even count, decide whether you want the first or the second middle and adjust the loop condition.\n- Palindrome list: find the middle, reverse the second half in place, compare it with the first half, and optionally reverse it back.\n- Find the duplicate in an array of n + 1 numbers between 1 and n: treat each value as a pointer to that index, so a repeated value creates a loop. Its start is the duplicate.",
+      "## When to prefer a set",
+      "A visited set is simpler to write and needs no pointer reasoning, but it uses O(n) memory. If the interviewer asks for O(1) space, use the two pointers. The Wikipedia article also mentions Brent's algorithm, another constant-memory method that is usually faster in practice.",
+      "## How to talk through it",
+      "State the speeds and why fast cannot skip over slow. Draw a list with a tail and a loop and run it by hand. Then write the code and test an empty list, one node that points to itself, and a list with no loop."
+    ],
+    "keyPoints": [
+      "Slow moves 1, fast moves 2. If they meet there is a loop. If fast reaches None there is none.",
+      "Fast gains one node per round on slow, so it cannot skip over it.",
+      "Loop start: when they meet, reset one pointer to the head and move both one step at a time. They meet at the start.",
+      "Loop length: count one lap from any loop node. Total cost O(n) time and O(1) space.",
+      "Also gives the middle, palindrome lists (reverse the second half) and a duplicate in an array."
+    ],
+    "sql": [
+      {
+        "title": "Detect a loop, find its start and its length",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values, loop_to=None):\n    nodes = [Node(v) for v in values]\n    for a, b in zip(nodes, nodes[1:]):\n        a.next = b\n    if loop_to is not None:\n        nodes[-1].next = nodes[loop_to]\n    return nodes[0], nodes\n\ndef meeting_node(head):\n    slow = fast = head\n    while fast and fast.next:\n        slow, fast = slow.next, fast.next.next\n        if slow is fast:\n            return slow\n    return None\n\ndef loop_start(head):\n    meet = meeting_node(head)\n    if meet is None:\n        return None\n    slow = head\n    while slow is not meet:\n        slow, meet = slow.next, meet.next\n    return slow\n\ndef loop_length(head):\n    meet = meeting_node(head)\n    if meet is None:\n        return 0\n    count, cur = 1, meet.next\n    while cur is not meet:\n        cur, count = cur.next, count + 1\n    return count\n\nhead, nodes = build(range(7), loop_to=3)\nassert meeting_node(head) is nodes[4]\nassert loop_start(head) is nodes[3]\nassert loop_length(head) == 4\nstraight, _ = build(range(5))\nassert meeting_node(straight) is None and loop_start(straight) is None and loop_length(straight) == 0\nsingle, ns = build([1], loop_to=0)\nassert loop_start(single) is ns[0] and loop_length(single) == 1"
+      },
+      {
+        "title": "Middle node and palindrome list in O(1) space",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef middle(head):\n    slow = fast = head\n    while fast and fast.next:\n        slow, fast = slow.next, fast.next.next\n    return slow\n\ndef reverse(head):\n    prev = None\n    while head:\n        head.next, prev, head = prev, head, head.next\n    return prev\n\ndef is_palindrome(head):\n    if head is None or head.next is None:\n        return True\n    second = reverse(middle(head))\n    first, ok = head, True\n    while second:\n        if first.val != second.val:\n            ok = False\n            break\n        first, second = first.next, second.next\n    return ok\n\nassert middle(build([1, 2, 3, 4, 5])).val == 3\nassert middle(build([1, 2, 3, 4])).val == 3          # second middle for even length\nassert is_palindrome(build([1, 2, 2, 1]))\nassert is_palindrome(build([1, 2, 3, 2, 1]))\nassert not is_palindrome(build([1, 2, 3]))\nassert is_palindrome(None)"
+      },
+      {
+        "title": "Find the duplicate number with Floyd's method",
+        "lang": "py",
+        "code": "def find_duplicate(nums):\n    # nums has n + 1 values in 1..n, so following i -> nums[i] must enter a loop\n    slow = fast = 0\n    while True:\n        slow, fast = nums[slow], nums[nums[fast]]\n        if slow == fast:\n            break\n    slow = 0\n    while slow != fast:\n        slow, fast = nums[slow], nums[fast]\n    return slow\n\nassert find_duplicate([1, 3, 4, 2, 2]) == 2\nassert find_duplicate([3, 1, 3, 4, 2]) == 3\nassert find_duplicate([2, 2, 2, 2, 2]) == 2"
+      }
+    ],
+    "django": {},
+    "exercise": "Write meeting_node, loop_start and loop_length, and test them on a list with no loop, a one-node self loop and a long tail with a short loop. Then write is_palindrome that restores the list after comparing. Finally explain, with your own numbers, why the second phase lands on the loop start, by working out a = k x c - x for one example.",
+    "pitfalls": [
+      "Checking while fast.next without checking fast first, which crashes on an empty list.",
+      "Comparing values instead of nodes. Use is, because two different nodes can hold equal values.",
+      "Moving the pointers two at a time in the second phase. After the reset both move one step.",
+      "Forgetting the even-length middle: decide whether you want the first or the second middle.",
+      "Reversing the second half for a palindrome check and leaving the list damaged when the caller needs it intact."
+    ],
+    "interview": [
+      {
+        "q": "How do you detect a loop in a linked list with O(1) memory?",
+        "a": "Move a slow pointer one node and a fast pointer two nodes per round. If the fast pointer reaches None there is no loop. If the two pointers ever stand on the same node, there is a loop."
+      },
+      {
+        "q": "How do you find the node where the loop starts?",
+        "a": "When slow and fast meet, move slow back to the head and move both one node at a time. They meet at the first node of the loop. It works because the distance from the head to the loop start equals a whole number of laps minus the distance already walked into the loop."
+      },
+      {
+        "q": "Why can fast not jump over slow?",
+        "a": "Inside the loop fast gains exactly one node per round, so the gap shrinks by one each time and passes through zero."
+      },
+      {
+        "q": "How do you check whether a linked list is a palindrome in O(1) space?",
+        "a": "Find the middle with slow and fast pointers, reverse the second half in place, compare it with the first half node by node, and reverse it back if the list must be kept."
+      }
+    ],
+    "references": [
+      {
+        "title": "Cycle detection (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Cycle_detection",
+        "kind": "Reference"
+      },
+      {
+        "title": "Linked list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Linked_list",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: loop detection and the middle node are among the most common linked-list questions. Floyd's two phases, the mu and lambda names, the O(lambda + mu) time with O(1) storage, and Brent's algorithm come from the Wikipedia article on cycle detection, which I read. The algebra, the palindrome routine and the duplicate-number trick are standard techniques that I present from general knowledge and my own judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-cycle-detection",
+      "wikipedia-linked-list",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "fastslow",
+        "title": "Fast and slow pointers, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "walk the list"
+          },
+          {
+            "kind": "write",
+            "label": "pointer change"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The loop",
+            "at": 0
+          },
+          {
+            "text": "Race",
+            "at": 2
+          },
+          {
+            "text": "Meet",
+            "at": 4
+          },
+          {
+            "text": "Loop start",
+            "at": 5
+          },
+          {
+            "text": "Proof",
+            "at": 7
+          },
+          {
+            "text": "Other uses",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "f0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f1",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 1.8,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f2",
+            "kind": "cube",
+            "x": -0.6,
+            "y": 0.6,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f3",
+            "kind": "cube",
+            "x": -0.15,
+            "y": -1.35,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f4",
+            "kind": "cube",
+            "x": 1.15,
+            "y": -2.65,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f5",
+            "kind": "cube",
+            "x": 2.65,
+            "y": -1.15,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f6",
+            "kind": "cube",
+            "x": 1.35,
+            "y": 0.15,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "f0",
+            "b": "f1",
+            "dir": "to"
+          },
+          {
+            "a": "f1",
+            "b": "f2",
+            "dir": "to"
+          },
+          {
+            "a": "f2",
+            "b": "f3",
+            "dir": "to"
+          },
+          {
+            "a": "f3",
+            "b": "f4",
+            "dir": "to"
+          },
+          {
+            "a": "f4",
+            "b": "f5",
+            "dir": "to"
+          },
+          {
+            "a": "f5",
+            "b": "f6",
+            "dir": "to"
+          },
+          {
+            "a": "f6",
+            "b": "f3",
+            "dir": "to"
+          }
+        ],
+        "steps": [
+          {
+            "title": "A list whose tail loops back",
+            "tag": "problem",
+            "body": [
+              "Nodes 0, 1 and 2 form a straight tail of length 3. Nodes 3, 4, 5 and 6 form a loop, and node 6 points back to node 3. Walking from the head never reaches None.",
+              "We want to know whether there is a loop, where it starts and how long it is, using O(1) extra memory."
+            ],
+            "short": "The loop",
+            "hud": [
+              {
+                "k": "Tail before the loop",
+                "v": "3 nodes"
+              },
+              {
+                "k": "Loop length",
+                "v": "4 nodes"
+              },
+              {
+                "k": "Memory allowed",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow = fast",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why a visited set is not enough",
+            "tag": "problem",
+            "body": [
+              "The easy way is to remember every node you have seen and stop when you see one twice. It works, but it needs O(n) memory.",
+              "Floyd's tortoise and hare uses two pointers and nothing else, so it needs O(1) memory."
+            ],
+            "short": "The easy way",
+            "hud": [
+              {
+                "k": "Visited set",
+                "v": "O(n) memory",
+                "tone": "warn"
+              },
+              {
+                "k": "Two pointers",
+                "v": "O(1) memory",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow = fast",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Visited set",
+              "lines": [
+                "seen = set()",
+                "while node:",
+                "    if node in seen: return True",
+                "    seen.add(node); node = node.next"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Slow moves 1 step, fast moves 2 steps",
+            "tag": "technique",
+            "body": [
+              "Start both at the head. Each round the slow pointer moves one node and the fast pointer moves two. After two rounds slow is at node 2 and fast is at node 4, already inside the loop.",
+              "If the list ends, fast reaches None first and there is no loop."
+            ],
+            "short": "Race",
+            "hud": [
+              {
+                "k": "Rounds",
+                "v": "2"
+              },
+              {
+                "k": "Slow at",
+                "v": "2"
+              },
+              {
+                "k": "Fast at",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow",
+                  "tone": "orange",
+                  "icon": "clock"
+                },
+                "status": "live"
+              },
+              "f3": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f4": {
+                "tone": "purple",
+                "pill": {
+                  "text": "fast",
+                  "tone": "purple",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "f0",
+                  "f1",
+                  "f2"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "f0",
+                  "f2",
+                  "f4"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Both are inside the loop",
+            "tag": "technique",
+            "body": [
+              "After round 3, slow is on node 3, the first node of the loop, and fast is on node 6. Fast has gone round the corner and is chasing slow from behind.",
+              "Fast is now one node behind slow, going round the loop (6 then 3). From now on that gap changes by exactly one each round."
+            ],
+            "short": "In the loop",
+            "hud": [
+              {
+                "k": "Rounds",
+                "v": "3"
+              },
+              {
+                "k": "Fast is behind slow by",
+                "v": "1 node"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow",
+                  "tone": "orange",
+                  "icon": "clock"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "purple",
+                "pill": {
+                  "text": "fast",
+                  "tone": "purple",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "f2",
+                  "f3"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "f4",
+                  "f5",
+                  "f6"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "They meet inside the loop",
+            "tag": "solution",
+            "body": [
+              "After round 4, slow is on node 4 and fast has moved from 6 round to 3 and then 4. They stand on the same node, so there is a loop.",
+              "Fast gains one node per round, so it cannot jump over slow. The gap was 1, it becomes 0, and they stand on the same node."
+            ],
+            "short": "Meet",
+            "hud": [
+              {
+                "k": "Rounds",
+                "v": "4"
+              },
+              {
+                "k": "Loop found",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f4": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow = fast",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "f3",
+                  "f4"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "f6",
+                  "f3",
+                  "f4"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "slow = fast = head",
+                "while fast and fast.next:",
+                "    slow, fast = slow.next, fast.next.next",
+                "    if slow is fast: return True",
+                "return False"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            },
+            "predict": {
+              "question": "Fast gains one node on slow each round. Suppose both are inside a loop and fast is 3 nodes behind slow. How many rounds until they meet?",
+              "options": [
+                "1",
+                "3",
+                "6"
+              ],
+              "answer": 1,
+              "why": "The gap shrinks by one per round, from 3 to 0, so they meet after 3 rounds."
+            }
+          },
+          {
+            "title": "Find where the loop starts: reset one pointer",
+            "tag": "technique",
+            "body": [
+              "Leave fast where it met slow, on node 4. Put slow back at the head. Now move both one node per round, not two.",
+              "Wikipedia describes this second phase: reset the tortoise to the start, then both step one at a time."
+            ],
+            "short": "Reset",
+            "hud": [
+              {
+                "k": "slow",
+                "v": "head (0)"
+              },
+              {
+                "k": "fast",
+                "v": "node 4"
+              },
+              {
+                "k": "Speed now",
+                "v": "1 each"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow",
+                  "tone": "orange",
+                  "icon": "clock"
+                },
+                "status": "live"
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f4": {
+                "tone": "purple",
+                "pill": {
+                  "text": "fast",
+                  "tone": "purple",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "They meet again at the start of the loop",
+            "tag": "solution",
+            "body": [
+              "Round 1: slow 1, fast 5. Round 2: slow 2, fast 6. Round 3: slow 3, fast 3. They meet on node 3, which is the first node of the loop.",
+              "The tail length is 3, and that is also how many rounds it took."
+            ],
+            "short": "Loop start",
+            "hud": [
+              {
+                "k": "Loop start",
+                "v": "node 3",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Memory",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "green",
+                "pill": {
+                  "text": "loop starts here",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "f0",
+                  "f1",
+                  "f2",
+                  "f3"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "f4",
+                  "f5",
+                  "f6",
+                  "f3"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Why it works",
+            "tag": "insight",
+            "body": [
+              "Let the tail have a nodes. When they first meet, slow has moved a + x steps, where x is how far into the loop it is. Fast has moved twice as many, which also equals a + x plus whole laps of the loop. So a + x is a whole number of laps.",
+              "That means a more steps from the meeting point lands exactly on the loop start. Walking a steps from the head does the same, so both pointers arrive together."
+            ],
+            "short": "The proof",
+            "hud": [
+              {
+                "k": "Slow",
+                "v": "a + x"
+              },
+              {
+                "k": "Fast",
+                "v": "2(a + x)"
+              },
+              {
+                "k": "Difference",
+                "v": "whole laps"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "green",
+                "pill": {
+                  "text": "a = tail length",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "In symbols",
+              "lines": [
+                "a = tail, c = loop length",
+                "2(a + x) = (a + x) + k*c",
+                "a + x = k*c",
+                "so a = k*c - x"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Measure the loop length",
+            "tag": "solution",
+            "body": [
+              "Once you stand on any loop node, walk round the loop counting until you are back there. Here that is 4 steps.",
+              "Wikipedia names the two numbers: mu is where the cycle starts, and lambda is its length. Floyd's algorithm finds both with O(1) storage in O(lambda + mu) time."
+            ],
+            "short": "Loop length",
+            "hud": [
+              {
+                "k": "mu (loop start)",
+                "v": "3"
+              },
+              {
+                "k": "lambda (loop length)",
+                "v": "4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "green",
+                "pill": {
+                  "text": "lambda = 4",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "f3",
+                  "f4",
+                  "f5",
+                  "f6",
+                  "f3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The same idea without a loop: the middle, a palindrome",
+            "tag": "technique",
+            "body": [
+              "On a list that ends, move fast two nodes and slow one. When fast reaches the end, slow is at the middle. Reverse the second half from there and compare it with the first half to test for a palindrome, using O(1) extra space.",
+              "The same two-speed trick finds a repeated number in an array treated as a list of pointers."
+            ],
+            "short": "Other uses",
+            "hud": [
+              {
+                "k": "Middle node",
+                "v": "slow when fast ends"
+              },
+              {
+                "k": "Palindrome",
+                "v": "reverse second half"
+              },
+              {
+                "k": "Duplicate in array",
+                "v": "treat values as pointers"
+              }
+            ],
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow = fast",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Two pointers at different speeds find loops, loop starts, loop lengths and middles in one pass with O(1) memory. Fast catches slow because the gap changes by one each round.",
+              "To find the loop start, reset one pointer to the head and move both one step at a time."
+            ],
+            "short": "Recap",
+            "set": {
+              "f0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "slow = fast",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "f4": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f5": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "f6": {
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 slow +1, fast +2",
+                "2 meet means a loop",
+                "3 reset one to head, both +1: loop start",
+                "4 count one lap: loop length"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Fast and slow pointers are like two runners on a track, where the faster one is bound to lap the slower one.",
+      "story": "Two runners start together on a path that leads into a circular track. One runs at walking pace, the other at double speed. If the path never reaches a track, the fast runner just reaches the end first. If there is a track, the fast runner enters it, circles round and must catch the slow one from behind. They can never jump past each other.",
+      "maps": [
+        [
+          "The path and the circular track",
+          "A list with a loop"
+        ],
+        [
+          "The slow runner",
+          "The slow pointer"
+        ],
+        [
+          "The fast runner",
+          "The fast pointer"
+        ],
+        [
+          "Catching up from behind",
+          "The two pointers meeting"
+        ]
+      ],
+      "words": [
+        [
+          "loop",
+          "A part of the list where the last node points back to an earlier node."
+        ],
+        [
+          "tortoise and hare",
+          "A name for the slow and fast pointers."
+        ],
+        [
+          "mu",
+          "The number of nodes before the loop starts."
+        ],
+        [
+          "lambda",
+          "The number of nodes in one lap of the loop."
+        ],
+        [
+          "palindrome",
+          "A sequence that reads the same forwards and backwards."
+        ]
+      ]
+    }
   }
 ]
