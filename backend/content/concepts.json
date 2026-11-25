@@ -98548,5 +98548,1211 @@
         ]
       ]
     }
+  },
+  {
+    "id": "prefix-sums",
+    "n": 143,
+    "level": 14,
+    "week": "Core",
+    "title": "Prefix Sums and Range Queries",
+    "tagline": "Pay O(n) once to build running totals, then answer any range-sum question in O(1), count subarrays with a target and add to ranges cheaply.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A prefix sum array stores running totals. For an array a, let P[0] = 0 and P[k] = a[0] + ... + a[k - 1]. Each entry is the entry before it plus one item, so one pass of O(n) builds the whole thing. The Wikipedia article calls this the cumulative sum, or the inclusive scan, and it only needs an operation that is associative, such as addition.",
+      "## Answering a range query",
+      "The sum of a[l] through a[r] is P[r + 1] - P[l]. P[r + 1] counts every item before index r + 1, and P[l] counts every item before index l. The difference is exactly the block from l to r. The leading zero in P[0] means a query that starts at the first item needs no special case. Each query is O(1), instead of O(n) for adding the items one by one.",
+      "- Build: O(n) time, O(n) extra space.\n- Query: O(1).\n- Without prefix sums, q queries cost O(n x q).",
+      "## What it works for",
+      "Subtraction needs an inverse, so the trick works for sums, counts and XOR. It does not work for maximum or minimum, because there is no way to undo a max. For those, use a sparse table or a segment tree.",
+      "## Counting subarrays with sum k",
+      "A subarray from i to j has sum k exactly when P[j + 1] - P[i] = k. Walk through the array once with a running total and a dict that counts how many times each earlier prefix value has appeared. At each step add dict[total - k] to the answer. Because it uses differences of prefix values instead of shrinking a window, it works with negative numbers, which break the sliding window.",
+      "> A worked example: for a = [1, 2, 3] and k = 3, the prefix totals are 0, 1, 3, 6. At total 3 the dict holds 0, and 3 - 3 = 0 is present, so [1, 2] counts. At total 6, 6 - 3 = 3 is present, so [3] counts. The answer is 2.",
+      "## Difference arrays",
+      "The opposite trick supports many range updates. To add v to a[l..r], add v at index l and subtract v at index r + 1 of a difference array D. Each update is O(1). When all updates are done, take the prefix sum of D to recover the final array. Think of it as the inverse of building prefix sums.",
+      "## In Python",
+      "itertools.accumulate yields running totals, and its initial argument adds one extra leading element, so accumulate(a, initial=0) gives exactly P. A Fenwick tree keeps prefix sums when values also change, with logarithmic time per query and per update.",
+      "## How to talk through it",
+      "Say that you will trade O(n) memory for O(1) queries, and that the data does not change between queries. Show the formula P[r + 1] - P[l], and test a query that starts at index 0, a single item and the whole array."
+    ],
+    "keyPoints": [
+      "P[0] = 0 and P[k] = P[k-1] + a[k-1]. Build in O(n).",
+      "sum(a[l..r]) = P[r + 1] - P[l], in O(1).",
+      "Works for operations that can be undone (sum, count, xor), not for max or min.",
+      "Subarrays with sum k: count P[j] - k in a dict of earlier prefixes. Handles negatives.",
+      "A difference array turns range additions into two O(1) edits, then one prefix pass rebuilds the array."
+    ],
+    "sql": [
+      {
+        "title": "Build prefix sums and answer range queries",
+        "lang": "py",
+        "code": "from itertools import accumulate\n\nclass RangeSum:\n    def __init__(self, a):\n        self.prefix = [0]\n        for x in a:\n            self.prefix.append(self.prefix[-1] + x)\n\n    def sum(self, l, r):                   # inclusive on both ends\n        return self.prefix[r + 1] - self.prefix[l]\n\na = [3, 1, 4, 1, 5, 9, 2, 6]\nrs = RangeSum(a)\nassert rs.prefix == [0, 3, 4, 8, 9, 14, 23, 25, 31]\nassert rs.sum(2, 5) == 19\nassert rs.sum(0, 7) == 31\nassert rs.sum(4, 4) == 5\nassert list(accumulate(a, initial=0)) == rs.prefix"
+      },
+      {
+        "title": "Count subarrays with sum k (works with negatives)",
+        "lang": "py",
+        "code": "def subarray_sum(nums, k):\n    seen = {0: 1}               # prefix value -> how many times it appeared\n    total = count = 0\n    for x in nums:\n        total += x\n        count += seen.get(total - k, 0)\n        seen[total] = seen.get(total, 0) + 1\n    return count\n\nassert subarray_sum([1, 2, 3], 3) == 2\nassert subarray_sum([1, 1, 1], 2) == 2\nassert subarray_sum([1, -1, 0], 0) == 3\nassert subarray_sum([], 0) == 0"
+      },
+      {
+        "title": "Difference array: many range additions",
+        "lang": "py",
+        "code": "def apply_updates(n, updates):\n    diff = [0] * (n + 1)\n    for l, r, v in updates:                 # add v to a[l..r]\n        diff[l] += v\n        diff[r + 1] -= v\n    out, running = [], 0\n    for i in range(n):\n        running += diff[i]\n        out.append(running)\n    return out\n\nassert apply_updates(5, [(1, 3, 2), (2, 4, 3)]) == [0, 2, 5, 5, 3]\nassert apply_updates(3, []) == [0, 0, 0]"
+      }
+    ],
+    "django": {},
+    "exercise": "Build the RangeSum class and test sum(l, r) for every pair (l, r) of a small array against sum(a[l:r + 1]). Then implement subarray_sum and verify it against a brute-force double loop on 200 random arrays that include negative numbers. Finally, extend it to a 2D grid: build a 2D prefix table so any rectangle sum is O(1).",
+    "pitfalls": [
+      "Off-by-one: the sum of a[l..r] is P[r + 1] - P[l], not P[r] - P[l].",
+      "Forgetting to start the dict with {0: 1}, so subarrays that begin at index 0 are missed.",
+      "Using a sliding window for a target-sum problem with negative numbers. Use prefix sums and a dict.",
+      "Trying to use prefix sums for range maximum. A max cannot be undone by subtraction.",
+      "Recomputing the prefix array after every update. If values change often, use a Fenwick tree or a segment tree."
+    ],
+    "interview": [
+      {
+        "q": "How do prefix sums answer a range sum in O(1)?",
+        "a": "Build P with P[0] = 0 and P[k] = P[k-1] + a[k-1]. The sum of a[l..r] is P[r + 1] - P[l], because both prefix totals include the items before l and the subtraction removes them."
+      },
+      {
+        "q": "How do you count subarrays whose sum is k?",
+        "a": "Keep a running total and a dict of how many times each earlier prefix value has occurred. At each item add the count for total - k. It runs in O(n) and works for negative numbers."
+      },
+      {
+        "q": "What is a difference array?",
+        "a": "An array D where updating a range [l, r] by v is D[l] += v and D[r + 1] -= v. The prefix sum of D gives the updated array, so many range updates cost O(1) each plus one O(n) pass."
+      },
+      {
+        "q": "What kinds of queries can prefix sums not answer?",
+        "a": "Operations that cannot be undone, such as range maximum or minimum. Use a sparse table or a segment tree for those."
+      }
+    ],
+    "references": [
+      {
+        "title": "Prefix sum (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Prefix_sum",
+        "kind": "Reference"
+      },
+      {
+        "title": "itertools.accumulate (Python docs)",
+        "url": "https://docs.python.org/3/library/itertools.html#itertools.accumulate",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: range queries and subarray-sum questions are a common coding-round pattern, and prefix sums are the standard answer. The definition, the inclusive and exclusive scan and the accumulate options come from the two pages cited, which I read. The query formula, the subarray counting trick and the difference array are standard techniques that I present from general knowledge and my own judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-prefix-sum",
+      "py-itertools-accumulate",
+      "py-time-complexity",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "prefix",
+        "title": "Prefix sums, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "Build",
+            "at": 1
+          },
+          {
+            "text": "Query",
+            "at": 3
+          },
+          {
+            "text": "Subarrays = k",
+            "at": 5
+          },
+          {
+            "text": "Range updates",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -4.025,
+            "y": 2.625,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -3.075,
+            "y": 1.675,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -2.125,
+            "y": 0.725,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": -1.175,
+            "y": -0.225,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": -0.225,
+            "y": -1.175,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 0.725,
+            "y": -2.125,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 1.675,
+            "y": -3.075,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a7",
+            "kind": "cube",
+            "x": 2.625,
+            "y": -4.025,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "p0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 4.6,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p1",
+            "kind": "cube",
+            "x": -2.05,
+            "y": 3.65,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p2",
+            "kind": "cube",
+            "x": -1.1,
+            "y": 2.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p3",
+            "kind": "cube",
+            "x": -0.15,
+            "y": 1.75,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p4",
+            "kind": "cube",
+            "x": 0.8,
+            "y": 0.8,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p5",
+            "kind": "cube",
+            "x": 1.75,
+            "y": -0.15,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p6",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -1.1,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p7",
+            "kind": "cube",
+            "x": 3.65,
+            "y": -2.05,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "p8",
+            "kind": "cube",
+            "x": 4.6,
+            "y": -3.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The problem: many range-sum questions on one array",
+            "tag": "technique",
+            "body": [
+              "Given a fixed array, we get many questions of the form: what is the sum from index l to index r? Adding the items each time costs O(n) per question.",
+              "If there are q questions, that is O(n x q). A little preparation can make every question O(1)."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Naive per query",
+                "v": "O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Goal",
+                "v": "O(1) per query",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Naive",
+              "lines": [
+                "def range_sum(a, l, r):",
+                "    return sum(a[l:r + 1])   # O(n) every time"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Prefix sums: a running total, written down once",
+            "tag": "technique",
+            "body": [
+              "Make a second row P with one extra cell at the start. P[0] = 0, and P[k] is the sum of the first k items. Each cell is the cell before it plus one item.",
+              "Here P[1] = 3, then P[2] = 3 + 1 = 4."
+            ],
+            "short": "Start",
+            "hud": [
+              {
+                "k": "P[0]",
+                "v": "0"
+              },
+              {
+                "k": "P[k]",
+                "v": "P[k-1] + a[k-1]"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "label": "4",
+                "tone": "teal"
+              },
+              "p3": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "p4": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "p5": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "p6": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "p7": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "p8": {
+                "label": "·",
+                "tone": "grey"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "p1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "a1",
+                  "p2"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Fill the whole row in one pass",
+            "tag": "solution",
+            "body": [
+              "One pass over the array fills P: 0, 3, 4, 8, 9, 14, 23, 25, 31. That costs O(n) once, and the extra memory is O(n).",
+              "The leading 0 means a sum that starts at the first item needs no special case."
+            ],
+            "short": "Build",
+            "hud": [
+              {
+                "k": "Build cost",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Extra memory",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "label": "4",
+                "tone": "teal"
+              },
+              "p3": {
+                "label": "8",
+                "tone": "teal"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "teal"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "teal"
+              },
+              "p6": {
+                "label": "23",
+                "tone": "teal"
+              },
+              "p7": {
+                "label": "25",
+                "tone": "teal"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "teal"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "a1",
+                  "a2",
+                  "a3",
+                  "a4",
+                  "a5",
+                  "a6",
+                  "a7"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "prefix = [0]",
+                "for x in a:",
+                "    prefix.append(prefix[-1] + x)"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Answer a query with one subtraction",
+            "tag": "solution",
+            "body": [
+              "To get the sum of a[2] to a[5], compute P[6] - P[2] = 23 - 4 = 19. Check: 4 + 1 + 5 + 9 = 19.",
+              "P[6] is everything before index 6. P[2] is everything before index 2. The difference is exactly the block between them."
+            ],
+            "short": "Query",
+            "hud": [
+              {
+                "k": "sum(a[2..5])",
+                "v": "23 - 4 = 19",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "P[2] = 4",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              },
+              "p3": {
+                "label": "8",
+                "tone": "teal"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "teal"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "teal"
+              },
+              "p6": {
+                "tone": "orange",
+                "pill": {
+                  "text": "P[6] = 23",
+                  "tone": "orange",
+                  "icon": "flag"
+                }
+              },
+              "p7": {
+                "label": "25",
+                "tone": "teal"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "teal"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "p6",
+                  "p2"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "Using the same P, what is the sum of a[0] to a[7], the whole array?",
+              "options": [
+                "P[8] - P[0] = 31",
+                "P[7] - P[1] = 22",
+                "It needs a loop"
+              ],
+              "answer": 0,
+              "why": "P[8] - P[0] = 31 - 0 = 31. The leading 0 makes the whole-array query a plain subtraction."
+            }
+          },
+          {
+            "title": "Why subtraction works",
+            "tag": "insight",
+            "body": [
+              "P[r + 1] counts the items 0 to r. P[l] counts the items 0 to l - 1. Take away the second group from the first, and what is left is exactly l to r.",
+              "The same idea works for any operation that can be undone: sums, counts and XOR. It does not work for max, because you cannot undo a max."
+            ],
+            "short": "Why",
+            "hud": [
+              {
+                "k": "Works for",
+                "v": "sum, count, xor"
+              },
+              {
+                "k": "Does not work for",
+                "v": "max, min",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "tone": "orange",
+                "pill": null
+              },
+              "p3": {
+                "label": "8",
+                "tone": "teal"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "teal"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "teal"
+              },
+              "p6": {
+                "tone": "orange",
+                "pill": null
+              },
+              "p7": {
+                "label": "25",
+                "tone": "teal"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "teal"
+              }
+            }
+          },
+          {
+            "title": "Count subarrays with a target sum: P[j] - P[i] = k",
+            "tag": "technique",
+            "body": [
+              "A subarray sum equals k when two prefix values differ by k. Walk through the array once, keeping a dict that counts how many times each prefix value has appeared.",
+              "At each point, look up prefix - k in the dict. That count is the number of earlier starts that give a subarray ending here with sum k. This works with negative numbers too."
+            ],
+            "short": "Subarrays = k",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "label": "4",
+                "tone": "teal"
+              },
+              "p3": {
+                "label": "8",
+                "tone": "teal"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "teal"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "teal"
+              },
+              "p6": {
+                "label": "23",
+                "tone": "teal"
+              },
+              "p7": {
+                "label": "25",
+                "tone": "teal"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "teal"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "seen = {0: 1}; total = count = 0",
+                "for x in a:",
+                "    total += x",
+                "    count += seen.get(total - k, 0)",
+                "    seen[total] = seen.get(total, 0) + 1"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Difference array: add to a range in O(1)",
+            "tag": "technique",
+            "body": [
+              "The reverse trick handles many range updates. To add 5 to a[2] through a[5], add 5 at index 2 and subtract 5 at index 6 in a difference array. Updates take O(1) each.",
+              "When all the updates are done, one prefix-sum pass over the difference array gives the final array."
+            ],
+            "short": "Range updates",
+            "hud": [
+              {
+                "k": "Each update",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Rebuild once",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "+5",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "a3": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": {
+                  "text": "-5",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "grey"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "grey"
+              },
+              "p2": {
+                "label": "4",
+                "tone": "grey"
+              },
+              "p3": {
+                "label": "8",
+                "tone": "grey"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "grey"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "grey"
+              },
+              "p6": {
+                "label": "23",
+                "tone": "grey"
+              },
+              "p7": {
+                "label": "25",
+                "tone": "grey"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "grey"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a2",
+                  "a3",
+                  "a4",
+                  "a5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Recap: pay O(n) once, ask many times",
+            "tag": "insight",
+            "body": [
+              "A prefix sum array turns many range-sum queries into O(1) subtractions after one O(n) pass. A dict of earlier prefix values counts subarrays with a given sum. A difference array does range updates in O(1).",
+              "In Python, itertools.accumulate builds prefix sums, and its initial=0 option adds the leading zero."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a3": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a4": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a5": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a6": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "a7": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "p0": {
+                "label": "0",
+                "tone": "teal"
+              },
+              "p1": {
+                "label": "3",
+                "tone": "teal"
+              },
+              "p2": {
+                "label": "4",
+                "tone": "teal"
+              },
+              "p3": {
+                "label": "8",
+                "tone": "teal"
+              },
+              "p4": {
+                "label": "9",
+                "tone": "teal"
+              },
+              "p5": {
+                "label": "14",
+                "tone": "teal"
+              },
+              "p6": {
+                "label": "23",
+                "tone": "teal"
+              },
+              "p7": {
+                "label": "25",
+                "tone": "teal"
+              },
+              "p8": {
+                "label": "31",
+                "tone": "teal"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 prefix[0] = 0, one extra cell",
+                "2 sum(l..r) = P[r+1] - P[l]",
+                "3 dict of seen prefixes for target k",
+                "4 difference array for range adds"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A prefix sum is a running total, like the distance markers along a road.",
+      "story": "A road has a marker at every kilometre showing how far you are from the start. To find the distance between two towns, you do not measure the road again. You read the two markers and subtract. The markers took effort to paint once, but now every question about any stretch of road takes one subtraction.",
+      "maps": [
+        [
+          "The road",
+          "The array"
+        ],
+        [
+          "The markers",
+          "The prefix sums"
+        ],
+        [
+          "Reading two markers",
+          "Looking up two prefix values"
+        ],
+        [
+          "Subtracting them",
+          "Getting the range sum"
+        ]
+      ],
+      "words": [
+        [
+          "prefix sum",
+          "The total of all items from the start up to a point."
+        ],
+        [
+          "range query",
+          "A question about a block of items, such as their sum."
+        ],
+        [
+          "subarray",
+          "A block of neighbouring items inside an array."
+        ],
+        [
+          "difference array",
+          "An array of changes, used to add to a range cheaply."
+        ],
+        [
+          "cumulative",
+          "Building up by adding one more each time."
+        ]
+      ]
+    }
   }
 ]
