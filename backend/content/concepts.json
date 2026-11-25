@@ -93040,5 +93040,855 @@
         ]
       ]
     }
+  },
+  {
+    "id": "memory-and-pointers",
+    "n": 137,
+    "level": 14,
+    "week": "Core",
+    "title": "Memory and Pointers: Names, References and Copies",
+    "tagline": "See how a variable points to an object, why two names can share one list, and how to avoid the copy bugs interviews love.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 1,
+    "explain": [
+      "When you write a = [1, 2, 3], Python builds a list object in memory and ties the name a to it. The name is not the box that holds the data. It is a label that says where the box is. That label is called a reference, and in other languages the same idea is called a pointer. Almost every data structure in the coming lessons, from linked lists to trees to graphs, is made of objects that hold references to other objects, so this picture comes first.",
+      "## Identity, type and value",
+      "The Python documentation says every object has an identity, a type and a value. The identity never changes while the object lives. You can think of it as the object's address, and in CPython id(x) returns that address. The operator is compares identity, and == compares value. Two different lists can be equal without being the same object.",
+      "## One object, many names",
+      "b = a does not copy anything. It adds a second label to the same object, so a is b is True. The Python FAQ says it plainly: variables are names that refer to objects, and y = x does not copy a list. If you then call b.append(4), the single list changes, and a shows the new item too.",
+      "- Mutable types change in place: list, dict and set.\n- Immutable types never change: int, str and tuple. An operation on them builds a new object.\n- Methods that mutate, such as append and sort, return None, so a = a.sort() is a bug.",
+      "## Rebinding is not mutation",
+      "b = [9] builds a new list and moves the label b onto it. The old list and the name a are untouched. The rule to remember: an assignment to a bare name only moves that name, while a method call or an item assignment such as b[0] = 5 changes the object. The operator += is a good test. On a list it mutates in place, and on an int or a tuple it builds a new object.",
+      "## Function arguments",
+      "Python passes arguments by assignment. Calling f(a) runs x = a inside the function, so x is another label for the caller's object. If f mutates x, the caller sees the change. If f only rebinds x, the caller sees nothing. The FAQ calls returning a tuple of results almost always the clearest design, and that is a good default.",
+      "> A worked example: def add(item, bucket=[]) is a famous bug. Default values are created once, when the function is defined, so every call that skips bucket shares the same list. Use bucket=None and build a new list inside the function.",
+      "## Copies",
+      "Assignment never copies. A shallow copy, from list.copy(), a slice or copy.copy, builds a new outer container but inserts references to the same inner objects. A deep copy from copy.deepcopy copies the inner objects as well. This matters for nested data: [[0] * 3] * 3 repeats one inner row three times, so changing one cell changes every row. Build rows separately with a list comprehension.",
+      "## Memory underneath",
+      "A Python list is stored as a block of references, one per item, so reading items[i] is one address calculation, which is O(1). The references point to objects stored elsewhere. That is why a list can hold mixed types, and why a list of lists holds references to rows, not the numbers themselves.",
+      "## What interviewers look for",
+      "Say out loud which names point to which object. Before you code, ask whether you will mutate the input or return a new value. Check for aliasing when you copy a list of lists, a dict of lists or a node of a graph."
+    ],
+    "keyPoints": [
+      "A variable is a name that refers to an object. Assignment adds or moves a label and never copies.",
+      "is compares identity. == compares value. Two equal lists are two objects.",
+      "Mutating an object is seen through every name that refers to it.",
+      "Arguments are passed by assignment: a function can mutate the caller's object but cannot rebind the caller's name.",
+      "[[0] * n] * m shares one row. Use a comprehension, or copy.deepcopy for nested data."
+    ],
+    "sql": [
+      {
+        "title": "Aliasing and identity",
+        "lang": "py",
+        "code": "a = [1, 2, 3]\nb = a\nassert a is b\nb.append(4)\nassert a == [1, 2, 3, 4]      # one object, two names\nc = list(a)                   # a shallow copy\nassert c == a and c is not a\nc.append(5)\nassert a == [1, 2, 3, 4]      # the copy is separate"
+      },
+      {
+        "title": "Mutation inside a function, and the default argument trap",
+        "lang": "py",
+        "code": "def add_item(x):\n    x.append(5)               # mutates the caller's list\n\ndef reset(x):\n    x = []                    # only moves the local name\n\ndef bad_collect(item, bucket=[]):\n    bucket.append(item)\n    return bucket\n\ndef good_collect(item, bucket=None):\n    if bucket is None:\n        bucket = []\n    bucket.append(item)\n    return bucket\n\ndata = [1]\nadd_item(data)\nreset(data)\nassert data == [1, 5]\nassert bad_collect(1) is bad_collect(2)          # the same list every call\nassert good_collect(1) == [1] and good_collect(2) == [2]"
+      },
+      {
+        "title": "Shallow and deep copies of nested lists",
+        "lang": "py",
+        "code": "import copy\n\nbad = [[0, 0]] * 2\nbad[0][0] = 1\nassert bad == [[1, 0], [1, 0]]                    # both rows are one object\n\ngood = [[0, 0] for _ in range(2)]\ngood[0][0] = 1\nassert good == [[1, 0], [0, 0]]\n\nsrc = [[1, 2], [3]]\nshallow = copy.copy(src)\ndeep = copy.deepcopy(src)\nsrc[0].append(99)\nassert shallow[0] == [1, 2, 99]                   # inner list is shared\nassert deep[0] == [1, 2]                          # inner list was copied"
+      }
+    ],
+    "django": {},
+    "exercise": "Write down what each name points to after every line of: a = [1, 2]; b = a; b += [3]; c = b + [4]; d = a[:]; a = a + [5]. Then run it and compare. Next, write a function that takes a list of lists and returns an independent copy without using copy.deepcopy, and prove it with asserts.",
+    "pitfalls": [
+      "Believing b = a copies the list. It only adds a second name for the same object.",
+      "Creating a grid with [[0] * n] * m. Every row is the same list.",
+      "Using a mutable default argument such as def f(x, bucket=[]).",
+      "Writing a = a.sort(). sort mutates and returns None, so a becomes None.",
+      "Comparing numbers or strings with is. Use == for values; use is only for None and for real identity checks."
+    ],
+    "interview": [
+      {
+        "q": "What is the difference between is and == in Python?",
+        "a": "is compares identity, meaning whether two names point to the very same object. == compares value, by calling __eq__. Two separate lists with the same items are == but not is."
+      },
+      {
+        "q": "Does Python pass arguments by value or by reference?",
+        "a": "By assignment. The parameter becomes another name for the caller's object. A function can mutate a mutable argument, and the caller sees that, but rebinding the parameter does not affect the caller's name."
+      },
+      {
+        "q": "What is the difference between a shallow and a deep copy?",
+        "a": "A shallow copy makes a new outer container that still holds references to the same inner objects. A deep copy recursively copies the inner objects too. They only differ for nested, mutable data."
+      },
+      {
+        "q": "Why does [[0] * 3] * 3 give a broken grid?",
+        "a": "The multiplication repeats the same inner list reference three times, so all rows are one object. Use [[0] * 3 for _ in range(3)] to build three separate rows."
+      }
+    ],
+    "references": [
+      {
+        "title": "Programming FAQ (Python docs)",
+        "url": "https://docs.python.org/3/faq/programming.html#how-do-i-write-a-function-with-output-parameters-call-by-reference",
+        "kind": "Python docs"
+      },
+      {
+        "title": "copy: shallow and deep copy operations (Python docs)",
+        "url": "https://docs.python.org/3/library/copy.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Data model: objects, values and types (Python docs)",
+        "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: coding interviews test pointer discipline in linked lists, trees and graphs, and the aliasing bugs in this lesson are the most common Python slip. The Python docs cited here state the identity, assignment, mutability and copy rules. The statement that a CPython list is a block of references is general knowledge. The choice of examples, the priority and the hours are my judgment, not a published standard. The recursion limit of about a thousand calls is general knowledge. The animation positions are chosen for clarity and are not measurements.",
+    "sources": [
+      "py-faq-programming",
+      "py-copy",
+      "py-datamodel-objects",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "memory",
+        "title": "Names, objects and copies, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "name points to object"
+          },
+          {
+            "kind": "write",
+            "label": "mutation"
+          },
+          {
+            "kind": "fail",
+            "label": "shared by mistake"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Name to object",
+            "at": 0
+          },
+          {
+            "text": "Aliases",
+            "at": 1
+          },
+          {
+            "text": "Rebinding",
+            "at": 3
+          },
+          {
+            "text": "Arguments",
+            "at": 4
+          },
+          {
+            "text": "Copy bugs",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "na",
+            "kind": "cube",
+            "x": -3.4,
+            "y": 1.8,
+            "label": "a",
+            "icon": "link",
+            "tone": "orange",
+            "until": 4
+          },
+          {
+            "id": "nb",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 3.4,
+            "label": "b",
+            "icon": "link",
+            "tone": "purple",
+            "from": 1,
+            "until": 3
+          },
+          {
+            "id": "nx",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 3.4,
+            "label": "x",
+            "icon": "link",
+            "tone": "teal",
+            "from": 4,
+            "until": 4
+          },
+          {
+            "id": "o1",
+            "kind": "cube",
+            "x": 0.4,
+            "y": -0.6,
+            "label": "[1, 2, 3]",
+            "icon": "box",
+            "tone": "blue",
+            "until": 4
+          },
+          {
+            "id": "o2",
+            "kind": "cube",
+            "x": 2.1,
+            "y": 1.1,
+            "label": "[9]",
+            "icon": "box",
+            "tone": "green",
+            "from": 3,
+            "until": 3
+          },
+          {
+            "id": "g0",
+            "kind": "cube",
+            "x": -1.4,
+            "y": 1.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue",
+            "from": 5
+          },
+          {
+            "id": "g1",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 2.4,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue",
+            "from": 5
+          },
+          {
+            "id": "in",
+            "kind": "cube",
+            "x": 2.0,
+            "y": -1.0,
+            "label": "[0, 0]",
+            "icon": "box",
+            "tone": "red",
+            "from": 5,
+            "until": 5
+          },
+          {
+            "id": "ia",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -1.8,
+            "label": "[0, 0]",
+            "icon": "box",
+            "tone": "green",
+            "from": 6
+          },
+          {
+            "id": "ib",
+            "kind": "cube",
+            "x": 2.8,
+            "y": -0.2,
+            "label": "[0, 0]",
+            "icon": "box",
+            "tone": "green",
+            "from": 6
+          }
+        ],
+        "links": [
+          {
+            "a": "na",
+            "b": "o1",
+            "dir": "to",
+            "until": 4
+          },
+          {
+            "a": "nb",
+            "b": "o1",
+            "dir": "to",
+            "from": 1,
+            "until": 2
+          },
+          {
+            "a": "nb",
+            "b": "o2",
+            "dir": "to",
+            "from": 3,
+            "until": 3
+          },
+          {
+            "a": "nx",
+            "b": "o1",
+            "dir": "to",
+            "from": 4,
+            "until": 4
+          },
+          {
+            "a": "g0",
+            "b": "in",
+            "dir": "to",
+            "from": 5,
+            "until": 5
+          },
+          {
+            "a": "g1",
+            "b": "in",
+            "dir": "to",
+            "from": 5,
+            "until": 5
+          },
+          {
+            "a": "g0",
+            "b": "ia",
+            "dir": "to",
+            "from": 6
+          },
+          {
+            "a": "g1",
+            "b": "ib",
+            "dir": "to",
+            "from": 6
+          }
+        ],
+        "steps": [
+          {
+            "title": "A name points to an object",
+            "tag": "technique",
+            "body": [
+              "When you write a = [1, 2, 3], Python builds a list object in memory and ties the name a to it. The name is not the box. It is a label that says where the box is.",
+              "That label is a reference, and other languages call the same idea a pointer. Everything in this lesson follows from it."
+            ],
+            "short": "Names",
+            "hud": [
+              {
+                "k": "Names",
+                "v": "labels, not boxes",
+                "tone": "good"
+              },
+              {
+                "k": "Objects",
+                "v": "live elsewhere"
+              }
+            ],
+            "set": {
+              "na": {
+                "pill": {
+                  "text": "name",
+                  "tone": "orange",
+                  "icon": "link"
+                }
+              },
+              "o1": {
+                "pill": {
+                  "text": "object",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "na",
+                  "o1"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "a = [1, 2, 3]",
+                "id(a)   # the object's identity"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Two names, one object",
+            "tag": "problem",
+            "body": [
+              "Now write b = a. Python does not copy the list. It adds a second label to the same object.",
+              "So a is b is True: they have the same identity. The data exists once."
+            ],
+            "short": "Alias",
+            "hud": [
+              {
+                "k": "a is b",
+                "v": "True",
+                "tone": "warn"
+              },
+              {
+                "k": "Copies of the data",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "nb": {
+                "pill": {
+                  "text": "alias of a",
+                  "tone": "purple",
+                  "icon": "copy"
+                }
+              },
+              "o1": {
+                "pill": {
+                  "text": "one object, two names",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "nb",
+                  "o1"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "a = [1, 2, 3]",
+                "b = a",
+                "a is b   # True"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            },
+            "predict": {
+              "question": "After b.append(4), what does print(a) show?",
+              "options": [
+                "[1, 2, 3]",
+                "[1, 2, 3, 4]",
+                "An error"
+              ],
+              "answer": 1,
+              "why": "append changes the one shared object. Both names see the change, because there is only one list."
+            }
+          },
+          {
+            "title": "Changing the object is seen through every name",
+            "tag": "problem",
+            "body": [
+              "append, sort, pop and item assignment change the object itself. This is mutation.",
+              "Any name that points to that object sees the new contents. That is why aliasing causes bugs when you did not mean to share."
+            ],
+            "short": "Mutation",
+            "hud": [
+              {
+                "k": "a",
+                "v": "[1, 2, 3, 4]",
+                "tone": "warn"
+              },
+              {
+                "k": "b",
+                "v": "[1, 2, 3, 4]",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "o1": {
+                "label": "[1, 2, 3, 4]",
+                "tone": "orange",
+                "pill": {
+                  "text": "mutated in place",
+                  "tone": "orange",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "nb",
+                  "o1"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "b.append(4)",
+                "print(a)   # [1, 2, 3, 4]"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Rebinding moves a label, it changes nothing else",
+            "tag": "technique",
+            "body": [
+              "b = [9] is not mutation. It builds a new list and moves the label b onto it. The old list and the name a are untouched.",
+              "Rule: an assignment to a bare name only moves that name. A method call or an item assignment changes the object."
+            ],
+            "short": "Rebind",
+            "hud": [
+              {
+                "k": "a",
+                "v": "[1, 2, 3, 4]",
+                "tone": "good"
+              },
+              {
+                "k": "b",
+                "v": "[9]",
+                "tone": "good"
+              },
+              {
+                "k": "a is b",
+                "v": "False",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "o1": {
+                "tone": "blue",
+                "pill": null
+              },
+              "o2": {
+                "pill": {
+                  "text": "new object",
+                  "tone": "green",
+                  "icon": "box"
+                }
+              },
+              "nb": {
+                "pill": {
+                  "text": "moved",
+                  "tone": "purple",
+                  "icon": "repeat"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "nb",
+                  "o2"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "b = [9]      # rebinding",
+                "a is b       # False"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "A function argument is one more label",
+            "tag": "technique",
+            "body": [
+              "Calling f(a) gives the function its own name x for the same object. Python passes arguments by assignment, so this is x = a.",
+              "If f mutates x, the caller sees it. If f only rebinds x, the caller sees nothing. Returning a new value is usually the clearest design."
+            ],
+            "short": "Arguments",
+            "hud": [
+              {
+                "k": "x.append(5)",
+                "v": "caller sees it",
+                "tone": "warn"
+              },
+              {
+                "k": "x = [] inside f",
+                "v": "caller does not",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "nx": {
+                "pill": {
+                  "text": "x = a",
+                  "tone": "teal",
+                  "icon": "link"
+                }
+              },
+              "o1": {
+                "label": "[1, 2, 3, 4]",
+                "pill": {
+                  "text": "shared with the caller",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "nx",
+                  "o1"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def add(x):",
+                "    x.append(5)   # mutates the caller's list",
+                "def reset(x):",
+                "    x = []        # only moves the local name"
+              ],
+              "hl": [
+                1,
+                3
+              ]
+            },
+            "predict": {
+              "question": "A function runs x = [] on its parameter. Does the caller's list change?",
+              "options": [
+                "Yes, it becomes empty",
+                "No, only the local name moved"
+              ],
+              "answer": 1,
+              "why": "x = [] rebinds the local name to a new empty list. The caller's name still points to the old object."
+            }
+          },
+          {
+            "title": "The trap in [[0] * 2] * 2",
+            "tag": "problem",
+            "body": [
+              "[0, 0] * 2 repeats the inner list reference, it does not copy the list. Both slots of the outer list point to the same inner row.",
+              "Setting grid[0][0] = 1 then shows 1 in both rows. This is the classic grid bug."
+            ],
+            "short": "Shared rows",
+            "hud": [
+              {
+                "k": "Rows in memory",
+                "v": "1",
+                "tone": "bad"
+              },
+              {
+                "k": "grid[0][0] = 1",
+                "v": "changes both rows",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "g0": {
+                "pill": {
+                  "text": "row 0",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              },
+              "g1": {
+                "pill": {
+                  "text": "row 1",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              },
+              "in": {
+                "pill": {
+                  "text": "one shared row",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g0",
+                  "in"
+                ],
+                "kind": "fail"
+              },
+              {
+                "path": [
+                  "g1",
+                  "in"
+                ],
+                "kind": "fail"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "grid = [[0, 0]] * 2      # wrong",
+                "grid[0][0] = 1",
+                "# [[1, 0], [1, 0]]"
+              ],
+              "hl": [
+                0,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Build each row on its own",
+            "tag": "solution",
+            "body": [
+              "A list comprehension runs [0, 0] once per row, so every row is a separate object: [[0, 0] for _ in range(2)].",
+              "copy.copy makes a shallow copy: a new outer list that still shares the inner objects. copy.deepcopy copies the inner objects too."
+            ],
+            "short": "Fix it",
+            "hud": [
+              {
+                "k": "Rows in memory",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "grid[0][0] = 1",
+                "v": "changes one row",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "ia": {
+                "pill": {
+                  "text": "own row",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "ib": {
+                "pill": {
+                  "text": "own row",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g0",
+                  "ia"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "g1",
+                  "ib"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "grid = [[0, 0] for _ in range(2)]",
+                "grid[0][0] = 1",
+                "# [[1, 0], [0, 0]]"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Names are labels. Assignment adds or moves a label and never copies. Mutation changes the object, so every name sees it.",
+              "Linked lists, trees and graphs in the next lessons are all objects that hold references to other objects, so this picture is the base for them."
+            ],
+            "short": "Recap",
+            "hud": [
+              {
+                "k": "Assignment",
+                "v": "adds a label",
+                "tone": "good"
+              },
+              {
+                "k": "Mutation",
+                "v": "changes the object",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "ia": {
+                "pill": null
+              },
+              "ib": {
+                "pill": null
+              },
+              "g0": {
+                "pill": null
+              },
+              "g1": {
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 a name is a label, not a box",
+                "2 b = a never copies",
+                "3 mutate = everyone sees it",
+                "4 rebind = only that name moves",
+                "5 nested data: copy.deepcopy or rebuild"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A variable is a sticky label on a box, not the box itself.",
+      "story": "Think of a box in a storeroom and sticky labels. You write a on one label and stick it on a box. Writing b = a sticks a second label on the same box. Open the box through either label and you see the same things. If someone adds a toy, both labels show it. Making b = [9] moves label b to a new box, and the first box stays where it was.",
+      "maps": [
+        [
+          "The box",
+          "The object in memory"
+        ],
+        [
+          "A sticky label",
+          "A variable name"
+        ],
+        [
+          "Two labels on one box",
+          "Two names for the same object"
+        ],
+        [
+          "A photocopy of the contents",
+          "A copy of the list"
+        ]
+      ],
+      "words": [
+        [
+          "reference",
+          "A label that says where an object lives. It is not the object."
+        ],
+        [
+          "mutable",
+          "Able to change in place, like a list."
+        ],
+        [
+          "alias",
+          "A second name for the same object."
+        ],
+        [
+          "shallow copy",
+          "A new outer container that still shares the items inside."
+        ],
+        [
+          "identity",
+          "Which exact object it is, like an address."
+        ]
+      ]
+    }
   }
 ]
