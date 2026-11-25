@@ -101684,5 +101684,1430 @@
         ]
       ]
     }
+  },
+  {
+    "id": "pattern-matching",
+    "n": 146,
+    "level": 14,
+    "week": "Core",
+    "title": "Pattern Matching in Strings: Naive Search and Rabin-Karp",
+    "tagline": "Find a pattern inside a text by trying each alignment, then speed it up by comparing cheap fingerprints first.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "String matching asks where a short pattern of length m occurs inside a longer text of length n. A match at index i means the m letters of the text starting at i equal the pattern. There are n - m + 1 places the pattern can sit, called alignments, and every algorithm in this family decides how cleverly to skip work across them.",
+      "## Naive search",
+      "Try every alignment. At each one, compare the pattern with the text letter by letter, and stop at the first mismatch. A match is found if all m letters agree. At most m comparisons happen per alignment, so the worst case is O(n x m). That worst case needs a nasty input, such as the text AAAAAAAAAA and the pattern AAAB, where almost every alignment matches until the last letter. On ordinary text a mismatch usually comes at the very first letter, so the average is close to linear. The Wikipedia comparison table gives naive search as O(m x n) worst case.",
+      "## Rabin-Karp: compare fingerprints first",
+      "Give every window of m letters a number called a hash, and compute the pattern's hash once. At each alignment compare the hashes. If they differ, the strings differ, so skip the alignment with no letter comparisons. If they match, compare the letters to confirm, because two different strings can share a hash, which is a collision.",
+      "- The cost of hashing each window from scratch would be O(m), no better than naive search.\n- A rolling hash fixes this. Sliding one place removes the leaving letter and adds the entering letter, so the new hash comes from the old one in O(1).\n- A common choice is a polynomial hash modulo a large prime: new = ((old - leaving x base^(m-1)) x base + entering) mod prime.",
+      "With a good hash, Rabin-Karp runs in O(n + m) on average. Its worst case is still O(n x m), because an adversary can force many collisions. The Wikipedia table lists Rabin-Karp with linear average matching, an O(mn) worst case and constant extra space.",
+      "> A worked example: use the toy hash A = 1, B = 2, C = 3 on ABABC (hash 9). Window ABABA has hash 7 and BABAB has hash 8, so both are skipped. Window ABABC has hash 9 and the letters confirm a match at index 2. The next window BABCA also has hash 9, but its letters differ, so the check rejects it. The toy hash is weak on purpose, to show why verification is needed.",
+      "## Searching for many patterns",
+      "Rabin-Karp shines when you look for many patterns of the same length: keep their hashes in a set and test each window against it. For many patterns of any length, the Aho-Corasick algorithm is the classic answer.",
+      "## What Python does",
+      "p in s and s.find(p) are built in, and the CPython time-complexity table lists substring search as O(n), using a two-way algorithm with a linear worst case. Use them in real code. In an interview, you are usually asked to write the search yourself, so know naive search cold and be able to explain Rabin-Karp and KMP.",
+      "## How to talk through it",
+      "State n and m, say how many alignments there are, and give the naive cost. Then say how a hash or a failure table avoids repeated work. Test an empty pattern, a pattern longer than the text, and a text where the pattern appears twice with overlap."
+    ],
+    "keyPoints": [
+      "There are n - m + 1 alignments. Naive search is O(m x n) in the worst case.",
+      "Rabin-Karp compares hashes first and verifies letters only on equal hashes.",
+      "A rolling hash updates in O(1): drop the leaving letter, add the entering letter.",
+      "Different strings can share a hash (a collision), so always verify. Average O(n), worst case O(m x n).",
+      "In real code use p in s or s.find(p). KMP guarantees O(n + m)."
+    ],
+    "sql": [
+      {
+        "title": "Naive search: every index where the pattern occurs",
+        "lang": "py",
+        "code": "def naive_search(text, pattern):\n    n, m = len(text), len(pattern)\n    found = []\n    for i in range(n - m + 1):\n        j = 0\n        while j < m and text[i + j] == pattern[j]:\n            j += 1\n        if j == m:\n            found.append(i)\n    return found\n\nassert naive_search(\"ABABABCAB\", \"ABABC\") == [2]\nassert naive_search(\"AAAA\", \"AA\") == [0, 1, 2]\nassert naive_search(\"abc\", \"d\") == []\nassert naive_search(\"abc\", \"abcd\") == []"
+      },
+      {
+        "title": "Rabin-Karp with a rolling hash",
+        "lang": "py",
+        "code": "def rabin_karp(text, pattern, base=256, mod=1_000_000_007):\n    n, m = len(text), len(pattern)\n    if m == 0 or m > n:\n        return []\n    high = pow(base, m - 1, mod)                  # weight of the leaving letter\n    p_hash = t_hash = 0\n    for i in range(m):\n        p_hash = (p_hash * base + ord(pattern[i])) % mod\n        t_hash = (t_hash * base + ord(text[i])) % mod\n    found = []\n    for i in range(n - m + 1):\n        if p_hash == t_hash and text[i:i + m] == pattern:     # verify: hashes can collide\n            found.append(i)\n        if i < n - m:\n            t_hash = ((t_hash - ord(text[i]) * high) * base + ord(text[i + m])) % mod\n    return found\n\nassert rabin_karp(\"ABABABCAB\", \"ABABC\") == [2]\nassert rabin_karp(\"AAAA\", \"AA\") == [0, 1, 2]\nassert rabin_karp(\"abc\", \"abcd\") == []\nassert rabin_karp(\"abc\", \"\") == []"
+      },
+      {
+        "title": "Check both against the built-in search",
+        "lang": "py",
+        "code": "import random\n\ndef all_find(text, pattern):\n    out, i = [], text.find(pattern)\n    while i != -1:\n        out.append(i)\n        i = text.find(pattern, i + 1)\n    return out\n\ndef naive(text, pattern):\n    return [i for i in range(len(text) - len(pattern) + 1) if text[i:i + len(pattern)] == pattern]\n\nrandom.seed(3)\nfor _ in range(200):\n    text = \"\".join(random.choice(\"AB\") for _ in range(random.randint(1, 20)))\n    pattern = \"\".join(random.choice(\"AB\") for _ in range(random.randint(1, 4)))\n    assert naive(text, pattern) == all_find(text, pattern)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write naive_search and rabin_karp, then test both against str.find on 500 random strings over a two-letter alphabet. Count how many times rabin_karp has to verify letters, and compare that with a tiny modulus such as 7 to see collisions rise. Finally, write a function that finds the first index of the pattern, or -1, like str.find.",
+    "pitfalls": [
+      "Looping to n instead of n - m + 1, so the slice runs off the end of the text.",
+      "Trusting a hash match without checking the letters. Collisions are normal.",
+      "Recomputing each window's hash from scratch, which brings the cost back to O(m x n).",
+      "Letting the rolling hash go negative. Take the modulus after the subtraction.",
+      "Forgetting overlapping matches, such as AA in AAAA, which occurs at 0, 1 and 2."
+    ],
+    "interview": [
+      {
+        "q": "What is the time complexity of naive string search?",
+        "a": "O(m x n) in the worst case, where n is the text length and m is the pattern length, because each of the n - m + 1 alignments may compare up to m letters. On typical text it is close to linear."
+      },
+      {
+        "q": "How does Rabin-Karp work?",
+        "a": "It computes a hash of the pattern and a rolling hash of every window of the text. If the hashes differ, the window cannot match. If they are equal, it compares the letters, since a collision is possible. The rolling hash updates in O(1) per step."
+      },
+      {
+        "q": "Why do you still compare letters when the hashes match?",
+        "a": "Two different strings can have the same hash. Verifying keeps the answer correct. Collisions only cost time, never correctness."
+      },
+      {
+        "q": "When would you pick Rabin-Karp over KMP?",
+        "a": "When you search for many patterns of the same length at once, or when a simple hash set check is enough. KMP is better when you need a guaranteed O(n + m) for one pattern."
+      }
+    ],
+    "references": [
+      {
+        "title": "String-searching algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/String-searching_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: substring search is a standard interview topic and the base for the KMP lesson. The complexities of naive search and Rabin-Karp, and the note on built-in search, come from the two pages cited, which I read. The toy hash, the polynomial hash formula and the walkthrough are my judgment and general knowledge. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-string-searching",
+      "py-time-complexity",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "pmatch",
+        "title": "Pattern matching, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "merge or update"
+          },
+          {
+            "kind": "fail",
+            "label": "mismatch"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Naive search",
+            "at": 1
+          },
+          {
+            "text": "Worst case",
+            "at": 4
+          },
+          {
+            "text": "Rabin-Karp",
+            "at": 5
+          },
+          {
+            "text": "Collisions",
+            "at": 7
+          },
+          {
+            "text": "Compare",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "t0",
+            "kind": "cube",
+            "x": -4.5,
+            "y": 3.1,
+            "label": "A",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t1",
+            "kind": "cube",
+            "x": -3.55,
+            "y": 2.15,
+            "label": "B",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t2",
+            "kind": "cube",
+            "x": -2.6,
+            "y": 1.2,
+            "label": "A",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t3",
+            "kind": "cube",
+            "x": -1.65,
+            "y": 0.25,
+            "label": "B",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t4",
+            "kind": "cube",
+            "x": -0.7,
+            "y": -0.7,
+            "label": "A",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t5",
+            "kind": "cube",
+            "x": 0.25,
+            "y": -1.65,
+            "label": "B",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t6",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -2.6,
+            "label": "C",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t7",
+            "kind": "cube",
+            "x": 2.15,
+            "y": -3.55,
+            "label": "A",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "t8",
+            "kind": "cube",
+            "x": 3.1,
+            "y": -4.5,
+            "label": "B",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "p0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 4.6,
+            "label": "A",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "p1",
+            "kind": "cube",
+            "x": -2.05,
+            "y": 3.65,
+            "label": "B",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "p2",
+            "kind": "cube",
+            "x": -1.1,
+            "y": 2.7,
+            "label": "A",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "p3",
+            "kind": "cube",
+            "x": -0.15,
+            "y": 1.75,
+            "label": "B",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "p4",
+            "kind": "cube",
+            "x": 0.8,
+            "y": 0.8,
+            "label": "C",
+            "icon": "cell",
+            "tone": "purple"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: find a pattern inside a text",
+            "tag": "technique",
+            "body": [
+              "Find where the pattern ABABC occurs in the text ABABABCAB. A match means every letter of the pattern equals the text letter under it.",
+              "There are n - m + 1 places to try, where n is the length of the text and m is the length of the pattern. These places are called alignments."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Text length n",
+                "v": "9"
+              },
+              {
+                "k": "Pattern length m",
+                "v": "5"
+              },
+              {
+                "k": "Alignments",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -3.0,
+                "y": 4.6,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Naive search, alignment 0: four letters match, then fail",
+            "tag": "problem",
+            "body": [
+              "Place the pattern at the start and compare letter by letter. A, B, A, B all match, but the fifth text letter is A and the pattern needs C.",
+              "A mismatch ends this alignment. We have spent 5 comparisons on it."
+            ],
+            "short": "Alignment 0",
+            "hud": [
+              {
+                "k": "Comparisons so far",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "red",
+                "pill": {
+                  "text": "mismatch",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "hot"
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -3.0,
+                "y": 4.6,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "red",
+                "pill": null,
+                "status": "hot"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "p0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "t3",
+                  "p3"
+                ],
+                "kind": "request",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Alignment 1: it fails at once",
+            "tag": "problem",
+            "body": [
+              "Slide the pattern one place right. The text letter B differs from the pattern's A at the very first comparison, so this alignment costs 1 comparison.",
+              "The naive method always slides by exactly one place, however much it already learned."
+            ],
+            "short": "Alignment 1",
+            "hud": [
+              {
+                "k": "Comparisons so far",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "red",
+                "pill": {
+                  "text": "mismatch",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "hot"
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "red",
+                "pill": null,
+                "status": "hot"
+              },
+              "p1": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The pattern is now one place further right. Where do you think the next full match will start?",
+              "options": [
+                "Alignment 2",
+                "Alignment 3",
+                "No match exists"
+              ],
+              "answer": 0,
+              "why": "Starting at text index 2 the letters read A B A B C, which is exactly the pattern."
+            }
+          },
+          {
+            "title": "Alignment 2: all five letters match",
+            "tag": "solution",
+            "body": [
+              "At text index 2 the text reads ABABC, the same as the pattern. All five comparisons succeed, so we report a match at index 2.",
+              "The naive method uses at most m comparisons per alignment, so it can cost up to n x m in the worst case."
+            ],
+            "short": "Match",
+            "hud": [
+              {
+                "k": "Match at index",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "Comparisons",
+                "v": "11"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 2.7,
+                "y": -1.1,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t2",
+                  "t3",
+                  "t4",
+                  "t5",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The worst case for naive search",
+            "tag": "problem",
+            "body": [
+              "Search for AAAB in AAAAAAAAAA. At every alignment the first three letters match, and the last one fails. That is about m comparisons at each of n alignments: O(n x m).",
+              "In practice the average case is close to linear, but a bad input shows the weakness."
+            ],
+            "short": "Worst case",
+            "hud": [
+              {
+                "k": "Naive worst case",
+                "v": "O(m x n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Naive average",
+                "v": "about O(n + m)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -3.0,
+                "y": 4.6,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Naive",
+              "lines": [
+                "for i in range(n - m + 1):",
+                "    if text[i:i + m] == pattern: found",
+                "# up to m letters compared each time"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Rabin-Karp: compare a fingerprint before the letters",
+            "tag": "technique",
+            "body": [
+              "Give every window of m letters a number, called a hash. Compute the pattern's hash once. For each window, compare hashes first, and only compare letters when the hashes agree.",
+              "Here the toy hash is the sum of the letter values (A = 1, B = 2, C = 3). The pattern ABABC has hash 9. Windows 0 and 1 have hashes 7 and 8, so they are skipped without looking at a letter."
+            ],
+            "short": "Fingerprint",
+            "hud": [
+              {
+                "k": "Pattern hash",
+                "v": "9"
+              },
+              {
+                "k": "Window 0",
+                "v": "7: skip"
+              },
+              {
+                "k": "Window 1",
+                "v": "8: skip"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "window hash 7",
+                  "tone": "orange",
+                  "icon": "hash"
+                },
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -3.0,
+                "y": 4.6,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The hash can be updated in O(1)",
+            "tag": "solution",
+            "body": [
+              "Sliding the window one place removes one letter from the left and adds one on the right. For the sum hash, the new hash is the old hash minus the leaving letter plus the entering letter: 7 - 1 + 2 = 8.",
+              "Real implementations use a polynomial rolling hash with a large prime modulus, which updates in O(1) the same way and rarely gives the same number for different strings."
+            ],
+            "short": "Rolling hash",
+            "hud": [
+              {
+                "k": "Update",
+                "v": "hash - old + new"
+              },
+              {
+                "k": "Cost",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "leaves: -A",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": {
+                  "text": "window hash 8",
+                  "tone": "orange",
+                  "icon": "hash"
+                },
+                "status": null
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": {
+                  "text": "enters: +B",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -2.05,
+                "y": 3.65,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Equal hashes must be checked: collisions happen",
+            "tag": "insight",
+            "body": [
+              "Window 2 has hash 9, equal to the pattern's, so we compare letters and confirm a true match. But window 3, BABCA, also has hash 9, though its letters differ. That is a collision, and only the letter check exposes it.",
+              "A collision costs a wasted check but never a wrong answer, because we always verify."
+            ],
+            "short": "Collision",
+            "hud": [
+              {
+                "k": "Hash equal",
+                "v": "must verify",
+                "tone": "warn"
+              },
+              {
+                "k": "False alarm",
+                "v": "window 3"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "red",
+                "pill": {
+                  "text": "hash 9: equal, but letters differ",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "t4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "red",
+                "pill": null,
+                "status": "hot"
+              },
+              "p1": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 2.7,
+                "y": -1.1,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 3.65,
+                "y": -2.05,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Compare the methods",
+            "tag": "insight",
+            "body": [
+              "Naive: no preparation, O(n x m) in the worst case. Rabin-Karp: O(n) on average with a good hash and O(n x m) in the worst case, and it extends well to searching for many patterns at once.",
+              "Knuth-Morris-Pratt, the next lesson, never re-reads the text and guarantees O(n + m) even in the worst case."
+            ],
+            "short": "Compare",
+            "hud": [
+              {
+                "k": "Naive",
+                "v": "O(m x n) worst",
+                "tone": "bad"
+              },
+              {
+                "k": "Rabin-Karp",
+                "v": "O(n) avg, O(m x n) worst",
+                "tone": "warn"
+              },
+              {
+                "k": "KMP",
+                "v": "O(n + m) always",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 2.7,
+                "y": -1.1,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "String matching tries each alignment. Naive search compares letters directly. Rabin-Karp compares cheap hashes first and verifies on equality.",
+              "In Python, use s.find(p) or p in s for real work. CPython uses a two-way search algorithm whose worst case is linear, so you rarely write your own outside interviews."
+            ],
+            "short": "Recap",
+            "set": {
+              "t0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t5": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "t7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "t8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p0": {
+                "x": -1.1,
+                "y": 2.7,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "x": -0.15,
+                "y": 1.75,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "x": 0.8,
+                "y": 0.8,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "x": 1.75,
+                "y": -0.15,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p4": {
+                "x": 2.7,
+                "y": -1.1,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 alignments = n - m + 1",
+                "2 naive: O(m x n) worst case",
+                "3 Rabin-Karp: hash, then verify",
+                "4 always handle collisions",
+                "5 library search first"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Pattern matching is like sliding a word-shaped stencil along a line of letters until it fits.",
+      "story": "Imagine a paper stencil with five letter-shaped holes. You lay it over a line of printed letters and check whether every hole shows the right letter. If not, you slide it one place and try again. A faster way is to give every stretch of five letters a quick fingerprint, and only look closely when the fingerprint matches the stencil's.",
+      "maps": [
+        [
+          "The stencil",
+          "The pattern"
+        ],
+        [
+          "The printed line",
+          "The text"
+        ],
+        [
+          "Sliding one place",
+          "Trying the next alignment"
+        ],
+        [
+          "The quick fingerprint",
+          "A hash of the window"
+        ]
+      ],
+      "words": [
+        [
+          "pattern",
+          "The short string you are looking for."
+        ],
+        [
+          "text",
+          "The long string you search inside."
+        ],
+        [
+          "alignment",
+          "One position where the pattern is laid over the text."
+        ],
+        [
+          "hash",
+          "A number made from a string, used as a quick fingerprint."
+        ],
+        [
+          "collision",
+          "Two different strings that give the same hash."
+        ]
+      ]
+    }
   }
 ]
