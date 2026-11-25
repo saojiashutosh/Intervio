@@ -109348,5 +109348,1209 @@
         ]
       ]
     }
+  },
+  {
+    "id": "merge-sorted-lists",
+    "n": 153,
+    "level": 14,
+    "week": "Core",
+    "title": "Merging Sorted Lists: Two Lists, k Lists and Sorting a List",
+    "tagline": "Relink nodes with a dummy head and a tail pointer, then scale the merge up with a heap and with merge sort.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Merging two sorted linked lists produces one sorted list that holds all their nodes. It is the combine step of merge sort, and it shows up on its own very often in interviews. The nodes are relinked, not copied, so it needs no new nodes beyond a dummy head.",
+      "## The two-list merge",
+      "Make a dummy node and a tail pointer that starts on it. While both lists have nodes, compare the two heads. Attach the smaller node after the tail, move the tail onto it and advance the list that supplied it. When one list runs out, attach the other list in one assignment, because it is already sorted. Return dummy.next.",
+      "- Time: O(n + m), since every node is taken once.\n- Extra space: O(1), because only pointers change.\n- The dummy node means the first merged node needs no special case.",
+      "## Stability",
+      "A merge is stable when equal items keep their original order. Take the node from the first list when the two heads are equal, that is, use <=. The Wikipedia article on merge sort says most implementations are stable and describes taking the left run when the values are equal.",
+      "> A worked example: A = 1, 4, 7 and B = 2, 3, 9. Compare 1 and 2, take 1. Compare 4 and 2, take 2. Compare 4 and 3, take 3. Compare 4 and 9, take 4. Compare 7 and 9, take 7. List A is empty, so attach 9. The result is 1, 2, 3, 4, 7, 9.",
+      "## Merging k sorted lists",
+      "Merging them one after another costs too much, because early nodes are touched again and again. Better is to keep a min-heap that holds the current head of each list. Pop the smallest, attach it, then push that list's next node. With N nodes in total and k lists, each node enters and leaves a heap of size at most k, so the time is O(N log k) and the extra space is O(k). In the heap, store (value, list index, node) so ties never compare two nodes. Another way is to merge the lists in pairs, round after round, which is also O(N log k).",
+      "Python's heapq.merge takes several sorted inputs and returns an iterator over the merged values. It does not read all the data into memory at once, so it suits big sorted streams.",
+      "## Sorting a linked list",
+      "Merge sort is a natural choice for a linked list. Find the middle with slow and fast pointers, cut the list in two, sort each half recursively, and merge. The time is O(n log n). The Wikipedia article gives the auxiliary space of merge sort as O(1) with linked lists for the bottom-up version, and the top-down version used here needs only the O(log n) call stack. Quicksort is awkward on lists because it needs random access.",
+      "## Mistakes to avoid",
+      "Forgetting to attach the leftover list. Comparing the nodes themselves in a heap, which fails on ties. Losing the dummy head and returning the wrong start. Cutting the list in the wrong place when sorting, which can loop forever on a two-node list.",
+      "## How to talk through it",
+      "Say the loop invariant: everything before the tail is merged and sorted, and is no larger than anything still in either list. Then test one empty list, both empty, lists of different lengths and equal values."
+    ],
+    "keyPoints": [
+      "Dummy head and tail pointer. Take the smaller head, advance that list, move the tail. Attach the leftover list in one step.",
+      "O(n + m) time and O(1) extra space. Take from the first list on ties to keep it stable.",
+      "k lists: a min-heap of heads gives O(N log k). Store (value, index, node) so ties never compare nodes.",
+      "heapq.merge merges sorted iterables lazily without loading everything into memory.",
+      "Sort a linked list with merge sort: split with slow and fast pointers, sort halves, merge. O(n log n)."
+    ],
+    "sql": [
+      {
+        "title": "Merge two sorted lists",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef merge_two(a, b, key=lambda v: v):\n    dummy = tail = Node(None)\n    while a and b:\n        if key(a.val) <= key(b.val):          # <= takes from a on ties: stable\n            tail.next, a = a, a.next\n        else:\n            tail.next, b = b, b.next\n        tail = tail.next\n    tail.next = a or b                         # attach the leftover list in one step\n    return dummy.next\n\nassert to_list(merge_two(build([1, 4, 7]), build([2, 3, 9]))) == [1, 2, 3, 4, 7, 9]\nassert to_list(merge_two(None, build([1, 2]))) == [1, 2]\nassert to_list(merge_two(build([1]), None)) == [1]\nassert merge_two(None, None) is None\nstable = merge_two(build([(1, \"a1\"), (2, \"a2\")]), build([(1, \"b1\")]), key=lambda p: p[0])\nassert to_list(stable) == [(1, \"a1\"), (1, \"b1\"), (2, \"a2\")]"
+      },
+      {
+        "title": "Merge k sorted lists",
+        "lang": "py",
+        "code": "import heapq\n\nclass Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef merge_k(lists):\n    heap = [(l.val, i, l) for i, l in enumerate(lists) if l]\n    heapq.heapify(heap)\n    dummy = tail = Node(None)\n    while heap:\n        val, i, node = heapq.heappop(heap)\n        tail.next = node\n        tail = node\n        if node.next:\n            heapq.heappush(heap, (node.next.val, i, node.next))\n    return dummy.next\n\nassert to_list(merge_k([build([1, 4, 5]), build([1, 3, 4]), build([2, 6])])) == [1, 1, 2, 3, 4, 4, 5, 6]\nassert merge_k([]) is None and merge_k([None, None]) is None\nassert to_list(merge_k([None, build([3])])) == [3]\nassert list(heapq.merge([1, 4, 7], [2, 3, 9])) == [1, 2, 3, 4, 7, 9]"
+      },
+      {
+        "title": "Sort a linked list with merge sort",
+        "lang": "py",
+        "code": "import random\n\nclass Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef merge_two(a, b):\n    dummy = tail = Node(None)\n    while a and b:\n        if a.val <= b.val:\n            tail.next, a = a, a.next\n        else:\n            tail.next, b = b, b.next\n        tail = tail.next\n    tail.next = a or b\n    return dummy.next\n\ndef sort_list(head):\n    if head is None or head.next is None:\n        return head\n    slow, fast = head, head.next               # slow ends on the first middle node\n    while fast and fast.next:\n        slow, fast = slow.next, fast.next.next\n    second, slow.next = slow.next, None        # cut the list in two\n    return merge_two(sort_list(head), sort_list(second))\n\nassert to_list(sort_list(build([4, 2, 1, 3]))) == [1, 2, 3, 4]\nassert to_list(sort_list(build([-1, 5, 3, 4, 0]))) == [-1, 0, 3, 4, 5]\nassert sort_list(None) is None\nrandom.seed(2)\nfor _ in range(100):\n    data = [random.randint(-9, 9) for _ in range(random.randint(0, 15))]\n    assert to_list(sort_list(build(data))) == sorted(data)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write merge_two, merge_k with a heap and sort_list. Test merge_two with an empty list, equal values and lists of different lengths, and check stability with tagged values. Then write merge_k again by merging the lists in pairs, round after round, and compare both versions on random inputs. Say which one uses less extra memory.",
+    "pitfalls": [
+      "Forgetting tail.next = a or b, so the leftover nodes are lost.",
+      "Using a plain (value, node) tuple in the heap. When two values tie, Python tries to compare two nodes and raises a TypeError.",
+      "Returning dummy instead of dummy.next.",
+      "Using < instead of <= and breaking stability.",
+      "When sorting, cutting at the wrong middle so a two-node list never shrinks and the recursion never ends."
+    ],
+    "interview": [
+      {
+        "q": "How do you merge two sorted linked lists?",
+        "a": "Use a dummy head and a tail pointer. While both lists have nodes, attach the smaller head after the tail and advance that list and the tail. Then attach whatever list remains and return dummy.next. It is O(n + m) time and O(1) space."
+      },
+      {
+        "q": "How do you merge k sorted lists efficiently?",
+        "a": "Keep a min-heap with the current head of each list. Repeatedly pop the smallest, attach it, and push its next node. With N nodes in total it takes O(N log k) time and O(k) extra space."
+      },
+      {
+        "q": "Why is merge sort a good fit for linked lists?",
+        "a": "It reads data in order and only relinks nodes, so it needs no random access and only O(1) auxiliary space for the merging. The recursion adds O(log n) stack space."
+      },
+      {
+        "q": "What makes a merge stable?",
+        "a": "Taking the item from the first list when the two heads are equal, so equal items keep the order they had in the input."
+      }
+    ],
+    "references": [
+      {
+        "title": "Merge sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Merge_sort",
+        "kind": "Reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Linked list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Linked_list",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: merging sorted lists and sorting a linked list are standard coding-round questions. Merge sort's stability, its complexity and its O(1) auxiliary space with linked lists come from the Wikipedia article cited, which I read in part, and the behaviour of heapq.merge comes from the Python heapq page, which I read in full. The dummy-and-tail loop, the k-way heap merge and the interview advice are standard techniques that I present from general knowledge and my own judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-merge-sort",
+      "py-heapq",
+      "wikipedia-linked-list",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "mergelists",
+        "title": "Merging sorted lists, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or walk"
+          },
+          {
+            "kind": "write",
+            "label": "pointer change"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Dummy and tail",
+            "at": 1
+          },
+          {
+            "text": "Take the smaller head",
+            "at": 2
+          },
+          {
+            "text": "Attach the rest",
+            "at": 7
+          },
+          {
+            "text": "k lists",
+            "at": 9
+          },
+          {
+            "text": "Sort a list",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.2,
+            "y": 0.4,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -1.4,
+            "y": -1.4,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": 0.4,
+            "y": -3.2,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -0.4,
+            "y": 3.2,
+            "label": "2",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": 1.4,
+            "y": 1.4,
+            "label": "3",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": 3.2,
+            "y": -0.4,
+            "label": "9",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "dm",
+            "kind": "cube",
+            "x": -3.85,
+            "y": 3.85,
+            "label": "dummy",
+            "icon": "flag",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "m0",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 2.75,
+            "label": "1",
+            "icon": "cell",
+            "tone": "green",
+            "from": 2
+          },
+          {
+            "id": "m1",
+            "kind": "cube",
+            "x": -1.65,
+            "y": 1.65,
+            "label": "2",
+            "icon": "cell",
+            "tone": "green",
+            "from": 3
+          },
+          {
+            "id": "m2",
+            "kind": "cube",
+            "x": -0.55,
+            "y": 0.55,
+            "label": "3",
+            "icon": "cell",
+            "tone": "green",
+            "from": 4
+          },
+          {
+            "id": "m3",
+            "kind": "cube",
+            "x": 0.55,
+            "y": -0.55,
+            "label": "4",
+            "icon": "cell",
+            "tone": "green",
+            "from": 5
+          },
+          {
+            "id": "m4",
+            "kind": "cube",
+            "x": 1.65,
+            "y": -1.65,
+            "label": "7",
+            "icon": "cell",
+            "tone": "green",
+            "from": 6
+          },
+          {
+            "id": "m5",
+            "kind": "cube",
+            "x": 2.75,
+            "y": -2.75,
+            "label": "9",
+            "icon": "cell",
+            "tone": "green",
+            "from": 7
+          }
+        ],
+        "links": [
+          {
+            "a": "a0",
+            "b": "a1",
+            "dir": "to"
+          },
+          {
+            "a": "a1",
+            "b": "a2",
+            "dir": "to"
+          },
+          {
+            "a": "b0",
+            "b": "b1",
+            "dir": "to"
+          },
+          {
+            "a": "b1",
+            "b": "b2",
+            "dir": "to"
+          },
+          {
+            "a": "dm",
+            "b": "m0",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "m0",
+            "b": "m1",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "m1",
+            "b": "m2",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "m2",
+            "b": "m3",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "m3",
+            "b": "m4",
+            "dir": "to",
+            "from": 6
+          },
+          {
+            "a": "m4",
+            "b": "m5",
+            "dir": "to",
+            "from": 7
+          }
+        ],
+        "steps": [
+          {
+            "title": "Two sorted lists, one sorted list wanted",
+            "tag": "technique",
+            "body": [
+              "List A holds 1, 4, 7 and list B holds 2, 3, 9. Both are sorted. We want one sorted list that contains every node.",
+              "We will not copy values into a new list. We will relink the nodes we already have, so extra space is O(1)."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "List A",
+                "v": "1 4 7"
+              },
+              {
+                "k": "List B",
+                "v": "2 3 9"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b0": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              },
+              "a1": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b1": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "A dummy head and a tail pointer",
+            "tag": "technique",
+            "body": [
+              "Create a dummy node and a tail pointer that starts on it. The tail always marks the last node of the merged list so far, and the dummy means the first node needs no special case.",
+              "At the end the answer is dummy.next."
+            ],
+            "short": "Dummy and tail",
+            "hud": [
+              {
+                "k": "Merged so far",
+                "v": "empty"
+              },
+              {
+                "k": "Answer",
+                "v": "dummy.next"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b0": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              },
+              "a1": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b1": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              },
+              "dm": {
+                "pill": {
+                  "text": "tail starts here",
+                  "tone": "grey",
+                  "icon": "flag"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "dummy = tail = Node(0)",
+                "# compare heads of a and b",
+                "# attach the smaller to tail.next",
+                "return dummy.next"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Compare 1 and 2: take 1",
+            "tag": "solution",
+            "body": [
+              "Look at the two heads. 1 is smaller than 2, so the node 1 goes next. Attach it after the tail, move the tail onto it, and move A's head forward.",
+              "Only one pointer from each list moves per round, so we never look back."
+            ],
+            "short": "Take 1",
+            "hud": [
+              {
+                "k": "Compared",
+                "v": "1 vs 2"
+              },
+              {
+                "k": "Merged",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              },
+              "a1": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b1": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              },
+              "dm": {
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "b0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "a0",
+                  "m0"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Compare 4 and 2: take 2",
+            "tag": "solution",
+            "body": [
+              "Now the heads are 4 and 2. 2 is smaller, so it comes next from list B.",
+              "The merged list stays sorted because each time we take the smallest remaining item."
+            ],
+            "short": "Take 2",
+            "hud": [
+              {
+                "k": "Compared",
+                "v": "4 vs 2"
+              },
+              {
+                "k": "Merged",
+                "v": "1 2"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b1": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a1",
+                  "b0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "b0",
+                  "m1"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ],
+            "predict": {
+              "question": "The heads are now 4 (list A) and 3 (list B). Which is taken next?",
+              "options": [
+                "4 from A",
+                "3 from B",
+                "Both at once"
+              ],
+              "answer": 1,
+              "why": "3 is smaller than 4, so 3 goes next."
+            }
+          },
+          {
+            "title": "Compare 4 and 3: take 3",
+            "tag": "solution",
+            "body": [
+              "3 is smaller than 4, so B gives up another node. List B has one node left, 9.",
+              "The tail follows along, one node at a time."
+            ],
+            "short": "Take 3",
+            "hud": [
+              {
+                "k": "Compared",
+                "v": "4 vs 3"
+              },
+              {
+                "k": "Merged",
+                "v": "1 2 3"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a1",
+                  "b1"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "b1",
+                  "m2"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Compare 4 and 9: take 4",
+            "tag": "solution",
+            "body": [
+              "Now A's head 4 is smaller than 9, so 4 is taken. List A has one node left, 7.",
+              "If the two values were equal, we would take the one from A first. That keeps equal items in their original order, which makes the merge stable."
+            ],
+            "short": "Take 4",
+            "hud": [
+              {
+                "k": "Compared",
+                "v": "4 vs 9"
+              },
+              {
+                "k": "Merged",
+                "v": "1 2 3 4"
+              },
+              {
+                "k": "Ties",
+                "v": "take A first",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": null,
+                "tone": "blue",
+                "pill": {
+                  "text": "head of A",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a1",
+                  "b2"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "a1",
+                  "m3"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Compare 7 and 9: take 7, and A is empty",
+            "tag": "solution",
+            "body": [
+              "7 is smaller than 9, so 7 is taken. List A is now empty, so the comparing is over.",
+              "The loop runs while both lists still have nodes."
+            ],
+            "short": "Take 7",
+            "hud": [
+              {
+                "k": "Compared",
+                "v": "7 vs 9"
+              },
+              {
+                "k": "Merged",
+                "v": "1 2 3 4 7"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": null,
+                "tone": "purple",
+                "pill": {
+                  "text": "head of B",
+                  "tone": "purple",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a2",
+                  "b2"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "a2",
+                  "m4"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Attach what is left in one move",
+            "tag": "solution",
+            "body": [
+              "List B still has 9. Everything left in a sorted list is already in order and larger than what we merged, so no more comparing is needed. Set tail.next to the rest of B in a single assignment.",
+              "If a long chain remained, it would be attached in O(1), not copied node by node."
+            ],
+            "short": "Attach the rest",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "1 2 3 4 7 9",
+                "tone": "good"
+              },
+              {
+                "k": "Attached",
+                "v": "rest of B in one step"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "m5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The cost",
+            "tag": "insight",
+            "body": [
+              "Every node is taken once, so the time is O(n + m) for lists of n and m nodes. We only moved pointers, so extra space is O(1), plus the dummy node.",
+              "The merge is stable if you take from A on ties. This is the merge step of merge sort, and the Wikipedia article notes that merge sort needs only O(1) auxiliary space with linked lists."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n + m)",
+                "tone": "good"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "yes, with <=",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Many lists: use a min-heap of heads",
+            "tag": "technique",
+            "body": [
+              "To merge k sorted lists, keep a min-heap that holds the current head of every list. Pop the smallest, attach it, and push that list's next node. With N nodes in total, the cost is O(N log k).",
+              "Python's heapq.merge does the same for sorted iterables and does not pull all the data into memory at once."
+            ],
+            "short": "k lists",
+            "hud": [
+              {
+                "k": "Heap size",
+                "v": "k"
+              },
+              {
+                "k": "Time",
+                "v": "O(N log k)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "heap = [(l.val, i, l) for i, l in enumerate(lists) if l]",
+                "heapq.heapify(heap)",
+                "val, i, node = heapq.heappop(heap)",
+                "if node.next: heapq.heappush(heap, (node.next.val, i, node.next))"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Sorting a whole list: merge sort",
+            "tag": "technique",
+            "body": [
+              "To sort an unsorted linked list, split it in the middle with slow and fast pointers, sort each half by recursion, and merge the halves. The time is O(n log n).",
+              "Merge sort suits linked lists because it only reads items in order. Quicksort needs random access, which a list does not have."
+            ],
+            "short": "Sort a list",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Split",
+                "v": "slow and fast pointers"
+              },
+              {
+                "k": "Combine",
+                "v": "the merge above"
+              }
+            ],
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Merging sorted lists is a dummy head, a tail pointer, and a loop that takes the smaller head each time. Attach whatever remains. It is O(n + m) time and O(1) space.",
+              "Scale it up with a heap for k lists, and use it as the combine step of merge sort."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b0": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "a2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              },
+              "b2": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 dummy head and tail",
+                "2 take the smaller head, advance it",
+                "3 attach the leftover list",
+                "4 ties: take from A for stability"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Merging two sorted lists is like two queues of people joining one queue, always letting the shorter person go first.",
+      "story": "Imagine two lines of people already sorted by height. A guard stands at the front of both lines and keeps a new single line growing. Each time, the guard lets the shorter of the two front people join the new line. When one line is empty, the whole of the other line walks straight on, because they are already in order.",
+      "maps": [
+        [
+          "Two lines",
+          "Two sorted lists"
+        ],
+        [
+          "The guard comparing fronts",
+          "Comparing the two heads"
+        ],
+        [
+          "The growing new line",
+          "The merged list and its tail"
+        ],
+        [
+          "A line walking on together",
+          "Attaching the leftover list"
+        ]
+      ],
+      "words": [
+        [
+          "merge",
+          "Combine two sorted lists into one sorted list."
+        ],
+        [
+          "tail pointer",
+          "A reference to the last node of the list built so far."
+        ],
+        [
+          "stable",
+          "Equal items keep the order they had before."
+        ],
+        [
+          "heap",
+          "A structure that always gives you the smallest item quickly."
+        ],
+        [
+          "merge sort",
+          "A sort that splits a list, sorts the halves and merges them."
+        ]
+      ]
+    }
   }
 ]
