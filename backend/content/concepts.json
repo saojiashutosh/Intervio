@@ -100809,5 +100809,880 @@
         ]
       ]
     }
+  },
+  {
+    "id": "merge-intervals",
+    "n": 145,
+    "level": 14,
+    "week": "Core",
+    "title": "Merge Intervals: Sort, Then Sweep",
+    "tagline": "Combine overlapping ranges with one sort and one pass, then reuse the same idea to insert an interval or count meeting rooms.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "An interval is a pair (start, end) that stands for a stretch of time, a range of numbers or a block of positions. Interval questions ask you to merge overlapping ranges, insert a new one, find free gaps or count how many ranges overlap at once. They are very common in interviews, and almost all of them begin the same way: sort the intervals by their start.",
+      "## Why sorting makes it easy",
+      "Once the intervals are sorted by start, every interval that overlaps the current one sits right after it. So you never look back. You keep one current interval and walk forward once. Without sorting, you would compare every pair, which costs O(n squared).",
+      "## The merge sweep",
+      "Put the first interval in the answer list. For each next interval (s, e), compare s with the end of the last interval in the answer.",
+      "- If s <= last end, they overlap. Extend the last interval to end at max(last end, e).\n- If s > last end, there is a gap. Append (s, e) as a new interval.",
+      "The max matters: a later interval can sit entirely inside an earlier long one, such as [1,10] followed by [2,3]. In that case the end must stay 10.",
+      "## Cost",
+      "Sorting is O(n log n) and the sweep is O(n), so the total is O(n log n). The answer uses O(n) extra space. Python's sort is stable and accepts a key function, and a key such as lambda p: p[0] is all you need.",
+      "> A worked example: [[8,10],[1,3],[15,18],[2,6],[9,12]] sorts to [1,3], [2,6], [8,10], [9,12], [15,18]. The first two merge into [1,6]. 8 is after 6, so [8,10] starts a new interval. [9,12] merges into it to give [8,12]. 15 is after 12, so [15,18] stands alone. The answer is [[1,6],[8,12],[15,18]].",
+      "## Touching intervals",
+      "Decide whether [1,3] and [3,5] count as overlapping. For closed intervals such as meeting times that share an instant, they do, and the test is s <= end. For half-open intervals [1,3) and [3,5), they do not, and the test is s < end. Ask, or state your choice out loud.",
+      "## Related problems",
+      "- Insert an interval into a sorted, non-overlapping list: copy the ones that end before the new start, merge the ones that overlap, then copy the rest. O(n) with no sort.\n- Minimum meeting rooms: sort start times and end times separately and sweep with two pointers. The largest number of started-but-not-ended meetings is the answer.\n- Fewest intervals to remove so that none overlap: sort by end and greedily keep the one that finishes first. This is the earliest-finish-time rule for interval scheduling, which is optimal.",
+      "## How to talk through it",
+      "Say that you will sort by start and sweep once. State the overlap test and whether touching counts. Test an empty list, one interval, intervals that are all nested and intervals that are all disjoint."
+    ],
+    "keyPoints": [
+      "Sort by start, then sweep once with a current interval: O(n log n) time.",
+      "Overlap test: next.start <= current.end. New end: max(current.end, next.end).",
+      "A gap (next.start > current.end) closes the current interval and starts a new one.",
+      "Decide whether touching ranges overlap. Closed intervals: <=. Half-open intervals: <.",
+      "Insert needs no sort (O(n)). Meeting rooms sweep sorted starts and ends. Fewest removals: sort by end."
+    ],
+    "sql": [
+      {
+        "title": "Merge overlapping intervals",
+        "lang": "py",
+        "code": "def merge_intervals(intervals):\n    if not intervals:\n        return []\n    intervals = sorted(intervals, key=lambda p: p[0])\n    merged = [list(intervals[0])]\n    for s, e in intervals[1:]:\n        if s <= merged[-1][1]:\n            merged[-1][1] = max(merged[-1][1], e)\n        else:\n            merged.append([s, e])\n    return merged\n\nassert merge_intervals([[8, 10], [1, 3], [15, 18], [2, 6], [9, 12]]) == [[1, 6], [8, 12], [15, 18]]\nassert merge_intervals([[1, 10], [2, 3]]) == [[1, 10]]\nassert merge_intervals([[1, 4], [4, 5]]) == [[1, 5]]\nassert merge_intervals([]) == []\nassert merge_intervals([[5, 6]]) == [[5, 6]]"
+      },
+      {
+        "title": "Insert an interval into a sorted list",
+        "lang": "py",
+        "code": "def insert_interval(intervals, new):\n    out, i, n = [], 0, len(intervals)\n    while i < n and intervals[i][1] < new[0]:       # ends before the new one starts\n        out.append(intervals[i]); i += 1\n    while i < n and intervals[i][0] <= new[1]:      # overlaps the new one\n        new = [min(new[0], intervals[i][0]), max(new[1], intervals[i][1])]\n        i += 1\n    out.append(new)\n    out.extend(intervals[i:])                       # starts after the new one ends\n    return out\n\nassert insert_interval([[1, 3], [6, 9]], [2, 5]) == [[1, 5], [6, 9]]\nassert insert_interval([[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], [4, 8]) == [[1, 2], [3, 10], [12, 16]]\nassert insert_interval([], [4, 8]) == [[4, 8]]"
+      },
+      {
+        "title": "Meeting rooms and the fewest removals",
+        "lang": "py",
+        "code": "def min_meeting_rooms(meetings):\n    starts = sorted(s for s, _ in meetings)\n    ends = sorted(e for _, e in meetings)\n    rooms = best = j = 0\n    for s in starts:\n        while ends[j] <= s:          # a meeting has ended: free its room\n            j += 1\n            rooms -= 1\n        rooms += 1\n        best = max(best, rooms)\n    return best\n\ndef fewest_removals(intervals):\n    intervals = sorted(intervals, key=lambda p: p[1])      # earliest finish first\n    kept, last_end = 0, float(\"-inf\")\n    for s, e in intervals:\n        if s >= last_end:\n            kept += 1\n            last_end = e\n    return len(intervals) - kept\n\nassert min_meeting_rooms([(0, 30), (5, 10), (15, 20)]) == 2\nassert min_meeting_rooms([(7, 10), (2, 4)]) == 1\nassert fewest_removals([[1, 2], [2, 3], [3, 4], [1, 3]]) == 1\nassert fewest_removals([[1, 2], [1, 2], [1, 2]]) == 2"
+      }
+    ],
+    "django": {},
+    "exercise": "Implement merge_intervals, insert_interval and min_meeting_rooms. For merge_intervals, test an empty list, one interval, nested intervals, touching intervals and a list that is already sorted. Then write a function that returns the free gaps between a day's meetings, given a work day from 9 to 17.",
+    "pitfalls": [
+      "Forgetting max when extending. A nested interval would then shrink the current end.",
+      "Not sorting first, or sorting by end when the sweep needs start.",
+      "Mutating the input intervals by merging into them in place when the caller still needs the original.",
+      "Mixing up < and <= for touching intervals. Decide and say which one you use.",
+      "Comparing against the previous interval in the input instead of the last merged interval."
+    ],
+    "interview": [
+      {
+        "q": "How do you merge overlapping intervals?",
+        "a": "Sort by start. Keep a list of merged intervals. For each next interval, if its start is at most the last merged end, extend that end to the larger of the two ends. Otherwise start a new interval. It costs O(n log n) for the sort and O(n) for the sweep."
+      },
+      {
+        "q": "Why do you sort by start?",
+        "a": "After sorting, any interval that overlaps the current one is the very next one, so a single forward pass with one current interval is enough, and you never compare a pair twice."
+      },
+      {
+        "q": "How would you count the meeting rooms needed?",
+        "a": "Sort the start times and the end times separately. Sweep through the starts, and each time a meeting has ended before this start, free a room. The largest number of rooms in use at once is the answer."
+      },
+      {
+        "q": "What is the greedy rule for removing the fewest intervals so none overlap?",
+        "a": "Sort by end time and keep an interval whenever its start is at or after the end of the last kept one. This is the earliest-finish-time rule, which gives the largest set of non-overlapping intervals."
+      }
+    ],
+    "references": [
+      {
+        "title": "Interval scheduling (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Interval_scheduling",
+        "kind": "Reference"
+      },
+      {
+        "title": "Sorting techniques: stable sorts and key functions (Python docs)",
+        "url": "https://docs.python.org/3/howto/sorting.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: interval questions appear across the coding rounds the big-company prep pages describe. The earliest-finish-time rule comes from the Wikipedia page on interval scheduling, which I read, and the sort behaviour comes from the Python sorting guide, which I read. The merge sweep, the insert routine and the meeting-room sweep are standard techniques that I present from general knowledge and my own judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-interval-scheduling",
+      "py-sorting",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "intervals",
+        "title": "Merging intervals, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "merge or update"
+          },
+          {
+            "kind": "fail",
+            "label": "mismatch"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Sort first",
+            "at": 1
+          },
+          {
+            "text": "Overlap: extend",
+            "at": 3
+          },
+          {
+            "text": "Gap: new interval",
+            "at": 4
+          },
+          {
+            "text": "Result",
+            "at": 7
+          },
+          {
+            "text": "Variations",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "i0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "[8,10]",
+            "icon": "box",
+            "tone": "blue"
+          },
+          {
+            "id": "i1",
+            "kind": "cube",
+            "x": -1.5,
+            "y": 1.5,
+            "label": "[1,3]",
+            "icon": "box",
+            "tone": "blue"
+          },
+          {
+            "id": "i2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "[15,18]",
+            "icon": "box",
+            "tone": "blue"
+          },
+          {
+            "id": "i3",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -1.5,
+            "label": "[2,6]",
+            "icon": "box",
+            "tone": "blue"
+          },
+          {
+            "id": "i4",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "[9,12]",
+            "icon": "box",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: merge every overlapping interval",
+            "tag": "technique",
+            "body": [
+              "An interval has a start and an end, like a meeting from 8 to 10. Two intervals overlap when one starts before the other ends.",
+              "Given [8,10], [1,3], [15,18], [2,6] and [9,12] in no particular order, return the smallest list of intervals that covers the same time."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Input",
+                "v": "5 intervals, unsorted"
+              },
+              {
+                "k": "Goal",
+                "v": "merge the overlaps"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[8,10]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "[1,3]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "[15,18]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[2,6]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "[9,12]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Sort by start time first",
+            "tag": "technique",
+            "body": [
+              "After sorting by start, any interval that overlaps the current one must come right after it. That means one sweep from left to right is enough.",
+              "Sorting costs O(n log n) and is the most expensive part of the whole solution."
+            ],
+            "short": "Sort",
+            "hud": [
+              {
+                "k": "Sort",
+                "v": "O(n log n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Sweep",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,3]",
+                "tone": "orange",
+                "pill": {
+                  "text": "sorted by start",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "[8,10]",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "intervals.sort(key=lambda p: p[0])"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Start with the first interval as the current one",
+            "tag": "technique",
+            "body": [
+              "Keep a list of merged intervals. Put the first interval in it. This one is now the current interval, and its end is the right edge we have reached.",
+              "For each next interval we ask just one question: does it start before the current end?"
+            ],
+            "short": "Current",
+            "hud": [
+              {
+                "k": "Merged so far",
+                "v": "[1,3]"
+              },
+              {
+                "k": "Rule",
+                "v": "next.start <= end ?"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,3]",
+                "tone": "green",
+                "pill": {
+                  "text": "current",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "[8,10]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "[2,6] starts before 3: overlap, so extend",
+            "tag": "solution",
+            "body": [
+              "The next interval starts at 2, which is not after the current end 3. They overlap, so we extend the current interval to end at max(3, 6) = 6.",
+              "Use max for the new end, because the next interval may sit entirely inside the current one."
+            ],
+            "short": "Overlap",
+            "hud": [
+              {
+                "k": "Current",
+                "v": "[1,6]",
+                "tone": "good"
+              },
+              {
+                "k": "Merged so far",
+                "v": "[1,6]"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "green",
+                "pill": {
+                  "text": "now [1,6]",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": {
+                  "text": "absorbed",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,10]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i1",
+                  "i0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The current interval is [1,6] and the next is [8,10]. What happens?",
+              "options": [
+                "They merge into [1,10]",
+                "No overlap: 8 is after 6, so [1,6] is finished",
+                "Error: sort again"
+              ],
+              "answer": 1,
+              "why": "The next start 8 is greater than the current end 6, so there is a gap and the current interval is complete."
+            }
+          },
+          {
+            "title": "[8,10] starts after 6: a gap",
+            "tag": "solution",
+            "body": [
+              "8 is greater than 6, so there is a gap. The current interval [1,6] is finished and stays in the answer.",
+              "[8,10] becomes the new current interval."
+            ],
+            "short": "Gap",
+            "hud": [
+              {
+                "k": "Merged so far",
+                "v": "[1,6]"
+              },
+              {
+                "k": "Current",
+                "v": "[8,10]"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "teal",
+                "pill": {
+                  "text": "done",
+                  "tone": "teal",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,10]",
+                "tone": "green",
+                "pill": {
+                  "text": "current",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i0",
+                  "i2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "[9,12] starts before 10: overlap again",
+            "tag": "solution",
+            "body": [
+              "9 is not after the current end 10, so they overlap. The new end is max(10, 12) = 12, and the current interval becomes [8,12].",
+              "The only state we keep is the current start and the current end."
+            ],
+            "short": "Overlap again",
+            "hud": [
+              {
+                "k": "Current",
+                "v": "[8,12]",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "teal",
+                "pill": {
+                  "text": "done",
+                  "tone": "teal",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,12]",
+                "tone": "green",
+                "pill": {
+                  "text": "now [8,12]",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "grey",
+                "pill": {
+                  "text": "absorbed",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i3",
+                  "i2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "[15,18] starts after 12: another gap",
+            "tag": "solution",
+            "body": [
+              "15 is greater than 12, so [8,12] is finished and [15,18] starts a new current interval.",
+              "There are no more intervals, so the current one is added to the answer."
+            ],
+            "short": "Gap again",
+            "hud": [
+              {
+                "k": "Merged so far",
+                "v": "[1,6] [8,12]"
+              },
+              {
+                "k": "Current",
+                "v": "[15,18]"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "teal",
+                "pill": {
+                  "text": "done",
+                  "tone": "teal",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,12]",
+                "tone": "teal",
+                "pill": {
+                  "text": "done",
+                  "tone": "teal",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "green",
+                "pill": {
+                  "text": "current",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i2",
+                  "i4"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Result: three intervals",
+            "tag": "insight",
+            "body": [
+              "The merged list is [1,6], [8,12], [15,18]. We sorted once and swept once, so the time is O(n log n) and the extra space is O(n) for the answer.",
+              "If touching intervals such as [1,3] and [3,5] should also merge, use next.start <= end, as here. If they should stay apart, use <."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "[1,6] [8,12] [15,18]",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,12]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "green",
+                "pill": {
+                  "text": "done",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "merged = [intervals[0]]",
+                "for s, e in intervals[1:]:",
+                "    if s <= merged[-1][1]:",
+                "        merged[-1][1] = max(merged[-1][1], e)",
+                "    else:",
+                "        merged.append([s, e])"
+              ],
+              "hl": [
+                2,
+                3,
+                5
+              ]
+            }
+          },
+          {
+            "title": "Neighbouring problems",
+            "tag": "technique",
+            "body": [
+              "Insert an interval into a sorted list: copy those that end before it, merge those that overlap it, copy the rest. One pass, O(n), no sort needed.",
+              "Meeting rooms: sort start times and end times separately and sweep. The most rooms needed at once is the largest number of overlapping meetings. Fewest removals so none overlap: sort by end and keep the earliest finisher each time."
+            ],
+            "short": "Variations",
+            "hud": [
+              {
+                "k": "Insert",
+                "v": "O(n), no sort"
+              },
+              {
+                "k": "Rooms",
+                "v": "sweep starts and ends"
+              },
+              {
+                "k": "Fewest removals",
+                "v": "sort by end"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,12]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Sort by start, then one sweep with a current interval. Overlap means next.start <= current.end, and merging means end = max(end, next.end).",
+              "Say whether touching intervals count as overlapping, and ask whether the input is already sorted."
+            ],
+            "short": "Recap",
+            "set": {
+              "i0": {
+                "label": "[1,6]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "[2,6]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i2": {
+                "label": "[8,12]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "[9,12]",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "i4": {
+                "label": "[15,18]",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 sort by start",
+                "2 overlap: next.start <= end",
+                "3 end = max(end, next.end)",
+                "4 gap: start a new interval"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Merging intervals is like combining booked time slots in a diary.",
+      "story": "Look at a diary where meetings are written in any order. First you put them in order of start time. Then you walk down the page. If the next meeting begins before the current one finishes, you stretch the current block to cover both. If it begins after, you draw a line and start a new block. At the end, each block is a stretch of busy time.",
+      "maps": [
+        [
+          "Diary entries",
+          "The intervals"
+        ],
+        [
+          "Putting them in time order",
+          "Sorting by start"
+        ],
+        [
+          "Stretching a block",
+          "Merging overlapping intervals"
+        ],
+        [
+          "Drawing a line",
+          "Starting a new interval"
+        ]
+      ],
+      "words": [
+        [
+          "interval",
+          "A start and an end, such as a meeting from 8 to 10."
+        ],
+        [
+          "overlap",
+          "Two intervals share some time."
+        ],
+        [
+          "merge",
+          "Join overlapping intervals into one."
+        ],
+        [
+          "sweep",
+          "Walk through sorted data once from start to end."
+        ],
+        [
+          "gap",
+          "Free time between two intervals."
+        ]
+      ]
+    }
   }
 ]
