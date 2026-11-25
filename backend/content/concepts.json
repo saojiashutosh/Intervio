@@ -115041,5 +115041,892 @@
         ]
       ]
     }
+  },
+  {
+    "id": "deques",
+    "n": 159,
+    "level": 14,
+    "week": "Core",
+    "title": "Deques: Fast at Both Ends",
+    "tagline": "Use a double-ended queue as a queue, a stack, a ring and a sliding window, and know why it beats a list at the front.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A deque, pronounced like deck, is a double-ended queue. The Wikipedia article describes an abstract data type that allows insertions and deletions at both ends. Anything you can do with a stack or a queue you can do with a deque, and it also lets you work on both ends at once. In Python it lives in collections.deque.",
+      "## Operations and costs",
+      "The Python documentation says deques support thread-safe, memory efficient appends and pops from either side with approximately the same O(1) performance in either direction. Lists, by contrast, incur O(n) memory movement for pop(0) and insert(0, v).",
+      "- append(x) and pop(): the right end, O(1).\n- appendleft(x) and popleft(): the left end, O(1).\n- d[0] and d[-1]: O(1). Indexing in the middle slows to O(n), so use a list if you need fast random access.\n- rotate(n): rotate n steps to the right, or to the left if n is negative.\n- extendleft(items): adds items one by one to the left, which reverses their order.",
+      "## A stack, a queue or both",
+      "append with pop makes a stack. append with popleft makes a queue. A deque used as a queue is the standard way to write breadth-first search in Python. The Wikipedia article also names restricted forms: an input-restricted deque inserts at one end only, and an output-restricted deque removes from one end only.",
+      "## A bounded deque",
+      "If you give maxlen, the deque never grows beyond it. Once it is full, adding items at one end discards the same number of items from the other end. That makes deque(maxlen=N) a quick way to keep the last N items, such as the last lines of a file or a moving window of readings.",
+      "> A worked example: the Josephus game. Seven people stand in a circle, and every third person is removed. Put 1 to 7 in a deque. Repeat: rotate(-2), then popleft. The people removed are 3, 6, 2, 7, 5, 1, and 4 is the survivor. Rotating moves the count round the circle, and popleft removes the person.",
+      "## How it is built",
+      "The article names two common implementations: a doubly linked list, where every end operation is O(1) but reading by index is O(n), and a modified dynamic array, where end operations are amortized O(1) and indexing is O(1). It adds that Python's deque is a doubly linked list of fixed-length subarrays. You do not need the details in an interview, but you do need the costs.",
+      "## When to reach for a deque",
+      "Whenever you would write list.insert(0, x) or list.pop(0). For queues, for breadth-first search, for a sliding window of the last N items, and for checking palindromes by comparing both ends. The next two lessons use it for the monotonic stack's cousin, the monotonic queue.",
+      "## How to talk through it",
+      "Name the operations you need at each end, then say deque and why: O(1) at both ends. Say that you avoid indexing in the middle. Test an empty deque, a single item and a full bounded deque."
+    ],
+    "keyPoints": [
+      "append, pop, appendleft and popleft are all O(1). list.insert(0, x) and list.pop(0) are O(n).",
+      "append + pop is a stack. append + popleft is a queue. A deque can be both.",
+      "Indexing is O(1) at the ends and O(n) in the middle.",
+      "deque(maxlen=N) drops items from the opposite end when full: a sliding window or ring buffer.",
+      "rotate(n) turns the deque like a ring. appendleft(pop()) is rotate(1)."
+    ],
+    "sql": [
+      {
+        "title": "Deque operations",
+        "lang": "py",
+        "code": "from collections import deque\n\nd = deque([\"B\", \"C\", \"D\"])\nd.append(\"E\")\nd.appendleft(\"A\")\nassert list(d) == [\"A\", \"B\", \"C\", \"D\", \"E\"]\nassert d.pop() == \"E\" and d.popleft() == \"A\"\nassert list(d) == [\"B\", \"C\", \"D\"]\n\nd.rotate(1)                                   # right by one: the last item comes to the front\nassert list(d) == [\"D\", \"B\", \"C\"]\nd.rotate(-1)\nassert list(d) == [\"B\", \"C\", \"D\"]\n\nd.extendleft([1, 2])                          # each item goes to the left, so the order is reversed\nassert list(d) == [2, 1, \"B\", \"C\", \"D\"]\n\nbounded = deque(maxlen=3)\nfor x in range(5):\n    bounded.append(x)\nassert list(bounded) == [2, 3, 4] and bounded.maxlen == 3\nbounded.appendleft(9)                         # full, so an item drops off the right end\nassert list(bounded) == [9, 2, 3]\n\ntry:\n    deque().popleft()\nexcept IndexError:\n    pass\nelse:\n    raise AssertionError(\"popleft on an empty deque must raise\")"
+      },
+      {
+        "title": "Palindrome check from both ends, and the Josephus game",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef is_palindrome(text):\n    d = deque(c.lower() for c in text if c.isalnum())\n    while len(d) > 1:\n        if d.popleft() != d.pop():\n            return False\n    return True\n\nassert is_palindrome(\"A man, a plan, a canal: Panama\")\nassert not is_palindrome(\"hello\")\nassert is_palindrome(\"\") and is_palindrome(\"x\")\n\ndef survivor(n, k):\n    d = deque(range(1, n + 1))\n    while len(d) > 1:\n        d.rotate(-(k - 1))                    # bring the person to remove to the front\n        d.popleft()\n    return d[0]\n\nassert survivor(7, 3) == 4\nassert survivor(1, 5) == 1\nassert survivor(5, 2) == 3"
+      },
+      {
+        "title": "The last N items, and a deque as a work queue",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef tail(lines, n):\n    return list(deque(lines, maxlen=n))        # keeps only the last n items\n\nassert tail([\"a\", \"b\", \"c\", \"d\"], 2) == [\"c\", \"d\"]\nassert tail([\"a\"], 5) == [\"a\"]\n\ndef round_robin(jobs):\n    # each job is (name, work left); one unit per turn\n    q, order = deque(jobs), []\n    while q:\n        name, left = q.popleft()\n        order.append(name)\n        if left > 1:\n            q.append((name, left - 1))         # back of the line\n    return order\n\nassert round_robin([(\"a\", 2), (\"b\", 1), (\"c\", 3)]) == [\"a\", \"b\", \"c\", \"a\", \"c\", \"c\"]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write is_palindrome and survivor with a deque. Write tail(lines, n) and round_robin. Then time 100,000 pop(0) calls on a list against 100,000 popleft calls on a deque with timeit, and write down the ratio. Finally explain why d[len(d) // 2] on a deque is slower than on a list.",
+    "pitfalls": [
+      "Using list.pop(0) or insert(0, x) when a deque would do. Both are O(n).",
+      "Indexing in the middle of a deque in a hot loop. It is O(n).",
+      "Forgetting that extendleft reverses the order of the items it adds.",
+      "Calling pop or popleft on an empty deque without a check. Both raise IndexError.",
+      "Forgetting that a full bounded deque silently drops items at the other end."
+    ],
+    "interview": [
+      {
+        "q": "What is a deque and why use one in Python?",
+        "a": "A double-ended queue: you can add and remove at both ends. collections.deque does that in O(1) at each end, where a list needs O(n) for operations at the front. Use it for queues, breadth-first search and sliding windows."
+      },
+      {
+        "q": "What does deque(maxlen=n) do?",
+        "a": "It keeps at most n items. When it is full, adding an item at one end discards an item from the opposite end. It is a simple sliding window over the last n items."
+      },
+      {
+        "q": "How is a deque different from a list?",
+        "a": "Both work at the right end in O(1), but a deque also works at the left end in O(1). A list indexes anywhere in O(1), while a deque indexes in O(1) only near its ends and O(n) in the middle."
+      },
+      {
+        "q": "How can a deque be implemented?",
+        "a": "As a doubly linked list, which has O(1) end operations and O(n) index access, or as a modified dynamic array such as a ring, which has amortized O(1) end operations and O(1) index access. CPython uses a doubly linked list of fixed-length blocks."
+      }
+    ],
+    "references": [
+      {
+        "title": "Double-ended queue (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Double-ended_queue",
+        "kind": "Reference"
+      },
+      {
+        "title": "collections.deque (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: the deque is the Python tool for queues, breadth-first search and sliding windows in coding rounds. The operations, costs, maxlen behaviour, rotate and indexing notes come from the Python collections page, which I read in part, and the two implementations and the restricted forms come from the Wikipedia article, which I read in part. The Josephus example and the interview advice are my judgment and general knowledge, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-deque",
+      "py-deque",
+      "py-tutorial-lists-stacks",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "deque",
+        "title": "Deques, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "scan or read"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result found"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Two ends",
+            "at": 0
+          },
+          {
+            "text": "Add at both ends",
+            "at": 1
+          },
+          {
+            "text": "Remove from both ends",
+            "at": 3
+          },
+          {
+            "text": "rotate",
+            "at": 6
+          },
+          {
+            "text": "maxlen",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "dA",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "A",
+            "icon": "plate",
+            "tone": "green",
+            "from": 2
+          },
+          {
+            "id": "dB",
+            "kind": "cube",
+            "x": -1.5,
+            "y": 1.5,
+            "label": "B",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "dC",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "C",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "dD",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -1.5,
+            "label": "D",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "dE",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "E",
+            "icon": "plate",
+            "tone": "orange",
+            "from": 1
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Two ends, both open",
+            "tag": "technique",
+            "body": [
+              "A deque, said like deck, is a double-ended queue. You can add and remove at the left end and at the right end. A plain stack only uses one end, and a plain queue adds at one end and removes at the other.",
+              "Here the deque holds B, C and D. The left end is B and the right end is D."
+            ],
+            "short": "Two ends",
+            "hud": [
+              {
+                "k": "Left end",
+                "v": "B"
+              },
+              {
+                "k": "Right end",
+                "v": "D"
+              },
+              {
+                "k": "Both ends",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "from collections import deque",
+                "d = deque(['B', 'C', 'D'])"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "append: add at the right end",
+            "tag": "solution",
+            "body": [
+              "d.append('E') adds E at the right end. Nothing else moves. This is O(1).",
+              "The Python docs say a deque supports appends and pops from either side with approximately the same O(1) performance in either direction."
+            ],
+            "short": "append",
+            "hud": [
+              {
+                "k": "append",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Items",
+                "v": "B C D E"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dE": {
+                "hidden": false,
+                "label": "E",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "dD",
+                  "dE"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "appendleft: add at the left end",
+            "tag": "solution",
+            "body": [
+              "d.appendleft('A') adds A at the left end. A plain list would have to shift every item to make room, which costs O(n). A deque does it in O(1).",
+              "This is why a deque is the right tool when you add at the front."
+            ],
+            "short": "appendleft",
+            "hud": [
+              {
+                "k": "appendleft",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "list.insert(0, x)",
+                "v": "O(n)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "dA": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dE": {
+                "hidden": false,
+                "label": "E",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "dB",
+                  "dA"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The deque is A, B, C, D, E. You call pop() once. Which item comes out?",
+              "options": [
+                "A",
+                "E",
+                "C"
+              ],
+              "answer": 1,
+              "why": "pop() removes from the right end, so E comes out. popleft() would remove A."
+            }
+          },
+          {
+            "title": "pop: remove from the right end",
+            "tag": "solution",
+            "body": [
+              "d.pop() removes and returns E. The deque is A, B, C, D again.",
+              "Like a stack pop, this works at the right end, and it raises IndexError when the deque is empty."
+            ],
+            "short": "pop",
+            "hud": [
+              {
+                "k": "pop returned",
+                "v": "E",
+                "tone": "good"
+              },
+              {
+                "k": "pop",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "dA": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dE": {
+                "hidden": false,
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "pop() returned E",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            }
+          },
+          {
+            "title": "popleft: remove from the left end",
+            "tag": "solution",
+            "body": [
+              "d.popleft() removes and returns A. The deque is B, C, D.",
+              "popleft is the dequeue of a queue. It is O(1), where list.pop(0) is O(n)."
+            ],
+            "short": "popleft",
+            "hud": [
+              {
+                "k": "popleft returned",
+                "v": "A",
+                "tone": "good"
+              },
+              {
+                "k": "popleft",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "dA": {
+                "hidden": false,
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "popleft() returned A",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dE": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "One structure, three jobs",
+            "tag": "insight",
+            "body": [
+              "Use append and pop at the right end and you have a stack. Use append and popleft and you have a queue. Use all four and you have a deque. It is also a ring: rotate moves items round.",
+              "One more feature: you can index it, but d[i] is O(1) only near the two ends, and it slows to O(n) in the middle."
+            ],
+            "short": "Stack, queue, deque",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "append + pop"
+              },
+              {
+                "k": "Queue",
+                "v": "append + popleft"
+              },
+              {
+                "k": "d[i] in the middle",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dA": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "rotate: move items round the ring",
+            "tag": "technique",
+            "body": [
+              "d.rotate(1) moves every item one place to the right, and the item that falls off the right end comes back at the left. B, C, D becomes D, B, C. A negative number rotates left.",
+              "The docs note that rotating one step right is the same as d.appendleft(d.pop())."
+            ],
+            "short": "rotate",
+            "hud": [
+              {
+                "k": "rotate(1)",
+                "v": "D B C"
+              },
+              {
+                "k": "rotate(-1)",
+                "v": "rotates left"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "D",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "dD",
+                  "dC"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "dC",
+                  "dB"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "d.rotate(1)       # same as d.appendleft(d.pop())"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "A bounded deque forgets the oldest",
+            "tag": "technique",
+            "body": [
+              "deque(maxlen=3) never holds more than 3 items. Once it is full, adding an item at one end discards an item from the opposite end. Here appending X on the right drops D from the left.",
+              "This is a ready-made window over the last N items, and a ring buffer."
+            ],
+            "short": "maxlen",
+            "hud": [
+              {
+                "k": "maxlen",
+                "v": "3"
+              },
+              {
+                "k": "When full",
+                "v": "oldest end drops out"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "X",
+                "tone": "green",
+                "pill": {
+                  "text": "X in, D dropped",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "dC",
+                  "dD"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "How it is built",
+            "tag": "insight",
+            "body": [
+              "Wikipedia names two common ways: a doubly linked list, or a modified dynamic array. It adds that Python's deque is implemented as a doubly linked list of fixed-length subarrays.",
+              "That gives O(1) work at both ends and cheap memory use, and it explains why indexing in the middle is slow."
+            ],
+            "short": "Inside",
+            "hud": [
+              {
+                "k": "Linked list",
+                "v": "O(1) ends, O(n) index"
+              },
+              {
+                "k": "Array deque",
+                "v": "amortized O(1) ends, O(1) index"
+              },
+              {
+                "k": "Python",
+                "v": "linked blocks"
+              }
+            ],
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "X",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A deque gives O(1) adds and removes at both ends. Use it as a queue, a stack, a sliding window or a ring. Reach for it whenever you would write insert(0, x) or pop(0).",
+              "Later lessons use it for the monotonic queue and for breadth-first search."
+            ],
+            "short": "Recap",
+            "set": {
+              "dB": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "left end",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "dC": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "dD": {
+                "hidden": false,
+                "label": "X",
+                "tone": "blue",
+                "pill": {
+                  "text": "right end",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 append / appendleft: O(1)",
+                "2 pop / popleft: O(1)",
+                "3 maxlen for a sliding window",
+                "4 middle index is O(n)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A deque is a queue where people can join or leave from either end of the line.",
+      "story": "Picture a line where both ends are open doors. New people can join at the back door or squeeze in through the front door, and people can leave through either door. If you only ever use the back door to join and the front door to leave, it is a queue. If you only use one door, it is a stack.",
+      "maps": [
+        [
+          "The line with two doors",
+          "The deque"
+        ],
+        [
+          "Joining at the back door",
+          "append"
+        ],
+        [
+          "Joining at the front door",
+          "appendleft"
+        ],
+        [
+          "Leaving by either door",
+          "pop or popleft"
+        ]
+      ],
+      "words": [
+        [
+          "deque",
+          "A double-ended queue: add and remove at both ends."
+        ],
+        [
+          "appendleft",
+          "Add an item at the left end."
+        ],
+        [
+          "popleft",
+          "Remove and return the item at the left end."
+        ],
+        [
+          "rotate",
+          "Move items round the ring, so the last becomes the first."
+        ],
+        [
+          "maxlen",
+          "The most items a bounded deque may hold."
+        ]
+      ]
+    }
   }
 ]
