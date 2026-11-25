@@ -92,7 +92,7 @@ class ApiTests(TestCase):
 
 class RoadmapTests(TestCase):
     BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 52,
-            "hours_per_day": 2, "days_per_week": 6, "start_date": "2026-11-16"}
+            "hours_per_day": 3, "days_per_week": 6, "start_date": "2026-11-16"}
 
     @classmethod
     def setUpTestData(cls):
@@ -175,7 +175,7 @@ class RoadmapTests(TestCase):
         self.assertIsNone(c.get("/api/profile/").data["profile"])
         r = c.put("/api/profile/", self.BASE, format="json")
         self.assertEqual(r.status_code, 200, r.content)
-        self.assertEqual(c.get("/api/profile/").data["profile"]["hours_per_day"], 2.0)
+        self.assertEqual(c.get("/api/profile/").data["profile"]["hours_per_day"], self.BASE["hours_per_day"])
         self.assertEqual(c.put("/api/profile/", {**self.BASE, "weeks": 99}, format="json").status_code, 400)
 
     def test_cuts_are_minimal_not_wholesale(self):
@@ -237,7 +237,7 @@ class SourcesAndDomainsTests(TestCase):
 class DjangoTrackTests(TestCase):
     SLUGS = ["django-orm", "drf-api", "celery-async", "web-security"]
     BASE = {"domain": "django", "goal": "interview", "experience_years": 1.5, "weeks": 52,
-            "hours_per_day": 2, "days_per_week": 6, "start_date": "2026-11-16"}
+            "hours_per_day": 3, "days_per_week": 6, "start_date": "2026-11-16"}
 
     @classmethod
     def setUpTestData(cls):
