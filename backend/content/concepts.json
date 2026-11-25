@@ -111504,5 +111504,807 @@
         ]
       ]
     }
+  },
+  {
+    "id": "stacks",
+    "n": 155,
+    "level": 14,
+    "week": "Core",
+    "title": "Stacks: Push, Pop, the Call Stack and a Min-Stack",
+    "tagline": "Learn the last-in-first-out rule, what it costs, where it hides in real programs, and how to track the minimum in O(1).",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A stack is a collection where you only add and remove at one end, called the top. The item added most recently is the first one removed. This is called LIFO, last in, first out. The Wikipedia article names two main operations: push, which adds an element, and pop, which removes the most recently added one. A third, peek, returns the top without removing it.",
+      "## Building one in Python",
+      "The Python tutorial says to use append() to add an item to the top and pop() with no index to take one off. Both run in O(1), because they touch only the end of the list. Peek is stack[-1]. Never use pop(0) or insert(0, x) for a stack: they shift every item and cost O(n).",
+      "- push: stack.append(x), O(1) amortized.\n- pop: stack.pop(), O(1). It raises IndexError when the list is empty.\n- peek: stack[-1], O(1). Check that the stack is not empty first.\n- size and emptiness: len(stack) and if stack:.",
+      "## Underflow and overflow",
+      "Popping or peeking an empty stack is called underflow. A bounded stack that cannot take another item is in overflow. A Python list grows as needed, so the usual risk is underflow. A linked-list stack, which pushes and pops at the head, cannot overflow unless memory is used up.",
+      "## The call stack",
+      "Every running program has a call stack. Each function call pushes a frame holding its local variables and where to return to. When the function returns, its frame is popped. This is why recursion works, and why runaway recursion ends with a stack overflow. Python stops it earlier with a recursion limit.",
+      "## Replacing recursion with your own stack",
+      "A loop with an explicit stack does what a recursive function does. Push what is left to do, pop one item, process it and push what it leads to. Depth-first search over a graph or tree is the standard case, and it avoids the recursion limit.",
+      "> A worked example: a min-stack. You must support push, pop and get_min, all in O(1). Store each item as a pair (value, smallest value in the stack so far). The top pair's second number is always the current minimum. When you pop, the pair under it already holds the previous minimum, so nothing needs recomputing.",
+      "## Where stacks appear",
+      "Undo history (the last action is undone first), matching brackets, evaluating expressions, browser back navigation, backtracking search and the depth-first search algorithm all use a stack. If a problem has nested structure, or says the most recent unfinished thing must be handled first, think stack.",
+      "## How to talk through it",
+      "Say which end is the top, and what you do on an empty stack. State that push and pop are O(1). Trace three items going in and coming out in reverse. Then test the empty stack and a single item."
+    ],
+    "keyPoints": [
+      "LIFO: the last item pushed is the first popped. A Python list with append and pop is a stack, all O(1).",
+      "Never use pop(0) or insert(0, x) for a stack. They are O(n).",
+      "Popping or peeking an empty stack is underflow: pop() raises IndexError. Guard with if stack.",
+      "The call stack holds one frame per active function call, which is why recursion works and why it can overflow.",
+      "Loop plus explicit stack replaces recursion. A min-stack stores (value, minimum so far) to answer get_min in O(1)."
+    ],
+    "sql": [
+      {
+        "title": "A stack on a list, and on a linked list",
+        "lang": "py",
+        "code": "class ListStack:\n    def __init__(self):\n        self.items = []\n    def push(self, x): self.items.append(x)\n    def pop(self):\n        if not self.items:\n            raise IndexError(\"pop from an empty stack\")\n        return self.items.pop()\n    def peek(self):\n        if not self.items:\n            raise IndexError(\"peek at an empty stack\")\n        return self.items[-1]\n    def __len__(self): return len(self.items)\n\nclass Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\nclass LinkedStack:\n    def __init__(self):\n        self.head = None\n        self.size = 0\n    def push(self, x):\n        self.head = Node(x, self.head)\n        self.size += 1\n    def pop(self):\n        if self.head is None:\n            raise IndexError(\"pop from an empty stack\")\n        node, self.head = self.head, self.head.next\n        self.size -= 1\n        return node.val\n\nfor s in (ListStack(), LinkedStack()):\n    for x in \"ABC\":\n        s.push(x)\n    assert s.pop() == \"C\" and s.pop() == \"B\"\n    s.push(\"D\")\n    assert s.pop() == \"D\" and s.pop() == \"A\"\n    try:\n        s.pop()\n    except IndexError:\n        pass\n    else:\n        raise AssertionError(\"an empty stack must raise\")"
+      },
+      {
+        "title": "A min-stack: get_min in O(1)",
+        "lang": "py",
+        "code": "class MinStack:\n    def __init__(self):\n        self.items = []                       # pairs: (value, minimum so far)\n\n    def push(self, x):\n        smallest = x if not self.items else min(x, self.items[-1][1])\n        self.items.append((x, smallest))\n\n    def pop(self):\n        return self.items.pop()[0]\n\n    def top(self):\n        return self.items[-1][0]\n\n    def get_min(self):\n        return self.items[-1][1]\n\nm = MinStack()\nfor x in (5, 3, 7):\n    m.push(x)\nassert m.get_min() == 3 and m.top() == 7\nassert m.pop() == 7 and m.get_min() == 3\nassert m.pop() == 3 and m.get_min() == 5\nm.push(1)\nassert m.get_min() == 1"
+      },
+      {
+        "title": "Replace recursion with an explicit stack",
+        "lang": "py",
+        "code": "def dfs_order(graph, start):\n    seen, order, stack = set(), [], [start]\n    while stack:\n        node = stack.pop()\n        if node in seen:\n            continue\n        seen.add(node)\n        order.append(node)\n        for nxt in reversed(graph.get(node, [])):   # reversed so the first neighbour is visited first\n            stack.append(nxt)\n    return order\n\ng = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": []}\nassert dfs_order(g, \"A\") == [\"A\", \"B\", \"D\", \"C\"]\n\ndef flatten(nested):\n    out, stack = [], [iter(nested)]\n    while stack:\n        for item in stack[-1]:\n            if isinstance(item, list):\n                stack.append(iter(item))            # go deeper without recursion\n                break\n            out.append(item)\n        else:\n            stack.pop()\n    return out\n\nassert flatten([1, [2, [3, 4]], 5]) == [1, 2, 3, 4, 5]\ndeep = []\nfor _ in range(5000):                               # deeper than the recursion limit\n    deep = [deep, 1]\nassert len(flatten(deep)) == 5000"
+      }
+    ],
+    "django": {},
+    "exercise": "Implement ListStack and LinkedStack, then MinStack. Add a max version and a stack that returns the minimum and the maximum in O(1). Write dfs_order and flatten without recursion. Finally write an undo and redo history for a text editor with two stacks, and say what happens to the redo stack when the user types something new.",
+    "pitfalls": [
+      "Using pop(0) or insert(0, x) on a list used as a stack. Both are O(n).",
+      "Popping or peeking without checking that the stack is empty.",
+      "Forgetting that pop returns the item. Keep it if you need it.",
+      "Recomputing the minimum by scanning the whole stack. Store the running minimum with each item.",
+      "Using recursion for very deep input and hitting the recursion limit. Use a loop with an explicit stack."
+    ],
+    "interview": [
+      {
+        "q": "What is a stack and what are its operations?",
+        "a": "A collection where you add and remove only at one end, the top, in last-in-first-out order. Push adds an item, pop removes and returns the top, and peek reads the top. In Python a list with append and pop does it, all in O(1)."
+      },
+      {
+        "q": "What is stack underflow?",
+        "a": "Trying to pop or peek an empty stack. In Python, pop() on an empty list raises IndexError. Check that the stack is non-empty first."
+      },
+      {
+        "q": "How do you get the minimum of a stack in O(1)?",
+        "a": "Keep a second value with every item: the smallest value in the stack up to and including that item. The top's second value is the current minimum, and popping brings back the previous one."
+      },
+      {
+        "q": "How does a stack relate to recursion?",
+        "a": "Each function call is pushed onto the call stack as a frame and popped when it returns. A loop with your own stack can do the same work and avoids the recursion limit."
+      }
+    ],
+    "references": [
+      {
+        "title": "Stack (abstract data type) (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Stack_(abstract_data_type)",
+        "kind": "Reference"
+      },
+      {
+        "title": "Using lists as stacks (Python tutorial)",
+        "url": "https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: stacks are a core structure in the coding rounds the big-company prep pages describe. The operations, underflow and overflow, and the array and linked-list versions come from the Wikipedia article cited, which I read in part. The list-as-stack advice comes from the Python tutorial, which I read in full. The min-stack and the explicit-stack examples are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-stack-adt",
+      "py-tutorial-lists-stacks",
+      "amazon-topics",
+      "ms-tech-interview"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "stackops",
+        "title": "Stacks, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "LIFO",
+            "at": 0
+          },
+          {
+            "text": "Push and pop",
+            "at": 1
+          },
+          {
+            "text": "Underflow",
+            "at": 4
+          },
+          {
+            "text": "Call stack",
+            "at": 6
+          },
+          {
+            "text": "Min-stack",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 2.4,
+            "label": "A",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -0.8,
+            "y": 0.8,
+            "label": "B",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -0.8,
+            "label": "C",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.4,
+            "label": "D",
+            "icon": "plate",
+            "tone": "green",
+            "from": 1
+          },
+          {
+            "id": "em",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "empty",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 4,
+            "until": 4
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Last in, first out",
+            "tag": "technique",
+            "body": [
+              "A stack is a pile where you only touch the top. The item you put on last is the first one you take off. This rule is called LIFO, short for last in, first out.",
+              "Here the plates A, B and C were added in that order. C is on top, so C comes off first."
+            ],
+            "short": "LIFO",
+            "hud": [
+              {
+                "k": "Operations",
+                "v": "push, pop, peek"
+              },
+              {
+                "k": "Order",
+                "v": "last in, first out"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "top",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "live"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "stack = []",
+                "stack.append('A')   # push",
+                "stack.pop()          # pop the top"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Push: add to the top",
+            "tag": "solution",
+            "body": [
+              "Push puts a new item on top. Here D goes on after C. Only the top end changes, so push is O(1).",
+              "With a Python list, append is the push. The Python tutorial shows exactly this: append adds to the top of the stack."
+            ],
+            "short": "Push",
+            "hud": [
+              {
+                "k": "push",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Size",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "hidden": false,
+                "label": "D",
+                "tone": "green",
+                "pill": {
+                  "text": "top",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s2",
+                  "s3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Pop: remove and return the top",
+            "tag": "solution",
+            "body": [
+              "Pop takes the top item off and gives it back. D leaves, and C is the top again. Pop is O(1).",
+              "With a list, pop() with no index removes the last item. Use pop() and never pop(0), which would shift every item."
+            ],
+            "short": "Pop",
+            "hud": [
+              {
+                "k": "pop returned",
+                "v": "D",
+                "tone": "good"
+              },
+              {
+                "k": "pop",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "top",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "s3": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "top = stack.pop()   # removes and returns it"
+              ],
+              "hl": [
+                0
+              ]
+            },
+            "predict": {
+              "question": "The stack holds A, B, C with C on top. You call pop twice. What does the second pop return?",
+              "options": [
+                "C",
+                "B",
+                "A"
+              ],
+              "answer": 1,
+              "why": "The first pop returns C. The second returns B, which was under it."
+            }
+          },
+          {
+            "title": "Peek: look at the top without removing it",
+            "tag": "technique",
+            "body": [
+              "Peek returns the top item and leaves the stack unchanged. In Python it is stack[-1]. Always check that the stack is not empty first.",
+              "Peek is not essential: it is the same as a pop followed by a push of the same item."
+            ],
+            "short": "Peek",
+            "hud": [
+              {
+                "k": "peek",
+                "v": "stack[-1], O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Size",
+                "v": "unchanged"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "peek: C stays",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              }
+            }
+          },
+          {
+            "title": "An empty stack cannot be popped",
+            "tag": "problem",
+            "body": [
+              "Popping or peeking an empty stack is called underflow. In Python, pop() on an empty list raises IndexError.",
+              "Guard it with if stack: before you pop, or decide what an empty stack should mean for your algorithm."
+            ],
+            "short": "Underflow",
+            "hud": [
+              {
+                "k": "pop on empty",
+                "v": "IndexError",
+                "tone": "bad"
+              },
+              {
+                "k": "Guard",
+                "v": "if stack:",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": true
+              },
+              "s1": {
+                "hidden": true
+              },
+              "s2": {
+                "hidden": true
+              },
+              "em": {
+                "status": "hot",
+                "pill": {
+                  "text": "pop here raises IndexError",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            }
+          },
+          {
+            "title": "Two ways to build a stack",
+            "tag": "technique",
+            "body": [
+              "Array version: a Python list, where the top is the last item. The Wikipedia article notes that end operations on a dynamic array are amortized O(1).",
+              "Linked-list version: push and pop at the head. It never overflows, except when memory runs out. A bounded array stack can overflow when it is full."
+            ],
+            "short": "Build it",
+            "hud": [
+              {
+                "k": "List",
+                "v": "append and pop at the end",
+                "tone": "good"
+              },
+              {
+                "k": "Linked list",
+                "v": "push and pop at the head",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "top",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "live"
+              },
+              "em": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "The call stack: functions are stacked too",
+            "tag": "insight",
+            "body": [
+              "When main calls f(3), which calls f(2), the computer keeps each call's variables in a frame, and the frames sit on a stack. The newest call is on top, and it finishes first.",
+              "When a function returns, its frame is popped. A runaway recursion pushes frames until the stack overflows."
+            ],
+            "short": "Call stack",
+            "hud": [
+              {
+                "k": "Newest call",
+                "v": "top of the stack"
+              },
+              {
+                "k": "Return",
+                "v": "pops the frame"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "main",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "f(3)",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "f(2)",
+                "tone": "orange",
+                "pill": {
+                  "text": "running now",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s0",
+                  "s1",
+                  "s2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "An explicit stack can replace recursion",
+            "tag": "technique",
+            "body": [
+              "Anything recursion does, a loop with your own stack can do. Push the work you have not done yet, pop one item, handle it and push what it leads to. Depth-first search is the standard example.",
+              "This avoids Python's recursion limit and gives you control of the order."
+            ],
+            "short": "Explicit stack",
+            "hud": [
+              {
+                "k": "Loop",
+                "v": "while stack:"
+              },
+              {
+                "k": "Recursion depth",
+                "v": "no limit"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "root",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "right",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "left",
+                "tone": "orange",
+                "pill": {
+                  "text": "visit next",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": "live"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "stack = [root]",
+                "while stack:",
+                "    node = stack.pop()",
+                "    stack.extend(node.children)"
+              ],
+              "hl": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "A min-stack: the minimum in O(1)",
+            "tag": "solution",
+            "body": [
+              "To know the smallest item at any moment, push pairs (value, smallest so far). The top pair always holds the current minimum, and popping restores the previous one.",
+              "Here the stack holds 5, then 3, then 7. The minimum is 5, then 3, and it stays 3 after 7."
+            ],
+            "short": "Min-stack",
+            "hud": [
+              {
+                "k": "push, pop, min",
+                "v": "all O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Extra space",
+                "v": "one number per item",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "5|5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "3|3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "7|3",
+                "tone": "green",
+                "pill": {
+                  "text": "minimum = 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": "live"
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A stack gives you the most recent item first. Use it when the most recent unfinished thing must be dealt with first: nested structure, undo, backtracking and depth-first search.",
+              "Name the cost: push, pop and peek are all O(1). Guard against popping an empty stack."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "hidden": false,
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "bottom",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "s1": {
+                "hidden": false,
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "hidden": false,
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "top",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "live"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 push = append, pop = pop()",
+                "2 never pop an empty stack",
+                "3 nested or most recent first = stack",
+                "4 loop + stack replaces recursion"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A stack is a pile of plates: you add to the top and take from the top.",
+      "story": "Think of a pile of plates in a canteen. You put each clean plate on top of the pile. When someone needs a plate, they take the one from the top, which is the one you put on last. You never pull one out from the middle. If the pile is empty, there is nothing to take.",
+      "maps": [
+        [
+          "The pile of plates",
+          "The stack"
+        ],
+        [
+          "Putting a plate on top",
+          "Push"
+        ],
+        [
+          "Taking the top plate",
+          "Pop"
+        ],
+        [
+          "Looking at the top plate",
+          "Peek"
+        ]
+      ],
+      "words": [
+        [
+          "stack",
+          "A pile where you only add and remove at the top."
+        ],
+        [
+          "push",
+          "Add an item to the top."
+        ],
+        [
+          "pop",
+          "Remove the top item and give it back."
+        ],
+        [
+          "underflow",
+          "Trying to take from an empty stack."
+        ],
+        [
+          "call stack",
+          "The pile of running function calls kept by the computer."
+        ]
+      ]
+    }
   }
 ]
