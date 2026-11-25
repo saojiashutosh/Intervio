@@ -95752,5 +95752,727 @@
         ]
       ]
     }
+  },
+  {
+    "id": "dynamic-arrays",
+    "n": 140,
+    "level": 14,
+    "week": "Core",
+    "title": "Dynamic Arrays and Amortized Cost",
+    "tagline": "Understand how a list grows when it fills up, and why append is O(1) even though some appends are slow.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A plain array has a fixed size. A dynamic array looks like an array that can grow: you can keep appending forever. Python lists, Java ArrayList and C++ vector all work this way. Behind the scenes the dynamic array holds a fixed block with a spare capacity, and when the block is full it moves to a bigger one.",
+      "## What happens on append",
+      "- If there is a free slot, write the item there. This is O(1).\n- If the block is full, allocate a new block with a larger capacity, copy every item across, release the old block, then write the new item. This one append is O(n).",
+      "The array tracks two numbers: the size (items stored) and the capacity (cells available). Size is never larger than capacity.",
+      "## Why growing by a factor matters",
+      "Suppose the capacity doubles each time. Copies happen when the size reaches 4, 8, 16 and so on, and their total is 4 + 8 + 16 + ... which stays below twice the final size. So n appends cost O(n) in total. The Wikipedia article on dynamic arrays states the general rule: growing by any constant factor makes n insertions cost O(n) altogether, which is O(1) per append amortized. Growing by a constant number of cells, such as +4, copies far more often, and the total becomes quadratic.",
+      "## Amortized analysis",
+      "Amortized analysis averages the running time of operations over a sequence, instead of looking only at the worst single operation. It is still a worst-case guarantee, because it holds for every sequence of operations, with no assumption about the data. There are three standard methods: aggregate (total cost divided by the number of operations), accounting (charge a little extra to cheap operations to pay for later expensive ones) and potential. The dynamic array append is the classic example of the aggregate method.",
+      "> A worked example: a queue made from two lists. Enqueue pushes onto the in list in O(1). Dequeue pops from the out list, and when out is empty it moves every item from in to out. One dequeue can cost O(n), but each item moves at most once, so dequeue is amortized O(1).",
+      "## What stays slow",
+      "Growth does not change the cost of inserting or deleting in the middle. Those are still O(n), because items must shift. Popping from the end is O(1). Some implementations also shrink when the array becomes mostly empty.",
+      "## What CPython does",
+      "CPython lists over-allocate so that the next few appends do not need a resize. The documented growth factor is about 1.125 for large lists, smaller than doubling, so less memory is wasted. The exact pattern may change between versions, so rely only on the guarantee: append is amortized O(1).",
+      "## How to talk through it",
+      "Say that append is O(1) amortized, and explain that a rare append is O(n) because of the copy. If you know the final size in advance, you can reserve the capacity and avoid every resize. In an interview, mention the trade-off: more spare capacity means fewer copies but more wasted memory."
+    ],
+    "keyPoints": [
+      "A dynamic array keeps a size and a capacity. When size reaches capacity, it allocates a bigger block and copies the items.",
+      "Growing by a constant factor makes n appends cost O(n) total: O(1) amortized per append.",
+      "Growing by a constant number of cells makes the total quadratic.",
+      "Amortized cost is a worst-case bound averaged over a sequence, not an average over random inputs.",
+      "Inserting in the middle is still O(n). CPython over-allocates with a factor of about 1.125."
+    ],
+    "sql": [
+      {
+        "title": "A dynamic array that counts its copies",
+        "lang": "py",
+        "code": "class DynamicArray:\n    def __init__(self):\n        self.capacity = 1\n        self.size = 0\n        self.cells = [None] * self.capacity\n        self.copies = 0\n\n    def append(self, x):\n        if self.size == self.capacity:\n            self._grow(self.capacity * 2)\n        self.cells[self.size] = x\n        self.size += 1\n\n    def _grow(self, new_capacity):\n        new_cells = [None] * new_capacity\n        for i in range(self.size):\n            new_cells[i] = self.cells[i]\n            self.copies += 1\n        self.cells = new_cells\n        self.capacity = new_capacity\n\nd = DynamicArray()\nfor i in range(1000):\n    d.append(i)\nassert d.size == 1000 and d.cells[999] == 999\nassert d.copies < 2 * d.size           # fewer than 2 copies per append on average\nassert d.capacity == 1024"
+      },
+      {
+        "title": "Doubling versus growing by a constant",
+        "lang": "py",
+        "code": "def copies_for(n, grow):\n    capacity, size, copies = 1, 0, 0\n    for _ in range(n):\n        if size == capacity:\n            copies += size\n            capacity = grow(capacity)\n        size += 1\n    return copies\n\nn = 4096\ndoubling = copies_for(n, lambda c: c * 2)\nconstant = copies_for(n, lambda c: c + 4)\nassert doubling < 2 * n\nassert constant > 100 * doubling       # quadratic growth is far worse"
+      },
+      {
+        "title": "A queue from two stacks: amortized O(1) dequeue",
+        "lang": "py",
+        "code": "class TwoStackQueue:\n    def __init__(self):\n        self.inbox, self.outbox = [], []\n\n    def enqueue(self, x):\n        self.inbox.append(x)\n\n    def dequeue(self):\n        if not self.outbox:\n            while self.inbox:\n                self.outbox.append(self.inbox.pop())\n        return self.outbox.pop()\n\nq = TwoStackQueue()\nfor x in (1, 2, 3):\n    q.enqueue(x)\nassert q.dequeue() == 1\nq.enqueue(4)\nassert [q.dequeue(), q.dequeue(), q.dequeue()] == [2, 3, 4]"
+      }
+    ],
+    "django": {},
+    "exercise": "Add a shrink rule to the DynamicArray: when size falls to a quarter of capacity, halve the capacity. Add pop() and count copies for 1,000 appends followed by 1,000 pops. Then explain, in two sentences of your own, why shrinking at one half would be a bad rule when appends and pops alternate right at the boundary.",
+    "pitfalls": [
+      "Saying append is always O(1). It is O(1) amortized, and a single append can be O(n).",
+      "Confusing amortized with average case. Amortized holds for every sequence, with no assumption about the data.",
+      "Growing by a fixed number of cells. That makes n appends quadratic.",
+      "Holding on to an index or a reference into the old block after a resize, in languages where memory moves.",
+      "Forgetting that inserting in the middle is still O(n), however clever the growth rule."
+    ],
+    "interview": [
+      {
+        "q": "Why is append O(1) amortized for a dynamic array?",
+        "a": "Most appends write into a free slot. When the array is full it allocates a bigger block (usually double) and copies n items. Those copies happen so rarely that n appends cost O(n) in total, which is O(1) per append."
+      },
+      {
+        "q": "Why double the capacity instead of adding a fixed amount?",
+        "a": "Doubling keeps the total number of copies below 2n, which gives O(1) amortized appends. Adding a fixed amount copies every few appends and the total cost grows quadratically."
+      },
+      {
+        "q": "What is the difference between worst case and amortized cost?",
+        "a": "Worst case is the cost of the single most expensive operation. Amortized cost is the total cost of a sequence divided by its length, and it still holds for the worst possible sequence."
+      },
+      {
+        "q": "How can you make dequeue O(1) amortized using two stacks?",
+        "a": "Push onto the inbox. To dequeue, pop from the outbox, and when the outbox is empty move every item from the inbox to the outbox first. Each item moves at most once."
+      }
+    ],
+    "references": [
+      {
+        "title": "Dynamic array (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_array",
+        "kind": "Reference"
+      },
+      {
+        "title": "Amortized analysis (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Amortized_analysis",
+        "kind": "Reference"
+      },
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: amortized cost is a standard follow-up in coding interviews, and Python's list is a dynamic array. The growth rule, the amortized definition and the CPython growth factor come from the pages cited, which I read. The quarter-size shrink rule and the exercise are my judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-dynamic-array",
+      "wikipedia-amortized-analysis",
+      "py-faq-design-lists",
+      "py-time-complexity"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "dynarr",
+        "title": "Dynamic arrays, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "write or shift"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Full array",
+            "at": 0
+          },
+          {
+            "text": "Grow and copy",
+            "at": 1
+          },
+          {
+            "text": "Amortized",
+            "at": 4
+          },
+          {
+            "text": "Python",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "o0",
+            "kind": "cube",
+            "x": -4.3,
+            "y": 2.7,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o1",
+            "kind": "cube",
+            "x": -3.3,
+            "y": 1.7,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o2",
+            "kind": "cube",
+            "x": -2.3,
+            "y": 0.7,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o3",
+            "kind": "cube",
+            "x": -1.3,
+            "y": -0.3,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "n0",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 4.3,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": -1.7,
+            "y": 3.3,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": -0.7,
+            "y": 2.3,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": 0.3,
+            "y": 1.3,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n4",
+            "kind": "cube",
+            "x": 1.3,
+            "y": 0.3,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n5",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -0.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n6",
+            "kind": "cube",
+            "x": 3.3,
+            "y": -1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          },
+          {
+            "id": "n7",
+            "kind": "cube",
+            "x": 4.3,
+            "y": -2.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 1
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A fixed array eventually fills up",
+            "tag": "problem",
+            "body": [
+              "An array has a fixed size. This one has 4 cells and all of them are used. What happens when we want to append a fifth item?",
+              "We cannot extend the block, because the memory after it may belong to something else. A dynamic array solves this by moving to a bigger block."
+            ],
+            "short": "Full",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "4"
+              },
+              {
+                "k": "Size",
+                "v": "4",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "o3": {
+                "pill": {
+                  "text": "capacity 4, size 4",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              }
+            }
+          },
+          {
+            "title": "Allocate a bigger block, usually double",
+            "tag": "technique",
+            "body": [
+              "When append finds no free slot, the array asks for a new block with more room. Doubling is the usual choice, so capacity 4 becomes 8.",
+              "The new cells are empty. Nothing has been copied yet."
+            ],
+            "short": "Grow",
+            "hud": [
+              {
+                "k": "New capacity",
+                "v": "8 = 4 x 2",
+                "tone": "good"
+              },
+              {
+                "k": "Cost so far",
+                "v": "one allocation"
+              }
+            ],
+            "set": {
+              "o3": {
+                "status": null,
+                "pill": null
+              },
+              "n0": {
+                "pill": {
+                  "text": "new block, capacity 8",
+                  "tone": "teal",
+                  "icon": "box"
+                }
+              }
+            }
+          },
+          {
+            "title": "Copy the old items across",
+            "tag": "problem",
+            "body": [
+              "Every item in the old block is copied to the same position in the new block. That is n copies, so the one append that triggers the growth costs O(n).",
+              "This expensive append is the price of keeping the array growable."
+            ],
+            "short": "Copy",
+            "hud": [
+              {
+                "k": "Items copied",
+                "v": "4",
+                "tone": "warn"
+              },
+              {
+                "k": "This append",
+                "v": "O(n)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "n0": {
+                "pill": null
+              },
+              "n1": {
+                "label": "7",
+                "tone": "green"
+              },
+              "n2": {
+                "label": "1",
+                "tone": "green"
+              },
+              "n3": {
+                "label": "9",
+                "tone": "green"
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "n5": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "n6": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey"
+              },
+              "o0": {
+                "status": "dim"
+              },
+              "o1": {
+                "status": "dim"
+              },
+              "o2": {
+                "status": "dim"
+              },
+              "o3": {
+                "status": "dim"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "o0",
+                  "n0"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "o1",
+                  "n1"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "o2",
+                  "n2"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              },
+              {
+                "path": [
+                  "o3",
+                  "n3"
+                ],
+                "kind": "write",
+                "delay": 0.9
+              }
+            ]
+          },
+          {
+            "title": "Now the new item fits, and the next few are cheap",
+            "tag": "solution",
+            "body": [
+              "The old block is released. The new item goes into the first free slot, and the next three appends also find room, so each of those costs O(1).",
+              "One slow append has bought four fast ones."
+            ],
+            "short": "Fast appends",
+            "hud": [
+              {
+                "k": "Appends since the copy",
+                "v": "4",
+                "tone": "good"
+              },
+              {
+                "k": "Cost of each",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue"
+              },
+              "n1": {
+                "label": "7",
+                "tone": "blue"
+              },
+              "n2": {
+                "label": "1",
+                "tone": "blue"
+              },
+              "n3": {
+                "label": "9",
+                "tone": "blue"
+              },
+              "n4": {
+                "tone": "green"
+              },
+              "n5": {
+                "tone": "green"
+              },
+              "n6": {
+                "tone": "green"
+              },
+              "n7": {
+                "tone": "green"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n3",
+                  "n4"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The array is full again at 8 items and you append a ninth. What happens?",
+              "options": [
+                "Nothing special: it just writes the item",
+                "It grows again, and copies the 8 items",
+                "It raises an error"
+              ],
+              "answer": 1,
+              "why": "There is no free slot, so the array allocates a bigger block (16) and copies all 8 items, just as it did at size 4."
+            }
+          },
+          {
+            "title": "Add up the copies",
+            "tag": "insight",
+            "body": [
+              "Growth happens at sizes 4, 8, 16, 32 and so on. The copies are 4 + 8 + 16 + ... which stay below twice the final size.",
+              "So n appends cost at most about 2n copies plus n writes. That is O(n) for n appends, or O(1) per append on average."
+            ],
+            "short": "Total",
+            "hud": [
+              {
+                "k": "Copies for 16 appends",
+                "v": "4 + 8 = 12",
+                "tone": "good"
+              },
+              {
+                "k": "Total per append",
+                "v": "about 2 copies",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "tone": "blue"
+              },
+              "n1": {
+                "tone": "blue"
+              },
+              "n2": {
+                "tone": "blue"
+              },
+              "n3": {
+                "tone": "blue"
+              },
+              "n4": {
+                "tone": "blue"
+              },
+              "n5": {
+                "tone": "blue"
+              },
+              "n6": {
+                "tone": "blue"
+              },
+              "n7": {
+                "tone": "blue"
+              }
+            },
+            "card": {
+              "title": "The sum",
+              "lines": [
+                "copies at growth: 4 + 8 + 16 + ... + n/2",
+                "this is less than n",
+                "total work for n appends < 3n",
+                "per append: O(1)"
+              ],
+              "hl": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Amortized O(1): rare expensive steps, cheap on average",
+            "tag": "insight",
+            "body": [
+              "Amortized cost is the cost averaged over a whole sequence of operations. It is a worst-case guarantee over the sequence, not a guess about typical input.",
+              "A single append can still be O(n). It is the average over many appends that is O(1)."
+            ],
+            "short": "Amortized",
+            "hud": [
+              {
+                "k": "One append",
+                "v": "O(1) or O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "n appends",
+                "v": "O(n) total",
+                "tone": "good"
+              },
+              {
+                "k": "Per append, amortized",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Words",
+              "lines": [
+                "worst case: one append, O(n)",
+                "amortized: averaged over n appends",
+                "different questions, both honest"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Growing by a constant amount is not enough",
+            "tag": "problem",
+            "body": [
+              "If the array grew by 4 cells each time instead of doubling, it would copy every 4 appends, and each copy gets longer. The total becomes quadratic.",
+              "Growing by a constant factor, such as 2, is what keeps the average at O(1)."
+            ],
+            "short": "Why double",
+            "hud": [
+              {
+                "k": "Grow by +4",
+                "v": "O(n squared) total",
+                "tone": "bad"
+              },
+              {
+                "k": "Grow by x2",
+                "v": "O(n) total",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Compare for n = 1,000,000",
+              "lines": [
+                "+4 each time: about 125 billion copies",
+                "x2 each time: under 2 million copies"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Real lists: Python over-allocates a little",
+            "tag": "technique",
+            "body": [
+              "CPython lists over-allocate so the next few appends need no resize. The growth factor is smaller than 2, about 1.125 for large lists, so it wastes less memory.",
+              "Any constant factor greater than 1 keeps appends amortized O(1). The exact pattern is an implementation detail, so never rely on it."
+            ],
+            "short": "Python",
+            "hud": [
+              {
+                "k": "Growth factor",
+                "v": "about 1.125 in CPython"
+              },
+              {
+                "k": "append",
+                "v": "O(1) amortized",
+                "tone": "good"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "import sys",
+                "sys.getsizeof(a)   # bytes used by the list block",
+                "# jumps only when a resize happens"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A dynamic array is an array that moves to a bigger block when it fills up, growing by a constant factor. Index and end-append stay fast, and middle inserts are still O(n).",
+              "Use the word amortized when you answer: append is O(1) amortized, and a single append can occasionally be O(n)."
+            ],
+            "short": "Recap",
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 full -> allocate bigger block",
+                "2 copy the items: O(n)",
+                "3 grow by a factor, not a constant",
+                "4 append: O(1) amortized"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A dynamic array is a bookshelf you replace with a bigger one when it fills up.",
+      "story": "Your bookshelf is full, so you buy one twice as big and carry every book across. That day is a lot of work. But then you can add many books with no effort until it is full again. If you only bought a shelf with one extra slot each time, you would be carrying all your books across constantly. Doubling the size means the big carrying days come rarely.",
+      "maps": [
+        [
+          "The bookshelf",
+          "The array block"
+        ],
+        [
+          "Buying a bigger shelf",
+          "Allocating a larger block"
+        ],
+        [
+          "Carrying every book across",
+          "Copying the items"
+        ],
+        [
+          "Easy days between moves",
+          "Cheap appends"
+        ]
+      ],
+      "words": [
+        [
+          "dynamic array",
+          "An array that moves to a bigger block when it fills up."
+        ],
+        [
+          "capacity",
+          "How many items the current block can hold."
+        ],
+        [
+          "amortized",
+          "Averaged over a whole run of operations, not just one."
+        ],
+        [
+          "resize",
+          "Allocate a bigger block and copy the items into it."
+        ],
+        [
+          "growth factor",
+          "How much bigger the new block is, such as two times."
+        ]
+      ]
+    }
   }
 ]
