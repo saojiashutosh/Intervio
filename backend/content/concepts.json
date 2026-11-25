@@ -114104,5 +114104,942 @@
         ]
       ]
     }
+  },
+  {
+    "id": "circular-buffer",
+    "n": 158,
+    "level": 14,
+    "week": "Core",
+    "title": "Circular Buffer: A Fixed-Size Ring Queue",
+    "tagline": "Use a fixed array as a queue by letting the indexes wrap around, and learn how to tell a full buffer from an empty one.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "A circular buffer, also called a ring buffer, is a single fixed-size array that is treated as if its end were connected to its start. It works as a queue that never needs to shift items and never needs to grow. The Wikipedia article calls it well suited as a FIFO, with constant time for all queue operations when the maximum size is fixed.",
+      "## The state you need",
+      "Store the array, its capacity, a start index (where the next read comes from) and a count of items stored. The write position is (start + count) % capacity, and the read position is start. After a write, count goes up. After a read, start moves forward by one modulo the capacity, and count goes down. Using modulo is what turns the line into a ring: the index after the last cell is the first cell.",
+      "- write(x): buf[(start + count) % n] = x, then count += 1.\n- read(): x = buf[start], then start = (start + 1) % n and count -= 1.\n- Every operation is O(1), and memory is allocated once.",
+      "Reading does not erase the cell. The Wikipedia article notes the removed elements are still in the buffer, waiting to be overwritten. For a plain queue, that does not matter.",
+      "## Full versus empty",
+      "If you keep only a start index and an end index, then start equals end in two different situations: empty and completely full. The article states that start and end alone cannot tell them apart. There are two standard fixes.",
+      "- Keep a count, as above. Empty means count is 0, and full means count equals the capacity.\n- Never use the last cell. The buffer holds at most capacity minus 1 items. Empty is start == end, and full is when the next write position would equal start.",
+      "## What a full buffer should do",
+      "When you write to a full buffer you can raise an error or make the writer wait, as a bounded producer-consumer queue does. Or you can overwrite the oldest item, so the buffer always holds the latest N values. The article lists both, and says overwriting buffers are useful in multimedia and for keeping recent data.",
+      "> A worked example with capacity 6: write A, B, C, then read A. Write D, E, F, G: the fourth write wraps to cell 0. Now 6 items are stored and start is at cell 1. With overwrite on, writing H replaces B in cell 1, start moves to cell 2, and the buffer holds C, D, E, F, G, H.",
+      "## Python shortcuts",
+      "collections.deque(maxlen=N) is an overwriting ring buffer. Once a bounded deque is full, adding items discards the same number from the opposite end. You rarely write the indexes yourself in Python, but interviewers still ask for it, because it tests careful index arithmetic.",
+      "## Growing the buffer",
+      "A fixed ring cannot grow. Making it larger means allocating a bigger array and copying the items in order, which the article calls comparatively costly. If the size is unknown, a linked list or a deque is a better fit.",
+      "## How to talk through it",
+      "State the fields and the two formulas. Say how you tell full from empty and what a write to a full buffer does. Test capacity 1, a buffer that wraps several times, and alternating reads and writes."
+    ],
+    "keyPoints": [
+      "A ring buffer is a fixed array with a start index and a count. Indexes wrap with % capacity.",
+      "write at (start + count) % n. read at start, then start = (start + 1) % n. All O(1).",
+      "start == end alone cannot tell full from empty. Keep a count, or leave one cell unused.",
+      "A full write either raises or waits, or overwrites the oldest item.",
+      "deque(maxlen=N) is the Python shortcut for an overwriting ring buffer."
+    ],
+    "sql": [
+      {
+        "title": "A ring buffer with a count",
+        "lang": "py",
+        "code": "class RingBuffer:\n    def __init__(self, capacity, overwrite=False):\n        self.buf = [None] * capacity\n        self.start = 0\n        self.count = 0\n        self.overwrite = overwrite\n\n    def write(self, x):\n        n = len(self.buf)\n        if self.count == n:\n            if not self.overwrite:\n                raise OverflowError(\"buffer is full\")\n            self.buf[self.start] = x                 # replace the oldest item\n            self.start = (self.start + 1) % n\n            return\n        self.buf[(self.start + self.count) % n] = x\n        self.count += 1\n\n    def read(self):\n        if self.count == 0:\n            raise IndexError(\"buffer is empty\")\n        x = self.buf[self.start]\n        self.start = (self.start + 1) % len(self.buf)\n        self.count -= 1\n        return x\n\n    def items(self):\n        n = len(self.buf)\n        return [self.buf[(self.start + i) % n] for i in range(self.count)]\n\nr = RingBuffer(6)\nfor x in \"ABC\":\n    r.write(x)\nassert r.read() == \"A\"\nfor x in \"DEFG\":\n    r.write(x)                                       # the last write wraps to cell 0\nassert r.items() == [\"B\", \"C\", \"D\", \"E\", \"F\", \"G\"] and r.count == 6\ntry:\n    r.write(\"H\")\nexcept OverflowError:\n    pass\nelse:\n    raise AssertionError(\"a full buffer must refuse a write\")\n\no = RingBuffer(3, overwrite=True)\nfor x in range(1, 6):\n    o.write(x)\nassert o.items() == [3, 4, 5]"
+      },
+      {
+        "title": "The no-count version: leave one cell free",
+        "lang": "py",
+        "code": "class RingNoCount:\n    def __init__(self, capacity):\n        self.buf = [None] * (capacity + 1)           # one spare cell tells full from empty\n        self.start = self.end = 0\n\n    def is_empty(self):\n        return self.start == self.end\n\n    def is_full(self):\n        return (self.end + 1) % len(self.buf) == self.start\n\n    def write(self, x):\n        if self.is_full():\n            raise OverflowError(\"buffer is full\")\n        self.buf[self.end] = x\n        self.end = (self.end + 1) % len(self.buf)\n\n    def read(self):\n        if self.is_empty():\n            raise IndexError(\"buffer is empty\")\n        x = self.buf[self.start]\n        self.start = (self.start + 1) % len(self.buf)\n        return x\n\nr = RingNoCount(3)\nassert r.is_empty() and not r.is_full()\nfor x in (1, 2, 3):\n    r.write(x)\nassert r.is_full() and not r.is_empty()\nassert r.read() == 1\nr.write(4)\nassert [r.read(), r.read(), r.read()] == [2, 3, 4] and r.is_empty()"
+      },
+      {
+        "title": "deque(maxlen=N): the last N items",
+        "lang": "py",
+        "code": "from collections import deque\n\nlast3 = deque(maxlen=3)\nfor x in range(1, 6):\n    last3.append(x)\nassert list(last3) == [3, 4, 5]\nassert last3.maxlen == 3\n\nclass MovingAverage:\n    def __init__(self, size):\n        self.window = deque(maxlen=size)\n        self.total = 0\n    def add(self, x):\n        if len(self.window) == self.window.maxlen:\n            self.total -= self.window[0]             # the oldest value is about to be dropped\n        self.window.append(x)\n        self.total += x\n        return self.total / len(self.window)\n\nm = MovingAverage(3)\nassert [m.add(x) for x in (1, 2, 3, 4)] == [1.0, 1.5, 2.0, 3.0]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write RingBuffer with a count and RingNoCount with a spare cell. Test capacity 1, many wraps and alternating reads and writes, and compare both against a collections.deque used as a model on random operations. Then write a log keeper that stores the last 100 lines, and say what the memory use is.",
+    "pitfalls": [
+      "Using start and end alone with no count or spare cell, so full and empty look the same.",
+      "Forgetting the modulo, so the index runs off the end of the array.",
+      "Writing to a full buffer without deciding between an error and an overwrite.",
+      "Overwriting without moving the start index, so the read order is wrong.",
+      "Resizing a ring by copying the array as it is. After wrap-around you must copy the items in logical order."
+    ],
+    "interview": [
+      {
+        "q": "What is a circular buffer and why use one?",
+        "a": "A fixed-size array treated as a ring, used as a queue whose indexes wrap around with modulo. It never shifts items and never allocates after creation, so every read and write is O(1). It suits streaming data and keeping the latest N items."
+      },
+      {
+        "q": "How do you tell a full ring buffer from an empty one?",
+        "a": "If you only keep start and end, they are equal in both cases. Keep a count of stored items, or leave one cell unused so that full is end + 1 == start and empty is start == end."
+      },
+      {
+        "q": "What should happen when you write to a full buffer?",
+        "a": "It depends on the use. A producer-consumer buffer raises an error or makes the writer wait. A log of recent data overwrites the oldest item and moves the read index forward."
+      },
+      {
+        "q": "How would you get a ring buffer in Python without writing the indexes?",
+        "a": "Use collections.deque with maxlen. When it is full, adding an item discards one from the opposite end."
+      }
+    ],
+    "references": [
+      {
+        "title": "Circular buffer (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Circular_buffer",
+        "kind": "Reference"
+      },
+      {
+        "title": "collections.deque (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: the circular buffer is a common coding-round question that tests index arithmetic. The state, the full-versus-empty problem and its two fixes, the overwrite behaviour and the O(1) operations come from the Wikipedia article cited, which I read in full. The deque maxlen behaviour comes from the Python collections page, which I read in part. The implementation details and the interview advice are my judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-circular-buffer",
+      "py-deque",
+      "wikipedia-queue-adt",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "ringbuf",
+        "title": "A circular buffer, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The ring",
+            "at": 0
+          },
+          {
+            "text": "Write and read",
+            "at": 1
+          },
+          {
+            "text": "Wrap around",
+            "at": 3
+          },
+          {
+            "text": "Full or empty?",
+            "at": 4
+          },
+          {
+            "text": "Overwrite",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -3.4,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": 2.944,
+            "y": -1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": 2.944,
+            "y": 1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 3.4,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": -2.944,
+            "y": 1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": -2.944,
+            "y": -1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [
+          {
+            "a": "b0",
+            "b": "b1",
+            "dir": "to",
+            "dash": true
+          },
+          {
+            "a": "b1",
+            "b": "b2",
+            "dir": "to",
+            "dash": true
+          },
+          {
+            "a": "b2",
+            "b": "b3",
+            "dir": "to",
+            "dash": true
+          },
+          {
+            "a": "b3",
+            "b": "b4",
+            "dir": "to",
+            "dash": true
+          },
+          {
+            "a": "b4",
+            "b": "b5",
+            "dir": "to",
+            "dash": true
+          },
+          {
+            "a": "b5",
+            "b": "b0",
+            "dir": "to",
+            "dash": true
+          }
+        ],
+        "steps": [
+          {
+            "title": "A fixed buffer joined end to end",
+            "tag": "technique",
+            "body": [
+              "A circular buffer, also called a ring buffer, is an array of fixed size that is treated as if its last cell were connected to its first. Here there are 6 cells, all empty.",
+              "Two indexes move around the ring: write, where the next item goes, and read, where the next item comes from. Both start at cell 0."
+            ],
+            "short": "The ring",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "6"
+              },
+              {
+                "k": "Items",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": {
+                  "text": "read = write (empty)",
+                  "tone": "grey",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "buf = [None] * 6",
+                "start = 0     # read from here",
+                "count = 0     # items stored"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Write A, B and C",
+            "tag": "solution",
+            "body": [
+              "Each write puts the item at the write index and moves the write index forward by one. A, B and C fill cells 0, 1 and 2, and write now points at cell 3.",
+              "No item ever moves. Only the indexes do."
+            ],
+            "short": "Write",
+            "hud": [
+              {
+                "k": "Items",
+                "v": "3"
+              },
+              {
+                "k": "write index",
+                "v": "3"
+              },
+              {
+                "k": "read index",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "A",
+                "tone": "blue",
+                "pill": {
+                  "text": "read",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "b1": {
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": {
+                  "text": "write",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1",
+                  "b2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Read A: only the read index moves",
+            "tag": "solution",
+            "body": [
+              "A read returns the item at the read index and moves the read index forward. A comes out, and read now points at cell 1.",
+              "The cell still holds A. The Wikipedia article notes that removed elements stay in the buffer, waiting to be overwritten."
+            ],
+            "short": "Read",
+            "hud": [
+              {
+                "k": "read returned",
+                "v": "A",
+                "tone": "good"
+              },
+              {
+                "k": "Items",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "A",
+                "tone": "grey",
+                "pill": {
+                  "text": "A, already read",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "b1": {
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "read",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": {
+                  "text": "write",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "The write index wraps around",
+            "tag": "insight",
+            "body": [
+              "Write D, E, F and G. D, E and F fill cells 3, 4 and 5. Then the write index reaches the end and wraps to cell 0, because indexes are computed modulo 6. G lands in cell 0, over the old A.",
+              "Writing over a cell that was already read is safe. That is what makes the ring reuse its memory."
+            ],
+            "short": "Wrap around",
+            "hud": [
+              {
+                "k": "write index",
+                "v": "1 after wrapping",
+                "tone": "good"
+              },
+              {
+                "k": "Items",
+                "v": "6",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "read = write",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b3",
+                  "b4",
+                  "b5",
+                  "b0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "write_at = (start + count) % 6",
+                "start = (start + 1) % 6"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "predict": {
+              "question": "The buffer holds 6 items and both indexes now point at cell 1. Is it empty or full?",
+              "options": [
+                "Empty",
+                "Full",
+                "You cannot tell from the indexes alone"
+              ],
+              "answer": 2,
+              "why": "Both indexes are equal in the empty state and in the full state, so the two indexes cannot tell them apart."
+            }
+          },
+          {
+            "title": "The trouble: full and empty look the same",
+            "tag": "problem",
+            "body": [
+              "When read equals write, the buffer could be empty or completely full. The Wikipedia article states that start and end alone cannot tell the two cases apart.",
+              "You must store extra information to separate them."
+            ],
+            "short": "Full or empty?",
+            "hud": [
+              {
+                "k": "read = write",
+                "v": "empty or full?",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "B",
+                "tone": "red",
+                "pill": {
+                  "text": "read = write",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Two fixes: keep a count, or leave one cell free",
+            "tag": "solution",
+            "body": [
+              "Fix one: keep a count of stored items. Empty means count 0, full means count equals the capacity. Fix two: never fill the last cell, so full means the write index is one behind the read index, and empty means they are equal.",
+              "The count is simpler and uses all the cells. The spare cell needs no extra variable."
+            ],
+            "short": "Fixes",
+            "hud": [
+              {
+                "k": "With a count",
+                "v": "count == capacity: full",
+                "tone": "good"
+              },
+              {
+                "k": "One cell spare",
+                "v": "write + 1 == read: full",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "B",
+                "tone": "blue",
+                "pill": {
+                  "text": "count = 6, so full",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "When full: error, or overwrite the oldest",
+            "tag": "technique",
+            "body": [
+              "A write to a full buffer has two common behaviours. Raise an error or wait, as a producer-consumer queue does. Or overwrite the oldest item and move the read index on, as a log of the latest events does.",
+              "Here H overwrites B in cell 1, and the oldest remaining item becomes C."
+            ],
+            "short": "Overwrite",
+            "hud": [
+              {
+                "k": "Oldest now",
+                "v": "C"
+              },
+              {
+                "k": "Newest",
+                "v": "H"
+              },
+              {
+                "k": "Items",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "H",
+                "tone": "orange",
+                "pill": {
+                  "text": "H overwrote B",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "read = write",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Where ring buffers are used",
+            "tag": "insight",
+            "body": [
+              "A ring buffer is a queue that never grows. Every operation is O(1), and memory is allocated once. It is used for streaming data, audio and network buffers, and for keeping the last N events or lines.",
+              "In Python, collections.deque(maxlen=N) gives you an overwriting ring buffer without writing the indexes yourself."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "All operations",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Memory",
+                "v": "fixed",
+                "tone": "good"
+              },
+              {
+                "k": "Python shortcut",
+                "v": "deque(maxlen=N)"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "H",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "read = write",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A circular buffer is a fixed array plus a start index and a count, with indexes computed modulo the capacity. Writes go at (start + count) % capacity, and reads at start.",
+              "Decide what to do when full, and use a count or a spare cell to tell full from empty."
+            ],
+            "short": "Recap",
+            "set": {
+              "b0": {
+                "label": "G",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "H",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "C",
+                "tone": "blue",
+                "pill": {
+                  "text": "read = write",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "b3": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "E",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "F",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 fixed array, start, count",
+                "2 index = (start + i) % capacity",
+                "3 full: count == capacity",
+                "4 full write: error or overwrite"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A circular buffer is a carousel with a fixed number of seats, where you keep going round and reuse the seats.",
+      "story": "Imagine a round table with six numbered seats. A waiter puts a dish on the next free seat and moves on round the table. A diner takes the dish at the oldest seat and also moves round. After the sixth seat the waiter simply goes back to the first one. If the waiter catches up with the diner, the table is full, and the waiter must wait or replace the oldest dish.",
+      "maps": [
+        [
+          "The round table",
+          "The ring buffer"
+        ],
+        [
+          "The waiter's place",
+          "The write index"
+        ],
+        [
+          "The diner's place",
+          "The read index"
+        ],
+        [
+          "Going back to seat one",
+          "Wrapping around with modulo"
+        ]
+      ],
+      "words": [
+        [
+          "circular buffer",
+          "A fixed-size array whose end is treated as joined to its start."
+        ],
+        [
+          "wrap around",
+          "Go back to the first cell after passing the last."
+        ],
+        [
+          "modulo",
+          "The remainder after dividing, used to keep an index inside the array."
+        ],
+        [
+          "capacity",
+          "The number of cells the buffer holds."
+        ],
+        [
+          "overwrite",
+          "Replace the oldest item when the buffer is full."
+        ]
+      ]
+    }
   }
 ]
