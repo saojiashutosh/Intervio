@@ -113316,5 +113316,793 @@
         ]
       ]
     }
+  },
+  {
+    "id": "queues",
+    "n": 157,
+    "level": 14,
+    "week": "Core",
+    "title": "Queues: First In, First Out",
+    "tagline": "Learn the FIFO rule, why a list makes a slow queue, and the fast ways to build one: deque, linked list and two stacks.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A queue is a line. Items join at the rear, called enqueue, and leave from the front, called dequeue, so the item that has waited longest is served first. This is FIFO, first in, first out. The Wikipedia article gives insertion and deletion as O(1) for a queue, and adds a peek, or front, operation that returns the next item to be dequeued without removing it.",
+      "## The slow way and the fast way",
+      "It is tempting to use a Python list: append to enqueue and pop(0) to dequeue. The Python tutorial warns against it: appends and pops at the end of a list are fast, but inserts and pops at the beginning are slow, because all of the other elements have to be shifted by one. A queue of a million items would move a million items on every dequeue.",
+      "- Use collections.deque. The tutorial recommends it, because it is designed to have fast appends and pops from both ends. append is the enqueue and popleft is the dequeue, both O(1).\n- Use a singly linked list with a pointer to the last node. Enqueue adds at the tail and dequeue removes the head.\n- Use a circular array, where indexes wrap around so nothing shifts. The next lesson covers it.",
+      "## Underflow and overflow",
+      "Dequeuing from an empty queue is underflow. A queue with a maximum size can also be full, and adding to it is overflow. Decide what each case does: raise an error, wait, or drop an item.",
+      "## A queue from two stacks",
+      "A popular interview question: build a queue using only stacks. Keep an inbox and an outbox. Enqueue pushes onto the inbox. To dequeue, if the outbox is empty, pop everything off the inbox and push it onto the outbox, which reverses the order. Then pop from the outbox. A single dequeue can move many items, but each item moves from inbox to outbox at most once, so the cost is amortized O(1). The Wikipedia article describes the same idea with two linked lists.",
+      "> A worked example: enqueue 1, 2, 3 into the inbox. Dequeue finds the outbox empty, so it moves 3, 2, 1 across, which leaves 1 on top. It returns 1. Enqueue 4 goes to the inbox. The next dequeues return 2 and 3 from the outbox, and only then does the outbox empty and 4 get moved.",
+      "## Thread-safe queues",
+      "The queue module provides Queue, a FIFO queue that is safe to share between threads. If maxsize is set, put waits when the queue is full, and get waits when it is empty. put_nowait and get_nowait raise Full and Empty instead. It also has LifoQueue, which behaves like a stack, and PriorityQueue, which returns the smallest item first.",
+      "## Where queues appear",
+      "Breadth-first search uses a queue to explore items in the order they were found. Schedulers, print spoolers, message buffers and web servers handling requests in arrival order all use queues. If order of arrival matters, think queue.",
+      "## How to talk through it",
+      "Say which end is the front and which is the rear. State that enqueue and dequeue are O(1) and say how you build it. Mention what happens on an empty queue. Then test the empty queue, one item and alternating enqueues and dequeues."
+    ],
+    "keyPoints": [
+      "FIFO: enqueue at the rear, dequeue from the front, peek the front. Both main operations are O(1).",
+      "Never use list.pop(0) as dequeue: it is O(n). Use collections.deque with append and popleft.",
+      "Queues can also be built from a linked list with head and tail pointers, a circular array, or two stacks (amortized O(1)).",
+      "Underflow: dequeue from empty. Overflow: enqueue to a full bounded queue. Decide what each does.",
+      "queue.Queue is the thread-safe version, with blocking put and get and Full and Empty exceptions."
+    ],
+    "sql": [
+      {
+        "title": "A queue on a deque, and on a linked list",
+        "lang": "py",
+        "code": "from collections import deque\n\nq = deque()\nfor x in \"ABC\":\n    q.append(x)                 # enqueue\nq.append(\"D\")\nassert q.popleft() == \"A\"       # dequeue returns the oldest item\nassert q[0] == \"B\"              # peek\nassert list(q) == [\"B\", \"C\", \"D\"]\n\nclass Node:\n    def __init__(self, val):\n        self.val, self.next = val, None\n\nclass LinkedQueue:\n    def __init__(self):\n        self.head = self.tail = None\n        self.size = 0\n    def enqueue(self, x):\n        node = Node(x)\n        if self.tail:\n            self.tail.next = node\n        else:\n            self.head = node\n        self.tail = node\n        self.size += 1\n    def dequeue(self):\n        if self.head is None:\n            raise IndexError(\"dequeue from an empty queue\")\n        node = self.head\n        self.head = node.next\n        if self.head is None:\n            self.tail = None\n        self.size -= 1\n        return node.val\n\nlq = LinkedQueue()\nfor x in (1, 2, 3):\n    lq.enqueue(x)\nassert [lq.dequeue(), lq.dequeue()] == [1, 2]\nlq.enqueue(4)\nassert [lq.dequeue(), lq.dequeue()] == [3, 4] and lq.size == 0\ntry:\n    lq.dequeue()\nexcept IndexError:\n    pass\nelse:\n    raise AssertionError(\"empty dequeue must raise\")"
+      },
+      {
+        "title": "A queue from two stacks, and the thread-safe queue",
+        "lang": "py",
+        "code": "import queue\n\nclass TwoStackQueue:\n    def __init__(self):\n        self.inbox, self.outbox = [], []\n    def enqueue(self, x):\n        self.inbox.append(x)\n    def _fill(self):\n        if not self.outbox:\n            while self.inbox:\n                self.outbox.append(self.inbox.pop())\n    def dequeue(self):\n        self._fill()\n        return self.outbox.pop()\n    def peek(self):\n        self._fill()\n        return self.outbox[-1]\n\nt = TwoStackQueue()\nfor x in (1, 2, 3):\n    t.enqueue(x)\nassert t.dequeue() == 1\nt.enqueue(4)\nassert t.peek() == 2\nassert [t.dequeue(), t.dequeue(), t.dequeue()] == [2, 3, 4]\n\nq = queue.Queue(maxsize=2)\nq.put(1); q.put(2)\ntry:\n    q.put_nowait(3)\nexcept queue.Full:\n    pass\nelse:\n    raise AssertionError(\"a full queue must refuse put_nowait\")\nassert q.get() == 1 and q.get() == 2\ntry:\n    q.get_nowait()\nexcept queue.Empty:\n    pass\nelse:\n    raise AssertionError(\"an empty queue must refuse get_nowait\")"
+      },
+      {
+        "title": "Breadth-first search with a queue",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef shortest_steps(graph, start, goal):\n    seen = {start}\n    q = deque([(start, 0)])\n    while q:\n        node, dist = q.popleft()\n        if node == goal:\n            return dist\n        for nxt in graph.get(node, []):\n            if nxt not in seen:\n                seen.add(nxt)\n                q.append((nxt, dist + 1))\n    return -1\n\ng = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\", \"E\"], \"D\": [\"F\"], \"E\": [\"F\"], \"F\": []}\nassert shortest_steps(g, \"A\", \"F\") == 3\nassert shortest_steps(g, \"A\", \"A\") == 0\nassert shortest_steps(g, \"F\", \"A\") == -1\n\ndef level_order(graph, start):\n    levels, q, seen = [], deque([start]), {start}\n    while q:\n        levels.append(list(q))\n        for _ in range(len(q)):                 # process exactly one level\n            node = q.popleft()\n            for nxt in graph.get(node, []):\n                if nxt not in seen:\n                    seen.add(nxt)\n                    q.append(nxt)\n    return levels\n\nassert level_order(g, \"A\") == [[\"A\"], [\"B\", \"C\"], [\"D\", \"E\"], [\"F\"]]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write a LinkedQueue with a tail pointer and a TwoStackQueue. For each, test an empty queue, one item and alternating enqueue and dequeue. Then write shortest_steps and level_order with a deque. Finally, write a queue using a Python list and time 100,000 dequeues with pop(0) against deque.popleft() using timeit.",
+    "pitfalls": [
+      "Using list.pop(0) for dequeue. Every dequeue shifts all the other items: O(n).",
+      "Forgetting to reset the tail to None when the last item is dequeued from a linked queue.",
+      "Dequeuing from an empty queue without a check.",
+      "In BFS, marking a node as seen when you pop it instead of when you push it, so it can be queued many times.",
+      "Using a plain list in several threads. Use queue.Queue for thread-safe handoff."
+    ],
+    "interview": [
+      {
+        "q": "Why is list.pop(0) a bad way to dequeue?",
+        "a": "Removing the first item shifts every other item one place left, so each dequeue costs O(n). collections.deque is designed for fast appends and pops at both ends, so popleft is O(1)."
+      },
+      {
+        "q": "How do you implement a queue using two stacks?",
+        "a": "Push new items onto an inbox stack. To dequeue, if the outbox is empty, pop everything from the inbox and push it onto the outbox, which reverses the order. Then pop from the outbox. Each item moves at most once, so dequeue is amortized O(1)."
+      },
+      {
+        "q": "What is the difference between a queue and a stack?",
+        "a": "A queue is first in, first out: the oldest item leaves first. A stack is last in, first out: the newest item leaves first."
+      },
+      {
+        "q": "When do you use a queue.Queue instead of a deque?",
+        "a": "When several threads share the queue and you want blocking behaviour and bounded size. queue.Queue handles the locking and blocks put when full and get when empty."
+      }
+    ],
+    "references": [
+      {
+        "title": "Queue (abstract data type) (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Queue_(abstract_data_type)",
+        "kind": "Reference"
+      },
+      {
+        "title": "Using lists as stacks and queues (Python tutorial)",
+        "url": "https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks",
+        "kind": "Python docs"
+      },
+      {
+        "title": "queue: a synchronized queue class (Python docs)",
+        "url": "https://docs.python.org/3/library/queue.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: queues sit under breadth-first search and many design questions in the big-company coding rounds. The operations, the O(1) costs, the two-list idea and the uses come from the Wikipedia queue article, which I read in full. The warning about lists comes from the Python tutorial, and the thread-safe behaviour from the Python queue module page, which I read in full. The BFS examples and interview advice are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-queue-adt",
+      "py-tutorial-lists-stacks",
+      "py-queue-module",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "queueops",
+        "title": "Queues, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read or scan"
+          },
+          {
+            "kind": "write",
+            "label": "push, pop or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "FIFO",
+            "at": 0
+          },
+          {
+            "text": "Enqueue and dequeue",
+            "at": 1
+          },
+          {
+            "text": "The slow list",
+            "at": 4
+          },
+          {
+            "text": "Two stacks",
+            "at": 6
+          },
+          {
+            "text": "Uses",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "q0",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 2.4,
+            "label": "A",
+            "icon": "plate",
+            "tone": "green"
+          },
+          {
+            "id": "q1",
+            "kind": "cube",
+            "x": -0.8,
+            "y": 0.8,
+            "label": "B",
+            "icon": "plate",
+            "tone": "green"
+          },
+          {
+            "id": "q2",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -0.8,
+            "label": "C",
+            "icon": "plate",
+            "tone": "green"
+          },
+          {
+            "id": "q3",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.4,
+            "label": "D",
+            "icon": "plate",
+            "tone": "orange",
+            "from": 1
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "First in, first out",
+            "tag": "technique",
+            "body": [
+              "A queue is a line. Items join at the rear and leave from the front, so the item that waited longest goes first. This is FIFO, first in, first out.",
+              "A, B and C joined in that order. A is at the front and leaves first."
+            ],
+            "short": "FIFO",
+            "hud": [
+              {
+                "k": "Join at",
+                "v": "the rear (enqueue)"
+              },
+              {
+                "k": "Leave from",
+                "v": "the front (dequeue)"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q1": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q3": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "from collections import deque",
+                "q = deque()",
+                "q.append('A')    # enqueue",
+                "q.popleft()      # dequeue"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Enqueue: join at the rear",
+            "tag": "solution",
+            "body": [
+              "D arrives and goes to the back of the line. Only the rear changes, so enqueue is O(1).",
+              "Nobody is allowed to push into the middle. That fairness is the point of a queue."
+            ],
+            "short": "Enqueue",
+            "hud": [
+              {
+                "k": "enqueue",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Size",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q1": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "tone": "orange"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q2",
+                  "q3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Dequeue: leave from the front",
+            "tag": "solution",
+            "body": [
+              "A has waited longest, so A leaves. The next item, B, becomes the front. Dequeue is O(1) when the queue is built well.",
+              "Dequeue returns the item it removes, and the order of everyone else is unchanged."
+            ],
+            "short": "Dequeue",
+            "hud": [
+              {
+                "k": "dequeue returned",
+                "v": "A",
+                "tone": "good"
+              },
+              {
+                "k": "Front now",
+                "v": "B"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "first = q.popleft()   # removes and returns the front"
+              ],
+              "hl": [
+                0
+              ]
+            },
+            "predict": {
+              "question": "The queue holds B, C, D with B at the front. You dequeue twice. What does the second dequeue return?",
+              "options": [
+                "B",
+                "C",
+                "D"
+              ],
+              "answer": 1,
+              "why": "The first dequeue returns B. The second returns C."
+            }
+          },
+          {
+            "title": "Peek the front",
+            "tag": "technique",
+            "body": [
+              "Peek returns the front item without removing it. For a deque it is q[0]. Check the queue is not empty first.",
+              "Popping or peeking an empty queue is underflow. Adding to a bounded queue that is full is overflow."
+            ],
+            "short": "Peek",
+            "hud": [
+              {
+                "k": "peek",
+                "v": "q[0], O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Empty queue",
+                "v": "popleft raises IndexError",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "peek: B stays",
+                  "tone": "blue",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The trap: a list used as a queue is slow",
+            "tag": "problem",
+            "body": [
+              "list.pop(0) takes the front item, but every other item must shift one place to the left. That is O(n) per dequeue. The Python tutorial warns that inserts and pops at the start of a list are slow for this reason.",
+              "A queue with a million items would move a million items on every dequeue."
+            ],
+            "short": "Slow list",
+            "hud": [
+              {
+                "k": "list.pop(0)",
+                "v": "O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "deque.popleft()",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q2",
+                  "q1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "q3",
+                  "q2"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Build it with a deque or a linked list",
+            "tag": "solution",
+            "body": [
+              "A collections.deque is built for fast appends and pops at both ends, so popleft is O(1). A linked list with a pointer to both the first and the last node also gives O(1) at both ends.",
+              "A circular array does it too: indexes wrap around, so nothing ever shifts. The next lessons show that one."
+            ],
+            "short": "Fast versions",
+            "hud": [
+              {
+                "k": "deque",
+                "v": "O(1) at both ends",
+                "tone": "good"
+              },
+              {
+                "k": "Linked list + tail",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Circular array",
+                "v": "O(1), fixed size",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A queue from two stacks",
+            "tag": "technique",
+            "body": [
+              "You can build a queue from two stacks: push new items on an inbox. To dequeue, pop from an outbox, and when the outbox is empty, move everything from the inbox over, which reverses the order. Then the oldest item is on top.",
+              "One dequeue can move many items, but each item moves only once, so dequeue is amortized O(1)."
+            ],
+            "short": "Two stacks",
+            "hud": [
+              {
+                "k": "enqueue",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "dequeue",
+                "v": "O(1) amortized",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Bounded and thread-safe queues",
+            "tag": "technique",
+            "body": [
+              "A bounded queue has a maximum size. The standard library queue.Queue makes put wait when the queue is full, and get wait when it is empty, and it does the locking for you. It is the usual way to hand work from one thread to another.",
+              "put_nowait and get_nowait raise Full and Empty instead of waiting."
+            ],
+            "short": "Bounded",
+            "hud": [
+              {
+                "k": "maxsize",
+                "v": "put blocks when full"
+              },
+              {
+                "k": "get",
+                "v": "blocks when empty"
+              },
+              {
+                "k": "Thread safe",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Where queues show up",
+            "tag": "insight",
+            "body": [
+              "Breadth-first search uses a queue so it explores neighbours in the order it found them. Task schedulers, print jobs, message buffers and request handling all use queues.",
+              "Whenever fairness or arrival order matters, think queue."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "BFS",
+                "v": "explore in order found"
+              },
+              {
+                "k": "Buffers",
+                "v": "smooth out bursts"
+              },
+              {
+                "k": "Schedulers",
+                "v": "oldest job first"
+              }
+            ],
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A queue is FIFO. Enqueue at the rear and dequeue from the front, both in O(1) if you build it with a deque, a linked list or a circular array. Never use list.pop(0).",
+              "State what happens when the queue is empty, and whether it has a size limit."
+            ],
+            "short": "Recap",
+            "set": {
+              "q0": {
+                "hidden": true
+              },
+              "q1": {
+                "hidden": false,
+                "pill": {
+                  "text": "front",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "hidden": false,
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "hidden": false,
+                "pill": {
+                  "text": "rear",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 FIFO: front out, rear in",
+                "2 deque.append and popleft",
+                "3 not list.pop(0)",
+                "4 handle empty and full"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A queue is a line at a shop counter: first come, first served.",
+      "story": "At a shop counter, people join the back of the line. The person at the front is served and leaves. Nobody is allowed to jump into the middle. The person who has waited longest is always served next. If the line is empty, the shop assistant has to wait for the next customer.",
+      "maps": [
+        [
+          "The line of people",
+          "The queue"
+        ],
+        [
+          "Joining at the back",
+          "Enqueue"
+        ],
+        [
+          "Being served at the front",
+          "Dequeue"
+        ],
+        [
+          "An empty line",
+          "Underflow"
+        ]
+      ],
+      "words": [
+        [
+          "queue",
+          "A line where the first item added is the first one removed."
+        ],
+        [
+          "enqueue",
+          "Add an item at the rear of the queue."
+        ],
+        [
+          "dequeue",
+          "Remove and return the item at the front."
+        ],
+        [
+          "FIFO",
+          "First in, first out."
+        ],
+        [
+          "overflow",
+          "Trying to add to a queue that is already full."
+        ]
+      ]
+    }
   }
 ]
