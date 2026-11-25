@@ -1889,6 +1889,51 @@
       "kind": "article",
       "checked": "read",
       "used_for": "An index page: only the names of the techniques and slowly changing dimension Types 0 to 3 (retain original, overwrite, add new row, add new attribute). No definitions were read."
+    },
+    {
+      "key": "py-faq-programming",
+      "title": "Programming FAQ: arguments, references and mutable objects (Python docs)",
+      "url": "https://docs.python.org/3/faq/programming.html#how-do-i-write-a-function-with-output-parameters-call-by-reference",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Arguments are passed by assignment; names refer to objects; y = x does not copy a list; list, dict and set are mutable and str, int and tuple are not; += mutates a list but builds a new int or tuple; default arguments are created once."
+    },
+    {
+      "key": "py-copy",
+      "title": "copy: shallow and deep copy operations (Python docs)",
+      "url": "https://docs.python.org/3/library/copy.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Assignment never copies; shallow copy inserts references to the same contents; deep copy recursively copies them; deepcopy uses a memo to avoid loops."
+    },
+    {
+      "key": "py-datamodel-objects",
+      "title": "Data model, section 3.1: objects, values and types (Python docs)",
+      "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Every object has an identity, a type and a value; identity never changes and is compared with is; id() is the memory address in CPython; two empty lists are always distinct objects."
+    },
+    {
+      "key": "wikipedia-divide-and-conquer",
+      "title": "Divide-and-conquer algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Divide-and-conquer_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Definition (break into sub-problems, solve, combine); correctness by induction and cost by recurrences; merge sort; binary search as the single-subproblem case; base cases; memoization leads to dynamic programming."
+    },
+    {
+      "key": "wikipedia-master-theorem",
+      "title": "Master theorem for divide-and-conquer recurrences (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Master_theorem_(analysis_of_algorithms)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "T(n) = aT(n/b) + f(n); critical exponent log_b a; the three cases; worked results for binary search, tree traversal and merge sort."
     }
   ],
   "levels": [
