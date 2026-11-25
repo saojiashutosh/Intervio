@@ -104593,5 +104593,1252 @@
         ]
       ]
     }
+  },
+  {
+    "id": "matrices-2d",
+    "n": 148,
+    "level": 14,
+    "week": "Core",
+    "title": "2D Arrays: Layout, Traversal, Rotation and Spiral",
+    "tagline": "Treat a grid as a list of rows, walk it safely in any direction, and rotate or spiral it without confusing indexes.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A 2D array, or matrix, is a table of cells arranged in rows and columns. In Python it is a list of rows, where each row is itself a list, and you read the cell in row r and column c as m[r][c]. Rows come first, and both indexes start at 0. Grid questions are everywhere: game boards, images, maps, spreadsheets and dynamic programming tables.",
+      "## How a grid sits in memory",
+      "Memory is one long line, so a grid must be flattened. Row-major order stores the first row, then the second row and so on. Column-major order stores the first column, then the second. The Wikipedia article on the two orders says C uses row-major layout with offset x + width x y, while Fortran, MATLAB and Julia use column-major, and NumPy defaults to row-major. For a row-major grid with cols columns the offset of m[r][c] is r x cols + c.",
+      "## Walk in storage order",
+      "Looping along a row visits neighbours in memory when the layout is row-major. The same article says looping row-wise is preferred in C. A Python list of lists is not one flat block, since each row is a separate list, but looping rows on the outside and columns on the inside is still the right default habit.",
+      "## Neighbours and bounds",
+      "Keep the four moves in a tuple list, such as (-1, 0), (1, 0), (0, -1) and (0, 1), and add 4 diagonal moves when asked. For each new position check 0 <= nr < rows and 0 <= nc < cols before reading the cell. A negative index in Python does not raise an error. It wraps around to the other end, so a missing bounds check gives silently wrong answers.",
+      "## Common transformations",
+      "- Transpose: swap m[r][c] with m[c][r]. In place for a square grid, loop only over the cells above the diagonal.\n- Rotate 90 degrees clockwise: transpose, then reverse each row. Counterclockwise: transpose, then reverse each column.\n- Spiral order: walk the top row, right column, bottom row and left column, then shrink the four borders by one. Stop when the borders cross.",
+      "> A worked example: rotate [[1,2,3],[4,5,6],[7,8,9]] clockwise. The transpose gives [[1,4,7],[2,5,8],[3,6,9]]. Reversing each row gives [[7,4,1],[8,5,2],[9,6,3]]. Each cell was visited a constant number of times, so the time is O(n squared) and the extra space is O(1).",
+      "## Searching a sorted grid",
+      "If every row is sorted left to right and every column is sorted top to bottom, start at the top-right corner. If the value is too big, move left. If it is too small, move down. Each step removes a whole row or column, so the search is O(rows + cols).",
+      "## Building a grid",
+      "Always build the rows separately: [[0] * cols for _ in range(rows)]. Writing [[0] * cols] * rows repeats one row object, so changing one cell changes every row. This is the same aliasing bug as in the memory lesson.",
+      "## How to talk through it",
+      "State the dimensions and ask whether the grid can be empty or not square. Say which index is the row. Describe your bounds check before you code the loop, and test a 1 x 1 grid, a single row and a single column."
+    ],
+    "keyPoints": [
+      "m[r][c]: row first, then column, both from 0. Build rows with a comprehension, never with * rows.",
+      "Row-major offset is r x cols + c. Loop rows on the outside, columns on the inside.",
+      "Check 0 <= r < rows and 0 <= c < cols before reading a neighbour. Negative indexes wrap in Python.",
+      "Rotate 90 degrees clockwise = transpose, then reverse each row. O(n squared) time, O(1) space in place.",
+      "Spiral order: shrink four borders. Sorted grid search: start at a corner and discard a row or column each step."
+    ],
+    "sql": [
+      {
+        "title": "Neighbours with bounds, and building a grid",
+        "lang": "py",
+        "code": "def neighbours(r, c, rows, cols):\n    for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):\n        nr, nc = r + dr, c + dc\n        if 0 <= nr < rows and 0 <= nc < cols:\n            yield nr, nc\n\nassert sorted(neighbours(0, 0, 3, 3)) == [(0, 1), (1, 0)]\nassert sorted(neighbours(1, 1, 3, 3)) == [(0, 1), (1, 0), (1, 2), (2, 1)]\n\nbad = [[0] * 3] * 3\nbad[0][0] = 1\nassert bad[2][0] == 1                       # the same row three times\ngood = [[0] * 3 for _ in range(3)]\ngood[0][0] = 1\nassert good[2][0] == 0\n\nflat_offset = lambda r, c, cols: r * cols + c\nassert flat_offset(1, 2, 3) == 5"
+      },
+      {
+        "title": "Rotate and transpose in place, and the spiral order",
+        "lang": "py",
+        "code": "def transpose(m):\n    n = len(m)\n    for r in range(n):\n        for c in range(r + 1, n):\n            m[r][c], m[c][r] = m[c][r], m[r][c]\n    return m\n\ndef rotate_clockwise(m):\n    transpose(m)\n    for row in m:\n        row.reverse()\n    return m\n\ndef spiral(m):\n    out = []\n    if not m:\n        return out\n    top, bottom, left, right = 0, len(m) - 1, 0, len(m[0]) - 1\n    while top <= bottom and left <= right:\n        out.extend(m[top][left:right + 1])\n        out.extend(m[r][right] for r in range(top + 1, bottom + 1))\n        if top < bottom:\n            out.extend(m[bottom][c] for c in range(right - 1, left - 1, -1))\n        if left < right:\n            out.extend(m[r][left] for r in range(bottom - 1, top, -1))\n        top, bottom, left, right = top + 1, bottom - 1, left + 1, right - 1\n    return out\n\nassert transpose([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == [[1, 4, 7], [2, 5, 8], [3, 6, 9]]\nassert rotate_clockwise([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == [[7, 4, 1], [8, 5, 2], [9, 6, 3]]\nassert spiral([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == [1, 2, 3, 6, 9, 8, 7, 4, 5]\nassert spiral([[1, 2, 3, 4]]) == [1, 2, 3, 4]\nassert spiral([[1], [2], [3]]) == [1, 2, 3]\nassert spiral([]) == []"
+      },
+      {
+        "title": "Search a grid whose rows and columns are sorted",
+        "lang": "py",
+        "code": "def search_matrix(m, target):\n    if not m or not m[0]:\n        return False\n    r, c = 0, len(m[0]) - 1               # start at the top-right corner\n    while r < len(m) and c >= 0:\n        if m[r][c] == target:\n            return True\n        if m[r][c] > target:\n            c -= 1                         # too big: drop this column\n        else:\n            r += 1                         # too small: drop this row\n    return False\n\ngrid = [[1, 4, 7, 11], [2, 5, 8, 12], [3, 6, 9, 16], [10, 13, 14, 17]]\nassert search_matrix(grid, 5) and search_matrix(grid, 17)\nassert not search_matrix(grid, 15)\nassert not search_matrix([], 1) and not search_matrix([[]], 1)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write neighbours, transpose, rotate_clockwise, rotate_counterclockwise and spiral. Test each on a 1 x 1 grid, a single row, a single column and a non-square grid where it applies. Then write a function that sets a whole row and column to zero whenever a cell is zero, using O(1) extra space apart from the grid, and say how you avoid marking too many cells.",
+    "pitfalls": [
+      "Writing [[0] * c] * r. Every row is the same list.",
+      "Mixing up rows and columns: m[c][r] instead of m[r][c], or len(m[0]) for the row count.",
+      "Reading a neighbour before the bounds check. A negative index silently wraps around in Python.",
+      "Rotating a non-square grid in place. It needs a new grid, because the shape changes.",
+      "Not handling an empty grid or an empty first row in spiral and search code."
+    ],
+    "interview": [
+      {
+        "q": "How do you rotate a square matrix 90 degrees clockwise in place?",
+        "a": "Transpose it by swapping m[r][c] with m[c][r] for the cells above the diagonal, then reverse each row. It takes O(n squared) time and O(1) extra space."
+      },
+      {
+        "q": "What is the difference between row-major and column-major order?",
+        "a": "Row-major stores each row in one piece, one after another, so m[r][c] is at offset r x cols + c. Column-major stores each column in one piece. C and NumPy use row-major. Fortran, MATLAB and Julia use column-major."
+      },
+      {
+        "q": "How do you search a grid whose rows and columns are sorted?",
+        "a": "Start at the top-right corner. If the value is too big, move left. If it is too small, move down. Each step discards a row or a column, so it takes O(rows + cols) time."
+      },
+      {
+        "q": "Why can a missing bounds check give wrong answers instead of an error in Python?",
+        "a": "Negative indexes count from the end, so m[-1] is the last row. A neighbour at row -1 silently reads the bottom row instead of raising an error."
+      }
+    ],
+    "references": [
+      {
+        "title": "Row- and column-major order (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Row-_and_column-major_order",
+        "kind": "Reference"
+      },
+      {
+        "title": "Programming FAQ (Python docs)",
+        "url": "https://docs.python.org/3/faq/programming.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: grid questions (rotation, spiral, neighbour search) are a staple of coding rounds. The memory layouts, the offset formulas and the language list come from the Wikipedia page cited, which I read. The shared-row warning rests on the Python FAQ pages I read for the memory lesson. The rotation, spiral and sorted-grid search routines are standard techniques that I present from general knowledge and my own judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-row-column-major",
+      "py-faq-programming",
+      "py-time-complexity",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "grid2d",
+        "title": "2D arrays, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "merge or update"
+          },
+          {
+            "kind": "fail",
+            "label": "mismatch"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Grid",
+            "at": 0
+          },
+          {
+            "text": "Memory order",
+            "at": 1
+          },
+          {
+            "text": "Neighbours",
+            "at": 4
+          },
+          {
+            "text": "Spiral",
+            "at": 5
+          },
+          {
+            "text": "Rotate",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "g00",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 0.2,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g01",
+            "kind": "cube",
+            "x": -1.1,
+            "y": -1.1,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g02",
+            "kind": "cube",
+            "x": 0.2,
+            "y": -2.4,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g10",
+            "kind": "cube",
+            "x": -1.3,
+            "y": 1.3,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g11",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g12",
+            "kind": "cube",
+            "x": 1.3,
+            "y": -1.3,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g20",
+            "kind": "cube",
+            "x": -0.2,
+            "y": 2.4,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g21",
+            "kind": "cube",
+            "x": 1.1,
+            "y": 1.1,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g22",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -0.2,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A grid is a list of rows",
+            "tag": "technique",
+            "body": [
+              "A 2D array, or matrix, is a table. In Python it is a list of rows, and each row is a list. The item in row r and column c is matrix[r][c]. Rows and columns both start at 0.",
+              "This grid has 3 rows and 3 columns. Questions about grids ask you to scan them, walk across them, flip them or search them."
+            ],
+            "short": "Grid",
+            "hud": [
+              {
+                "k": "Rows",
+                "v": "3"
+              },
+              {
+                "k": "Columns",
+                "v": "3"
+              },
+              {
+                "k": "Cells",
+                "v": "9"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "m = [[1, 2, 3],",
+                "     [4, 5, 6],",
+                "     [7, 8, 9]]",
+                "m[1][2]   # row 1, column 2 -> 6"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Row-major order: one row after another",
+            "tag": "technique",
+            "body": [
+              "Memory is a single line, so a grid must be laid out in a line. Row-major order stores the whole first row, then the second row, and so on. C and NumPy use this layout.",
+              "The place of m[r][c] in the line is r x columns + c. For m[1][2] in a grid with 3 columns that is 1 x 3 + 2 = 5."
+            ],
+            "short": "Row-major",
+            "hud": [
+              {
+                "k": "Offset",
+                "v": "r x cols + c"
+              },
+              {
+                "k": "Used by",
+                "v": "C, NumPy, Python rows"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "orange",
+                "pill": {
+                  "text": "offset 5",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g00",
+                  "g01",
+                  "g02",
+                  "g10",
+                  "g11",
+                  "g12",
+                  "g20",
+                  "g21",
+                  "g22"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Column-major order: one column after another",
+            "tag": "technique",
+            "body": [
+              "Column-major order stores the whole first column, then the second column. Fortran, MATLAB and Julia use it. The offset of m[r][c] is r + c x rows.",
+              "Both layouts hold the same grid. They differ in which cells are neighbours in memory."
+            ],
+            "short": "Column-major",
+            "hud": [
+              {
+                "k": "Offset",
+                "v": "r + c x rows"
+              },
+              {
+                "k": "Used by",
+                "v": "Fortran, MATLAB, Julia"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "orange",
+                "pill": {
+                  "text": "offset 7",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g00",
+                  "g10",
+                  "g20",
+                  "g01",
+                  "g11",
+                  "g21",
+                  "g02",
+                  "g12",
+                  "g22"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Loop in the order the data is stored",
+            "tag": "insight",
+            "body": [
+              "A loop that walks along a row visits cells that sit next to each other in memory in a row-major layout, which is fast. Walking down a column jumps by a whole row each time.",
+              "In Python a list of rows is not one flat block, but the same habit still helps: loop rows on the outside and columns on the inside."
+            ],
+            "short": "Loop order",
+            "hud": [
+              {
+                "k": "Row by row",
+                "v": "cache friendly",
+                "tone": "good"
+              },
+              {
+                "k": "Column by column",
+                "v": "jumps in memory",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g00",
+                  "g01",
+                  "g02"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "g10",
+                  "g11",
+                  "g12"
+                ],
+                "kind": "request",
+                "delay": 0.8
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for r in range(rows):",
+                "    for c in range(cols):",
+                "        visit(m[r][c])"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Neighbours: check the edges first",
+            "tag": "technique",
+            "body": [
+              "Many grid problems move to the cell above, below, left or right. Keep the four moves in a list: (-1, 0), (1, 0), (0, -1), (0, 1). Add each to (r, c) and skip any cell outside the grid.",
+              "Check 0 <= r < rows and 0 <= c < cols before you read the cell, or you will read the wrong row (negative indexes wrap in Python) or raise an error."
+            ],
+            "short": "Neighbours",
+            "hud": [
+              {
+                "k": "Moves",
+                "v": "4 (8 with diagonals)"
+              },
+              {
+                "k": "Bounds check",
+                "v": "always",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "(1, 1)",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g11",
+                  "g01"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "g11",
+                  "g21"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "g11",
+                  "g10"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "g11",
+                  "g12"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):",
+                "    nr, nc = r + dr, c + dc",
+                "    if 0 <= nr < rows and 0 <= nc < cols:",
+                "        ..."
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Spiral order: shrink the border",
+            "tag": "technique",
+            "body": [
+              "To list the cells in a spiral, walk the top row left to right, the right column down, the bottom row right to left and the left column up. Then shrink all four borders by one and repeat.",
+              "For this grid the order is 1 2 3 6 9 8 7 4 5. Stop as soon as the borders cross."
+            ],
+            "short": "Spiral",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "1 2 3 6 9 8 7 4 5"
+              },
+              {
+                "k": "Time",
+                "v": "O(rows x cols)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g00",
+                  "g01",
+                  "g02",
+                  "g12",
+                  "g22",
+                  "g21",
+                  "g20",
+                  "g10",
+                  "g11"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Transpose: swap across the diagonal",
+            "tag": "solution",
+            "body": [
+              "The transpose turns rows into columns: the cell at (r, c) swaps with the cell at (c, r). Only cells above the diagonal need a swap, because each swap fixes two cells.",
+              "Transposing a square grid in place takes O(n squared) time and O(1) extra space."
+            ],
+            "short": "Transpose",
+            "hud": [
+              {
+                "k": "Swaps",
+                "v": "3 for a 3 x 3"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "4",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "7",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "8",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "6",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "9",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g01",
+                  "g10"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "g02",
+                  "g20"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              },
+              {
+                "path": [
+                  "g12",
+                  "g21"
+                ],
+                "kind": "write",
+                "delay": 0.8
+              }
+            ],
+            "predict": {
+              "question": "After the transpose, which number sits in row 0, column 2?",
+              "options": [
+                "3",
+                "7",
+                "9"
+              ],
+              "answer": 1,
+              "why": "The cell (0, 2) swaps with (2, 0), which held 7."
+            }
+          },
+          {
+            "title": "Reverse each row: now it is rotated 90 degrees",
+            "tag": "solution",
+            "body": [
+              "Transposing and then reversing every row rotates the grid 90 degrees clockwise. Transposing and then reversing every column rotates it counterclockwise.",
+              "Two simple moves compose into a rotation, so you avoid working out the index formulas for a rotation directly."
+            ],
+            "short": "Rotate",
+            "hud": [
+              {
+                "k": "Rotation",
+                "v": "transpose + reverse rows",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n squared)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "g00",
+                  "g02"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "g10",
+                  "g12"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              },
+              {
+                "path": [
+                  "g20",
+                  "g22"
+                ],
+                "kind": "write",
+                "delay": 0.8
+              }
+            ]
+          },
+          {
+            "title": "The trap: building a grid with repeated rows",
+            "tag": "problem",
+            "body": [
+              "[[0] * 3] * 3 repeats the same row object three times, so changing one cell changes every row. Build rows separately: [[0] * 3 for _ in range(3)].",
+              "This is the same shared-reference problem from the memory lesson, and it is the most common grid bug in Python."
+            ],
+            "short": "Shared rows",
+            "hud": [
+              {
+                "k": "[[0]*3]*3",
+                "v": "one row, three names",
+                "tone": "bad"
+              },
+              {
+                "k": "[[0]*3 for _ in ...]",
+                "v": "three rows",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "g00": {
+                "label": "7",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "4",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "8",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "2",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "9",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "6",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "3",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "bad  = [[0] * 3] * 3",
+                "good = [[0] * 3 for _ in range(3)]"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A grid is a list of rows. Index it as m[r][c], loop rows outside and columns inside, and always check bounds before stepping to a neighbour.",
+              "Rotate = transpose + reverse. Spiral = shrink four borders. Say the dimensions and whether the grid can be empty or non-square."
+            ],
+            "short": "Recap",
+            "set": {
+              "g00": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g01": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g02": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g10": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g11": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g20": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g21": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g22": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 m[r][c]: row first",
+                "2 bounds check 0 <= r < rows",
+                "3 rotate = transpose + reverse rows",
+                "4 build rows with a comprehension"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A 2D array is a chessboard: you find a square by saying its row and its column.",
+      "story": "A chessboard has eight rows and eight columns, and every square has a row number and a column number. To move a piece one square up or to the side, you add or subtract one from those numbers, but you must stop at the edge of the board. To turn the whole board a quarter turn, you can first mirror it across its diagonal, and then flip each row.",
+      "maps": [
+        [
+          "The chessboard",
+          "The matrix"
+        ],
+        [
+          "Row and column number",
+          "The two indexes r and c"
+        ],
+        [
+          "The edge of the board",
+          "The bounds check"
+        ],
+        [
+          "A quarter turn",
+          "Rotating the matrix"
+        ]
+      ],
+      "words": [
+        [
+          "matrix",
+          "A table of cells arranged in rows and columns."
+        ],
+        [
+          "row-major",
+          "Stored one whole row after another in memory."
+        ],
+        [
+          "transpose",
+          "Flip a grid across its diagonal, so rows become columns."
+        ],
+        [
+          "spiral",
+          "A path that winds inward along the borders of a grid."
+        ],
+        [
+          "bounds check",
+          "A test that an index is inside the grid."
+        ]
+      ]
+    }
   }
 ]
