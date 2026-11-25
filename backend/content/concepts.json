@@ -93890,5 +93890,1061 @@
         ]
       ]
     }
+  },
+  {
+    "id": "divide-and-conquer",
+    "n": 138,
+    "level": 14,
+    "week": "Core",
+    "title": "Divide and Conquer",
+    "tagline": "Solve a big problem by splitting it into smaller copies of itself, solving those, and combining the answers.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Divide and conquer breaks a problem into two or more smaller sub-problems of the same kind, solves each one, and combines the results. The sub-problems are split again until they are simple enough to solve directly. This shape sits behind merge sort, quicksort, binary search, tree algorithms and many geometry problems, so it is worth knowing well.",
+      "## The three moves",
+      "- Divide: split the input into smaller pieces. Choosing the middle index usually costs O(1).\n- Conquer: solve each piece, normally by calling the same function again. A piece small enough to answer directly is the base case.\n- Combine: join the sub-answers into the answer for the whole piece.",
+      "Forget the base case and the recursion never stops. Make a piece the same size as its parent, and it never shrinks. Check both before you trust a recursive solution.",
+      "## Merge sort as the model example",
+      "Split the array in half, sort each half by calling merge sort, then merge the two sorted halves. Merging reads each item once, so it costs O(n). The array halves about log2 n times before pieces have one item, so there are log2 n levels and each level does about n work. The total is O(n log n).",
+      "## Write the cost as a recurrence",
+      "Merge sort satisfies T(n) = 2T(n/2) + O(n): two sub-problems of half the size, plus linear combine work. A general recurrence is T(n) = aT(n/b) + f(n). The master theorem compares f(n) with n to the power log_b a, which it calls the critical exponent. If f grows slower, the leaves dominate and T is n to that power. If they match, you pay one extra factor of log n. If f grows faster, f dominates, with a regularity condition.",
+      "- Binary search: T(n) = T(n/2) + O(1), so O(log n).\n- Tree traversal: T(n) = 2T(n/2) + O(1), so O(n).\n- Merge sort: T(n) = 2T(n/2) + O(n), so O(n log n).",
+      "> A worked example: fast power. To compute x to the n, compute h = x to the n // 2 once, then square it, and multiply by x if n is odd. The problem shrinks by half with one sub-problem, so it makes O(log n) multiplications instead of n.",
+      "## One piece or many",
+      "Binary search reduces each problem to a single smaller one. Some authors call that decrease and conquer and keep divide and conquer for two or more pieces. In an interview the name matters less than stating the recurrence and its cost.",
+      "## Where it goes wrong",
+      "If the sub-problems overlap, plain recursion repeats work. The classic case is Fibonacci, where fib(n) calls fib(n-1) and fib(n-2), and both call the same smaller values. Memoization stores answers so each is computed once, and carried to the limit it becomes dynamic programming. Also watch recursion depth: Python allows about a thousand nested calls by default, which is fine for log n depth but not for depth n.",
+      "## How to talk through it",
+      "State the base case, say how you split, say how you combine, then write the recurrence and solve it. Mention the extra memory: merge sort needs O(n) space for the merge, and the recursion adds O(log n) stack frames."
+    ],
+    "keyPoints": [
+      "Divide, conquer, combine. Every recursive solution needs a base case and sub-problems that really shrink.",
+      "Cost = number of levels x work per level. Halving gives log2 n levels.",
+      "Merge sort: T(n) = 2T(n/2) + O(n) = O(n log n). Binary search: T(n) = T(n/2) + O(1) = O(log n).",
+      "Master theorem: compare f(n) with n^(log_b a) to see whether leaves, every level, or the root dominates.",
+      "Overlapping sub-problems need memoization, which leads to dynamic programming."
+    ],
+    "sql": [
+      {
+        "title": "Merge sort",
+        "lang": "py",
+        "code": "def merge(left, right):\n    out, i, j = [], 0, 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n    out.extend(left[i:])\n    out.extend(right[j:])\n    return out\n\ndef merge_sort(a):\n    if len(a) <= 1:                      # base case\n        return a\n    mid = len(a) // 2\n    return merge(merge_sort(a[:mid]), merge_sort(a[mid:]))\n\nassert merge_sort([6, 3, 8, 1, 5, 2, 7, 4]) == [1, 2, 3, 4, 5, 6, 7, 8]\nassert merge_sort([]) == [] and merge_sort([1]) == [1]\nassert merge_sort([2, 1, 2]) == [1, 2, 2]"
+      },
+      {
+        "title": "Fast power: one sub-problem of half the size",
+        "lang": "py",
+        "code": "def fast_pow(x, n):\n    if n == 0:\n        return 1\n    half = fast_pow(x, n // 2)           # solved once, reused\n    return half * half if n % 2 == 0 else half * half * x\n\nassert fast_pow(2, 10) == 1024\nassert fast_pow(3, 0) == 1\nassert fast_pow(5, 13) == 5 ** 13"
+      },
+      {
+        "title": "Count the work: comparisons stay below n log2 n",
+        "lang": "py",
+        "code": "import math\n\ndef sort_count(a):\n    # returns (sorted list, number of comparisons made while merging)\n    if len(a) <= 1:\n        return a, 0\n    mid = len(a) // 2\n    left, c1 = sort_count(a[:mid])\n    right, c2 = sort_count(a[mid:])\n    out, i, j, c = [], 0, 0, 0\n    while i < len(left) and j < len(right):\n        c += 1\n        if left[i] <= right[j]:\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n    out += left[i:] + right[j:]\n    return out, c1 + c2 + c\n\nfor n in (8, 64, 1024):\n    data = list(range(n, 0, -1))\n    result, comparisons = sort_count(data)\n    assert result == sorted(data)\n    assert comparisons <= n * math.log2(n)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write merge_sort, then use it to count inversions (pairs i < j with a[i] > a[j]) in O(n log n) by counting during the merge. Next write fast_pow and an iterative binary search, and for each one write its recurrence and say whether it has one sub-problem or two. Time yourself: 25 minutes for the inversion count.",
+    "pitfalls": [
+      "Forgetting the base case, or writing one that is never reached.",
+      "A split that does not shrink the problem, for example mid = len(a) when len(a) is 1.",
+      "Slicing in every call. a[:mid] copies items, so the combine cost is O(n) per level even when you thought it was O(1).",
+      "Saying merge sort is O(n log n) space. The extra space is O(n) for merging plus O(log n) for the call stack.",
+      "Using divide and conquer on overlapping sub-problems without memoization."
+    ],
+    "interview": [
+      {
+        "q": "What are the three steps of divide and conquer?",
+        "a": "Divide the problem into smaller sub-problems of the same kind, conquer them recursively (or directly at the base case), and combine the answers. Correctness is argued by induction and cost by a recurrence."
+      },
+      {
+        "q": "Why is merge sort O(n log n)?",
+        "a": "Halving the array gives about log2 n levels. At every level the merges together read each item once, so each level costs O(n). Levels times work per level gives O(n log n). It is the recurrence T(n) = 2T(n/2) + O(n)."
+      },
+      {
+        "q": "What does the master theorem say?",
+        "a": "For T(n) = aT(n/b) + f(n), compare f(n) to n to the power log_b a. If f is smaller, T is that power. If they are the same order, T gains a log n factor. If f is larger, and a regularity condition holds, T is f(n)."
+      },
+      {
+        "q": "How is divide and conquer different from dynamic programming?",
+        "a": "Divide and conquer sub-problems are independent, so solving them separately is enough. Dynamic programming is for overlapping sub-problems, where the same answer is needed again and again, so you store each answer once."
+      }
+    ],
+    "references": [
+      {
+        "title": "Divide-and-conquer algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Divide-and-conquer_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Master theorem for divide-and-conquer recurrences (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Master_theorem_(analysis_of_algorithms)",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: the big-company prep pages list recursion and sorting as core, and divide and conquer is the idea behind merge sort, quicksort and tree problems. The definition, the recurrences and the master theorem cases come from the two Wikipedia pages cited, which I read. The fast power example and the interview advice are my judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-divide-and-conquer",
+      "wikipedia-master-theorem",
+      "meta-swe-prep",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "dnc",
+        "title": "Divide and conquer, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "split"
+          },
+          {
+            "kind": "write",
+            "label": "merge"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Three moves",
+            "at": 0
+          },
+          {
+            "text": "Divide",
+            "at": 1
+          },
+          {
+            "text": "Base case",
+            "at": 3
+          },
+          {
+            "text": "Combine",
+            "at": 4
+          },
+          {
+            "text": "Cost",
+            "at": 7
+          },
+          {
+            "text": "Master theorem",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -4.55,
+            "y": 2.45,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -3.55,
+            "y": 1.45,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -2.55,
+            "y": 0.45,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": -1.55,
+            "y": -0.55,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": -0.55,
+            "y": -1.55,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 0.45,
+            "y": -2.55,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 1.45,
+            "y": -3.55,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c7",
+            "kind": "cube",
+            "x": 2.45,
+            "y": -4.55,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Break a big problem into smaller copies of itself",
+            "tag": "technique",
+            "body": [
+              "Divide and conquer has three moves. Divide: split the input into smaller pieces of the same kind. Conquer: solve each piece, usually by calling the same function. Combine: join the answers.",
+              "Here the problem is sorting 8 numbers. We will split until each piece is one number, then merge back up."
+            ],
+            "short": "Idea",
+            "hud": [
+              {
+                "k": "Input size n",
+                "v": "8"
+              },
+              {
+                "k": "Plan",
+                "v": "split, solve, combine"
+              }
+            ],
+            "set": {
+              "c0": {
+                "pill": {
+                  "text": "whole array",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def solve(items):",
+                "    if small(items): return direct(items)   # base case",
+                "    left, right = split(items)               # divide",
+                "    return combine(solve(left), solve(right))  # conquer + combine"
+              ],
+              "hl": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Divide: cut it in half",
+            "tag": "technique",
+            "body": [
+              "Split the row into a left half and a right half of 4. Each half is a smaller sorting problem of the same kind.",
+              "Splitting by index is cheap here, because choosing the middle takes constant time."
+            ],
+            "short": "Divide",
+            "hud": [
+              {
+                "k": "Pieces",
+                "v": "2"
+              },
+              {
+                "k": "Piece size",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.35,
+                "y": 2.95,
+                "pill": null
+              },
+              "c1": {
+                "x": -3.35,
+                "y": 1.95
+              },
+              "c2": {
+                "x": -2.35,
+                "y": 0.95
+              },
+              "c3": {
+                "x": -1.35,
+                "y": -0.05
+              },
+              "c4": {
+                "x": 0.65,
+                "y": -0.65
+              },
+              "c5": {
+                "x": 1.65,
+                "y": -1.65
+              },
+              "c6": {
+                "x": 2.65,
+                "y": -2.65
+              },
+              "c7": {
+                "x": 3.65,
+                "y": -3.65
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c3",
+                  "c4"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Keep dividing",
+            "tag": "technique",
+            "body": [
+              "Cut each half again to get four pairs, then cut each pair to get eight single numbers.",
+              "Halving 8 numbers takes 3 levels, because 8 = 2 x 2 x 2. In general the number of levels is log2 n."
+            ],
+            "short": "Divide more",
+            "hud": [
+              {
+                "k": "Levels so far",
+                "v": "2"
+              },
+              {
+                "k": "Levels in total",
+                "v": "log2 8 = 3"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.1,
+                "y": 3.65
+              },
+              "c1": {
+                "x": -3.1,
+                "y": 2.65
+              },
+              "c2": {
+                "x": -1.5,
+                "y": 1.95
+              },
+              "c3": {
+                "x": -0.5,
+                "y": 0.95
+              },
+              "c4": {
+                "x": 1.2,
+                "y": -0.25
+              },
+              "c5": {
+                "x": 2.2,
+                "y": -1.25
+              },
+              "c6": {
+                "x": 3.8,
+                "y": -1.95
+              },
+              "c7": {
+                "x": 4.8,
+                "y": -2.95
+              }
+            },
+            "predict": {
+              "question": "How many times can you halve 1,000 items until single items remain?",
+              "options": [
+                "About 4",
+                "About 10",
+                "About 500"
+              ],
+              "answer": 1,
+              "why": "log2 1000 is about 10. Halving collapses even large inputs quickly."
+            }
+          },
+          {
+            "title": "Base case: one number is already sorted",
+            "tag": "insight",
+            "body": [
+              "A piece with one number needs no work. This is the base case, and every recursive solution needs one, or it never stops.",
+              "Now the pieces are as small as they get. All the real work happens on the way back up."
+            ],
+            "short": "Base case",
+            "hud": [
+              {
+                "k": "Pieces",
+                "v": "8"
+              },
+              {
+                "k": "Work done",
+                "v": "none yet"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -3.55,
+                "y": 4.2,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c1": {
+                "x": -2.25,
+                "y": 3.5,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c2": {
+                "x": -0.95,
+                "y": 2.5,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c3": {
+                "x": 0.35,
+                "y": 1.8,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c4": {
+                "x": 1.75,
+                "y": 0.3,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c5": {
+                "x": 3.05,
+                "y": -0.4,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c6": {
+                "x": 4.35,
+                "y": -1.4,
+                "tone": "green",
+                "status": "ok"
+              },
+              "c7": {
+                "x": 5.65,
+                "y": -2.1,
+                "tone": "green",
+                "status": "ok"
+              }
+            }
+          },
+          {
+            "title": "Combine: merge neighbouring pieces",
+            "tag": "solution",
+            "body": [
+              "Merging two sorted pieces is easy. Compare the front numbers, take the smaller one, and repeat. It reads each number once, so merging n numbers costs O(n).",
+              "Pairs become sorted pairs: (6, 3) becomes (3, 6), and (8, 1) becomes (1, 8)."
+            ],
+            "short": "Merge pairs",
+            "hud": [
+              {
+                "k": "Merge cost",
+                "v": "O(n) per level",
+                "tone": "good"
+              },
+              {
+                "k": "Sorted pieces",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.1,
+                "y": 3.65,
+                "label": "3",
+                "tone": "orange",
+                "status": null
+              },
+              "c1": {
+                "x": -3.1,
+                "y": 2.65,
+                "label": "6",
+                "tone": "orange",
+                "status": null
+              },
+              "c2": {
+                "x": -1.5,
+                "y": 1.95,
+                "label": "1",
+                "tone": "orange",
+                "status": null
+              },
+              "c3": {
+                "x": -0.5,
+                "y": 0.95,
+                "label": "8",
+                "tone": "orange",
+                "status": null
+              },
+              "c4": {
+                "x": 1.2,
+                "y": -0.25,
+                "label": "2",
+                "tone": "orange",
+                "status": null
+              },
+              "c5": {
+                "x": 2.2,
+                "y": -1.25,
+                "label": "5",
+                "tone": "orange",
+                "status": null
+              },
+              "c6": {
+                "x": 3.8,
+                "y": -1.95,
+                "label": "4",
+                "tone": "orange",
+                "status": null
+              },
+              "c7": {
+                "x": 4.8,
+                "y": -2.95,
+                "label": "7",
+                "tone": "orange",
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "c2",
+                  "c3"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "c4",
+                  "c5"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "c6",
+                  "c7"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Merge again",
+            "tag": "solution",
+            "body": [
+              "Merge the sorted pairs into sorted groups of four: (3, 6) and (1, 8) become (1, 3, 6, 8).",
+              "Each level reads every number once, so each level costs about n work."
+            ],
+            "short": "Merge fours",
+            "hud": [
+              {
+                "k": "Work this level",
+                "v": "n = 8"
+              },
+              {
+                "k": "Sorted pieces",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.35,
+                "y": 2.95,
+                "label": "1",
+                "tone": "orange"
+              },
+              "c1": {
+                "x": -3.35,
+                "y": 1.95,
+                "label": "3",
+                "tone": "orange"
+              },
+              "c2": {
+                "x": -2.35,
+                "y": 0.95,
+                "label": "6",
+                "tone": "orange"
+              },
+              "c3": {
+                "x": -1.35,
+                "y": -0.05,
+                "label": "8",
+                "tone": "orange"
+              },
+              "c4": {
+                "x": 0.65,
+                "y": -0.65,
+                "label": "2",
+                "tone": "orange"
+              },
+              "c5": {
+                "x": 1.65,
+                "y": -1.65,
+                "label": "4",
+                "tone": "orange"
+              },
+              "c6": {
+                "x": 2.65,
+                "y": -2.65,
+                "label": "5",
+                "tone": "orange"
+              },
+              "c7": {
+                "x": 3.65,
+                "y": -3.65,
+                "label": "7",
+                "tone": "orange"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c2"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "c4",
+                  "c6"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The last merge finishes the job",
+            "tag": "solution",
+            "body": [
+              "One more merge joins the two sorted halves into one sorted row: 1 2 3 4 5 6 7 8.",
+              "The array is sorted after 3 merge levels. This is merge sort."
+            ],
+            "short": "Final merge",
+            "hud": [
+              {
+                "k": "Levels",
+                "v": "3",
+                "tone": "good"
+              },
+              {
+                "k": "Result",
+                "v": "sorted",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.55,
+                "y": 2.45,
+                "label": "1",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c1": {
+                "x": -3.55,
+                "y": 1.45,
+                "label": "2",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c2": {
+                "x": -2.55,
+                "y": 0.45,
+                "label": "3",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c3": {
+                "x": -1.55,
+                "y": -0.55,
+                "label": "4",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c4": {
+                "x": -0.55,
+                "y": -1.55,
+                "label": "5",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c5": {
+                "x": 0.45,
+                "y": -2.55,
+                "label": "6",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c6": {
+                "x": 1.45,
+                "y": -3.55,
+                "label": "7",
+                "tone": "green",
+                "status": "ok"
+              },
+              "c7": {
+                "x": 2.45,
+                "y": -4.55,
+                "label": "8",
+                "tone": "green",
+                "status": "ok"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c4"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def merge_sort(a):",
+                "    if len(a) <= 1: return a",
+                "    mid = len(a) // 2",
+                "    return merge(merge_sort(a[:mid]), merge_sort(a[mid:]))"
+              ],
+              "hl": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "title": "The cost: levels times work per level",
+            "tag": "insight",
+            "body": [
+              "There are log2 n levels, and each level does about n work in total, so merge sort costs O(n log n). For n = 1,000,000 that is about 20 million steps, not a trillion.",
+              "As a recurrence: T(n) = 2 T(n/2) + O(n). Two half-size problems, plus linear work to combine."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Levels",
+                "v": "log2 n",
+                "tone": "good"
+              },
+              {
+                "k": "Work per level",
+                "v": "n",
+                "tone": "good"
+              },
+              {
+                "k": "Total",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.55,
+                "y": 2.45,
+                "label": "1",
+                "tone": "green",
+                "pill": null
+              },
+              "c1": {
+                "x": -3.55,
+                "y": 1.45,
+                "label": "2",
+                "tone": "green",
+                "pill": null
+              },
+              "c2": {
+                "x": -2.55,
+                "y": 0.45,
+                "label": "3",
+                "tone": "green",
+                "pill": null
+              },
+              "c3": {
+                "x": -1.55,
+                "y": -0.55,
+                "label": "4",
+                "tone": "green",
+                "pill": null
+              },
+              "c4": {
+                "x": -0.55,
+                "y": -1.55,
+                "label": "5",
+                "tone": "green",
+                "pill": null
+              },
+              "c5": {
+                "x": 0.45,
+                "y": -2.55,
+                "label": "6",
+                "tone": "green",
+                "pill": null
+              },
+              "c6": {
+                "x": 1.45,
+                "y": -3.55,
+                "label": "7",
+                "tone": "green",
+                "pill": null
+              },
+              "c7": {
+                "x": 2.45,
+                "y": -4.55,
+                "label": "8",
+                "tone": "green",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Recurrence",
+              "lines": [
+                "T(n) = 2 T(n/2) + n",
+                "levels  = log2 n",
+                "per level = n",
+                "total   = n log2 n"
+              ],
+              "hl": [
+                0,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Read the recurrence with the master theorem",
+            "tag": "technique",
+            "body": [
+              "Many recurrences have the form T(n) = a T(n/b) + f(n): a sub-problems, each 1/b the size, plus f(n) work to split and combine.",
+              "Compare f(n) with n to the power log_b a. If the combine work is smaller, the leaves dominate. If it is equal, you get an extra log n factor. If it is larger, the top level dominates."
+            ],
+            "short": "Master theorem",
+            "hud": [
+              {
+                "k": "Binary search",
+                "v": "T(n/2) + 1 = O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Tree traversal",
+                "v": "2T(n/2) + 1 = O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Merge sort",
+                "v": "2T(n/2) + n = O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "x": -4.55,
+                "y": 2.45,
+                "label": "1",
+                "tone": "green"
+              },
+              "c1": {
+                "x": -3.55,
+                "y": 1.45,
+                "label": "2",
+                "tone": "green"
+              },
+              "c2": {
+                "x": -2.55,
+                "y": 0.45,
+                "label": "3",
+                "tone": "green"
+              },
+              "c3": {
+                "x": -1.55,
+                "y": -0.55,
+                "label": "4",
+                "tone": "green"
+              },
+              "c4": {
+                "x": -0.55,
+                "y": -1.55,
+                "label": "5",
+                "tone": "green"
+              },
+              "c5": {
+                "x": 0.45,
+                "y": -2.55,
+                "label": "6",
+                "tone": "green"
+              },
+              "c6": {
+                "x": 1.45,
+                "y": -3.55,
+                "label": "7",
+                "tone": "green"
+              },
+              "c7": {
+                "x": 2.45,
+                "y": -4.55,
+                "label": "8",
+                "tone": "green"
+              }
+            },
+            "card": {
+              "title": "Master theorem",
+              "lines": [
+                "T(n) = a T(n/b) + f(n)",
+                "f smaller  -> n^(log_b a)",
+                "f equal    -> n^(log_b a) log n",
+                "f larger   -> f(n)"
+              ],
+              "hl": []
+            },
+            "predict": {
+              "question": "A function splits its input into two halves, solves each, and combines in constant time. What is T(n) = 2T(n/2) + O(1)?",
+              "options": [
+                "O(log n)",
+                "O(n)",
+                "O(n log n)"
+              ],
+              "answer": 1,
+              "why": "The recursion tree has n leaves and about n nodes in total, and each node does constant work, so the total is O(n)."
+            }
+          },
+          {
+            "title": "Recap: when divide and conquer fits",
+            "tag": "insight",
+            "body": [
+              "Use it when a problem splits into independent sub-problems of the same kind, and combining their answers is cheap: sorting, searching, tree work, closest pair, fast exponentiation.",
+              "If the pieces overlap and repeat the same work, store the answers. That is memoization, and it leads to dynamic programming later in the course."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "x": -4.55,
+                "y": 2.45,
+                "label": "1",
+                "tone": "green"
+              },
+              "c1": {
+                "x": -3.55,
+                "y": 1.45,
+                "label": "2",
+                "tone": "green"
+              },
+              "c2": {
+                "x": -2.55,
+                "y": 0.45,
+                "label": "3",
+                "tone": "green"
+              },
+              "c3": {
+                "x": -1.55,
+                "y": -0.55,
+                "label": "4",
+                "tone": "green"
+              },
+              "c4": {
+                "x": -0.55,
+                "y": -1.55,
+                "label": "5",
+                "tone": "green"
+              },
+              "c5": {
+                "x": 0.45,
+                "y": -2.55,
+                "label": "6",
+                "tone": "green"
+              },
+              "c6": {
+                "x": 1.45,
+                "y": -3.55,
+                "label": "7",
+                "tone": "green"
+              },
+              "c7": {
+                "x": 2.45,
+                "y": -4.55,
+                "label": "8",
+                "tone": "green"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 base case first",
+                "2 sub-problems must be smaller",
+                "3 cost: levels x work per level",
+                "4 overlap? use memoization"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Break a big job into smaller copies of the same job, finish the small ones, then put the results together.",
+      "story": "Imagine sorting a huge pile of exam papers by name. Alone, it takes forever. So you split the pile in two and give each half to a friend. They split their piles again, until each person holds one paper, which is already sorted. Then everyone hands papers back, merging two sorted piles into one. The last merge gives you the full sorted pile.",
+      "maps": [
+        [
+          "The huge pile",
+          "The whole input"
+        ],
+        [
+          "Splitting the pile",
+          "Divide"
+        ],
+        [
+          "One paper per person",
+          "The base case"
+        ],
+        [
+          "Merging two sorted piles",
+          "Combine"
+        ]
+      ],
+      "words": [
+        [
+          "divide and conquer",
+          "Split a problem into smaller copies, solve them, join the answers."
+        ],
+        [
+          "base case",
+          "The smallest problem, solved directly so the recursion can stop."
+        ],
+        [
+          "recurrence",
+          "A formula that gives the cost of a problem using the cost of its smaller pieces."
+        ],
+        [
+          "merge sort",
+          "A sort that splits in half, sorts each half and merges them."
+        ],
+        [
+          "master theorem",
+          "A shortcut rule for solving common divide and conquer recurrences."
+        ]
+      ]
+    }
   }
 ]
