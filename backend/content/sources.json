@@ -1889,6 +1889,186 @@
       "kind": "article",
       "checked": "read",
       "used_for": "An index page: only the names of the techniques and slowly changing dimension Types 0 to 3 (retain original, overwrite, add new row, add new attribute). No definitions were read."
+    },
+    {
+      "key": "py-faq-programming",
+      "title": "Programming FAQ: arguments, references and mutable objects (Python docs)",
+      "url": "https://docs.python.org/3/faq/programming.html#how-do-i-write-a-function-with-output-parameters-call-by-reference",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Arguments are passed by assignment; names refer to objects; y = x does not copy a list; list, dict and set are mutable and str, int and tuple are not; += mutates a list but builds a new int or tuple; default arguments are created once."
+    },
+    {
+      "key": "py-copy",
+      "title": "copy: shallow and deep copy operations (Python docs)",
+      "url": "https://docs.python.org/3/library/copy.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Assignment never copies; shallow copy inserts references to the same contents; deep copy recursively copies them; deepcopy uses a memo to avoid loops."
+    },
+    {
+      "key": "py-datamodel-objects",
+      "title": "Data model, section 3.1: objects, values and types (Python docs)",
+      "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Every object has an identity, a type and a value; identity never changes and is compared with is; id() is the memory address in CPython; two empty lists are always distinct objects."
+    },
+    {
+      "key": "wikipedia-divide-and-conquer",
+      "title": "Divide-and-conquer algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Divide-and-conquer_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Definition (break into sub-problems, solve, combine); correctness by induction and cost by recurrences; merge sort; binary search as the single-subproblem case; base cases; memoization leads to dynamic programming."
+    },
+    {
+      "key": "wikipedia-master-theorem",
+      "title": "Master theorem for divide-and-conquer recurrences (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Master_theorem_(analysis_of_algorithms)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "T(n) = aT(n/b) + f(n); critical exponent log_b a; the three cases; worked results for binary search, tree traversal and merge sort."
+    },
+    {
+      "key": "py-faq-design-lists",
+      "title": "Design and History FAQ: how are lists implemented in CPython? (Python docs)",
+      "url": "https://docs.python.org/3/faq/design.html#how-are-lists-implemented-in-cpython",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "CPython lists are variable-length arrays of references, not linked lists; indexing costs the same for any index; append over-allocates so the next few appends need no resize; sort() sorts in place and returns None."
+    },
+    {
+      "key": "py-time-complexity",
+      "title": "Time complexity of operations on built-in types (Python docs)",
+      "url": "https://docs.python.org/3/builtins/time-complexity.html",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "List: append O(1) amortized, insert and delete O(n-k), get and set item O(1), slice O(j-i), x in l O(n), sort O(n log n); string: concatenation is O(len(s)+len(t)), substring search O(n) with a two-way algorithm."
+    },
+    {
+      "key": "wikipedia-dynamic-array",
+      "title": "Dynamic array (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_array",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Growing by a constant factor makes n appends cost O(n) in total, so amortized O(1); insert at the front or middle is Theta(n); CPython list growth factor is about 1.125."
+    },
+    {
+      "key": "wikipedia-amortized-analysis",
+      "title": "Amortized analysis (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Amortized_analysis",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Amortized analysis averages operation costs over a sequence; aggregate, accounting and potential methods; dynamic array push is O(1) amortized; two-list queue dequeue is O(1) amortized."
+    },
+    {
+      "key": "wikipedia-prefix-sum",
+      "title": "Prefix sum (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Prefix_sum",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Cumulative sum y_i = y_(i-1) + x_i; inclusive and exclusive scans; needs only an associative operator; used by counting sort; a Fenwick tree supports updates with logarithmic time."
+    },
+    {
+      "key": "py-itertools-accumulate",
+      "title": "itertools.accumulate (Python docs)",
+      "url": "https://docs.python.org/3/library/itertools.html#itertools.accumulate",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "accumulate(iterable, func, initial=None) yields running totals; the default function is addition; initial adds one extra leading element."
+    },
+    {
+      "key": "wikipedia-maximum-subarray",
+      "title": "Maximum subarray problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Maximum_subarray_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Kadane's algorithm solves it in O(n) time and O(1) space; the example [-2, 1, -3, 4, -1, 2, 1, -5, 4] has answer 6; all-negative arrays return the largest single element; older O(n^2) and O(n log n) solutions."
+    },
+    {
+      "key": "wikipedia-string-searching",
+      "title": "String-searching algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/String-searching_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Naive search O(mn) worst case; Rabin-Karp O(n) average and O(mn) worst; KMP Theta(m) preprocessing and Theta(n) matching; Boyer-Moore and two-way variants."
+    },
+    {
+      "key": "wikipedia-kmp",
+      "title": "Knuth-Morris-Pratt algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "KMP uses a failure table so the text is never re-read; table build is O(k) and search is O(n); naive search can take O(k*n); published 1977."
+    },
+    {
+      "key": "wikipedia-row-column-major",
+      "title": "Row- and column-major order (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Row-_and_column-major_order",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Row-major stores each row contiguously, column-major each column; C is row-major with offset x + Nx*y; Fortran, MATLAB and Julia are column-major; NumPy defaults to row-major; looping row-wise is preferred in C."
+    },
+    {
+      "key": "wikipedia-linked-list",
+      "title": "Linked list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Linked_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A linked list is a linear collection whose order is not given by physical placement in memory; insert or remove is constant time when the node before it is already held; no random access; insert/delete at the beginning is constant, at the end constant only if the end is known; arrays have better cache locality; sentinel nodes give every list a first and last node."
+    },
+    {
+      "key": "wikipedia-doubly-linked-list",
+      "title": "Doubly linked list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Doubly_linked_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Each node has previous and next links; it can be seen as two singly linked lists in opposite orders; head and tail are immediately accessible and traversal runs either way; insertAfter sets new.prev and updates next.prev; removing the first or last node needs special handling; sentinels remove the special cases."
+    },
+    {
+      "key": "wikipedia-cycle-detection",
+      "title": "Cycle detection (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Cycle_detection",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Floyd's tortoise and hare uses two pointers at different speeds; after they meet, resetting the tortoise to the start and stepping both one at a time finds the cycle start (mu), then the cycle length (lambda); O(lambda + mu) time and O(1) storage; Brent's algorithm is another constant-storage method."
+    },
+    {
+      "key": "wikipedia-merge-sort",
+      "title": "Merge sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Merge_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Most implementations are stable; O(n log n) worst and average; auxiliary space O(1) with linked lists; the left run is taken on ties for stability; top-down and bottom-up variants; efficient for sequentially accessed data such as linked lists."
+    },
+    {
+      "key": "wikipedia-cache-replacement",
+      "title": "Cache replacement policies (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Cache_replacement_policies",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "LRU discards the least recently used items first and must track what was used and when; also FIFO, MRU, LFU, random and the pseudo-LRU used by CPUs; LRU is a family including 2Q and LRU/K."
     }
   ],
   "levels": [
