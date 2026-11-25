@@ -105840,5 +105840,774 @@
         ]
       ]
     }
+  },
+  {
+    "id": "singly-linked-lists",
+    "n": 149,
+    "level": 14,
+    "week": "Core",
+    "title": "Singly Linked Lists: Insert, Delete and the Dummy Head",
+    "tagline": "Learn the pointer moves behind every linked-list question: splice in a node, skip over one, and avoid special cases.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A singly linked list is a chain of nodes. Each node holds a value and one pointer to the next node, and the last node points to None. You keep a reference to the first node, the head, and reach everything else by following pointers. The Wikipedia article defines a linked list as a linear collection of data elements whose order is not given by their physical placement in memory. The order lives in the pointers.",
+      "## What this buys you and what it costs",
+      "Insert or remove at a point is constant time when you already hold the node before it. The price is that there is no random access. To reach the k-th node you follow k pointers, so reading by position is O(k).",
+      "- Insert or delete at the beginning: O(1).\n- Insert or delete at the end: O(1) if you keep a tail pointer, otherwise O(n) to find the end.\n- Insert or delete in the middle: O(1) for the pointer change, O(n) to find the spot.\n- Read by index: O(n).\n- Extra space: one pointer per node.",
+      "Arrays store items side by side, which uses the processor cache well. The same article notes that for small items the link storage can equal or exceed the data size. This is why arrays usually win in practice, and linked lists mainly matter for interview practice and for structures like an LRU cache.",
+      "## Inserting after a node",
+      "To insert a new node after cur, do two steps in this order. First set new.next = cur.next, so the new node points at the rest of the chain. Then set cur.next = new. If you swap the order, you overwrite the only pointer to the rest of the list and lose it. Whenever you rewire pointers, ask what still points to each node after every line.",
+      "## Deleting a node",
+      "To delete the node after prev, set prev.next = prev.next.next. The skipped node becomes unreachable. A singly linked node cannot look backwards, so you must stand on the predecessor. If the problem gives you only the node to delete, the usual trick is to copy the next node's value into it and delete the next node instead. That does not work for the last node.",
+      "## The dummy head",
+      "Changing the head is a special case: the head variable itself must change, and an empty list has no head to follow. A dummy node placed before the real head fixes both. Every real node now has a predecessor, your loop treats them all the same, and you return dummy.next. This one habit removes a large share of linked-list bugs.",
+      "> A worked example: remove every node with value 3 from 1, 3, 3, 2. Start with prev = dummy. While prev.next exists, if prev.next.val is 3 then prev.next = prev.next.next, otherwise move prev forward. The head being a 3 needs no extra code, because dummy is its predecessor.",
+      "## Keeping a tail pointer",
+      "If you often append, store a tail reference. Appending is then two pointer changes. The cost is correctness: whenever you delete the last node you must move the tail back, and when the list becomes empty both head and tail must reset.",
+      "## How to talk through it",
+      "Draw three or four nodes. Say what each pointer variable means. Walk one insert and one delete by hand before coding. Then test the empty list, a single node, and changes at the head and at the tail."
+    ],
+    "keyPoints": [
+      "A node holds a value and one next pointer. You keep the head. Reading by position is O(k).",
+      "Insert after cur: new.next = cur.next first, then cur.next = new. The other order loses the chain.",
+      "Delete after prev: prev.next = prev.next.next. You need the predecessor.",
+      "A dummy head makes head changes and empty lists behave like every other case.",
+      "A tail pointer makes append O(1), but you must maintain it on deletes."
+    ],
+    "sql": [
+      {
+        "title": "A list with insert, delete and a dummy head",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v)\n        cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val)\n        head = head.next\n    return out\n\ndef insert_after(cur, val):\n    new = Node(val, cur.next)       # step 1: new.next = cur.next\n    cur.next = new                  # step 2: cur.next = new\n    return new\n\ndef delete_value(head, target):\n    dummy = Node(None, head)\n    prev = dummy\n    while prev.next:\n        if prev.next.val == target:\n            prev.next = prev.next.next\n        else:\n            prev = prev.next\n    return dummy.next\n\nhead = build([10, 20, 30, 40])\ninsert_after(head.next.next, 35)\nassert to_list(head) == [10, 20, 30, 35, 40]\nhead = delete_value(head, 20)\nassert to_list(head) == [10, 30, 35, 40]\nassert to_list(delete_value(build([3, 3, 1, 3]), 3)) == [1]\nassert delete_value(None, 5) is None"
+      },
+      {
+        "title": "A linked list with a tail pointer",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\nclass LinkedList:\n    def __init__(self):\n        self.head = self.tail = None\n        self.size = 0\n\n    def push_front(self, val):\n        self.head = Node(val, self.head)\n        if self.tail is None:\n            self.tail = self.head\n        self.size += 1\n\n    def append(self, val):                    # O(1) because of the tail pointer\n        node = Node(val)\n        if self.tail is None:\n            self.head = self.tail = node\n        else:\n            self.tail.next = node\n            self.tail = node\n        self.size += 1\n\n    def pop_front(self):\n        node = self.head\n        self.head = node.next\n        if self.head is None:\n            self.tail = None                  # the list became empty\n        self.size -= 1\n        return node.val\n\n    def to_list(self):\n        out, cur = [], self.head\n        while cur:\n            out.append(cur.val)\n            cur = cur.next\n        return out\n\nll = LinkedList()\nfor x in (1, 2, 3):\n    ll.append(x)\nll.push_front(0)\nassert ll.to_list() == [0, 1, 2, 3] and ll.tail.val == 3\nassert [ll.pop_front() for _ in range(4)] == [0, 1, 2, 3]\nassert ll.head is None and ll.tail is None\nll.append(9)\nassert ll.to_list() == [9] and ll.size == 1"
+      },
+      {
+        "title": "Delete a node when you are given only that node",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef delete_node(node):\n    # copy the next value into this node, then skip the next node (never the last node)\n    node.val = node.next.val\n    node.next = node.next.next\n\na, b, c, d = Node(1), Node(2), Node(3), Node(4)\na.next, b.next, c.next = b, c, d\ndelete_node(b)\nout, cur = [], a\nwhile cur:\n    out.append(cur.val)\n    cur = cur.next\nassert out == [1, 3, 4]"
+      }
+    ],
+    "django": {},
+    "exercise": "Build the Node and LinkedList classes without looking. Add insert_after, delete_value (with a dummy head), push_front, append (with a tail pointer) and pop_front. For each method, draw the pointers before and after, then test the empty list, one node, and the head and tail cases. Time yourself: 25 minutes.",
+    "pitfalls": [
+      "Setting cur.next = new before saving cur.next. The rest of the list is lost.",
+      "Calling .next on None. Guard with while cur and cur.next.",
+      "Forgetting to update the head when the first node is removed or inserted. A dummy head avoids this.",
+      "Leaving the tail pointing at a deleted node, or not resetting it when the list becomes empty.",
+      "Assuming the middle insert is O(1) overall. Finding the position is O(n)."
+    ],
+    "interview": [
+      {
+        "q": "Why is insertion in a linked list O(1) but searching O(n)?",
+        "a": "The pointer change is a couple of assignments. But there is no index, so finding the node before the insertion point means following pointers from the head."
+      },
+      {
+        "q": "What does a dummy head do?",
+        "a": "It is a fake node placed before the real head, so every real node has a predecessor. Head insertions, head deletions and empty lists then need no special code, and you return dummy.next."
+      },
+      {
+        "q": "How do you delete a node when you only have a pointer to it?",
+        "a": "Copy the next node's value into the node and set node.next = node.next.next. It works for any node except the last one, and it changes which node object holds the value."
+      },
+      {
+        "q": "When is a linked list better than an array?",
+        "a": "When you insert or delete at known positions very often and do not need random access, for example inside an LRU cache. Arrays are usually faster in practice because of cache locality."
+      }
+    ],
+    "references": [
+      {
+        "title": "Linked list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Linked_list",
+        "kind": "Reference"
+      },
+      {
+        "title": "Time complexity of operations on built-in types (Python docs)",
+        "url": "https://docs.python.org/3/builtins/time-complexity.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: linked lists are a standard coding-round topic in the big-company prep pages. The definition, the costs and the cache and space remarks come from the Wikipedia article cited, which I read in part. The two-step insert order, the dummy head and the interview advice are my judgment and standard technique. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-linked-list",
+      "py-time-complexity",
+      "amazon-topics",
+      "ms-tech-interview"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "sll",
+        "title": "Singly linked lists, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "walk the list"
+          },
+          {
+            "kind": "write",
+            "label": "pointer change"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Nodes",
+            "at": 0
+          },
+          {
+            "text": "Head insert",
+            "at": 2
+          },
+          {
+            "text": "Insert after a node",
+            "at": 3
+          },
+          {
+            "text": "Delete",
+            "at": 5
+          },
+          {
+            "text": "Dummy and tail",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "h5",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "5",
+            "icon": "cell",
+            "tone": "green",
+            "from": 2
+          },
+          {
+            "id": "n0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 1.8,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": -0.6,
+            "y": 0.6,
+            "label": "20",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": 0.6,
+            "y": -0.6,
+            "label": "30",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": 1.8,
+            "y": -1.8,
+            "label": "40",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "nil",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "None",
+            "icon": "x",
+            "tone": "grey"
+          },
+          {
+            "id": "m",
+            "kind": "cube",
+            "x": 2.5,
+            "y": 0.1,
+            "label": "35",
+            "icon": "cell",
+            "tone": "orange",
+            "from": 3
+          },
+          {
+            "id": "dm",
+            "kind": "cube",
+            "x": -4.3,
+            "y": 1.7,
+            "label": "dummy",
+            "icon": "flag",
+            "tone": "grey",
+            "from": 6
+          }
+        ],
+        "links": [
+          {
+            "a": "h5",
+            "b": "n0",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "n0",
+            "b": "n1",
+            "dir": "to",
+            "until": 4
+          },
+          {
+            "a": "n1",
+            "b": "n2",
+            "dir": "to",
+            "until": 4
+          },
+          {
+            "a": "n0",
+            "b": "n2",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "n2",
+            "b": "n3",
+            "dir": "to",
+            "until": 3
+          },
+          {
+            "a": "m",
+            "b": "n3",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "n2",
+            "b": "m",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "n3",
+            "b": "nil",
+            "dir": "to"
+          },
+          {
+            "a": "dm",
+            "b": "h5",
+            "dir": "to",
+            "dash": true,
+            "from": 6
+          }
+        ],
+        "steps": [
+          {
+            "title": "Nodes joined by next pointers",
+            "tag": "technique",
+            "body": [
+              "A singly linked list is a chain of nodes. Each node holds a value and one pointer to the next node. The list is known only by its head, the first node.",
+              "The last node points to None. The order of the list comes from the pointers, not from where the nodes sit in memory."
+            ],
+            "short": "Nodes",
+            "hud": [
+              {
+                "k": "Each node",
+                "v": "value + next"
+              },
+              {
+                "k": "You keep",
+                "v": "the head"
+              }
+            ],
+            "set": {
+              "n0": {
+                "pill": {
+                  "text": "head",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "nil": {
+                "pill": {
+                  "text": "end of list",
+                  "tone": "grey",
+                  "icon": "x"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "class Node:",
+                "    def __init__(self, val, next=None):",
+                "        self.val, self.next = val, next"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Finding the k-th node means walking k steps",
+            "tag": "problem",
+            "body": [
+              "There is no index. To reach the third node you start at the head and follow next pointers: head, then 20, then 30.",
+              "The Wikipedia article puts it plainly: random access is not possible. Reading by position costs O(k)."
+            ],
+            "short": "Access",
+            "hud": [
+              {
+                "k": "Read the k-th node",
+                "v": "O(k)",
+                "tone": "bad"
+              },
+              {
+                "k": "Array a[k]",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n2": {
+                "status": "live",
+                "tone": "orange",
+                "pill": {
+                  "text": "3rd node: 2 hops",
+                  "tone": "orange",
+                  "icon": "search"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n0",
+                  "n1",
+                  "n2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Insert at the head: O(1)",
+            "tag": "solution",
+            "body": [
+              "To add 5 in front, create a node whose next is the old head, then make it the new head. Two pointer changes, no walking.",
+              "Inserting at the beginning is constant time. It is the cheapest insert a singly linked list has."
+            ],
+            "short": "Head insert",
+            "hud": [
+              {
+                "k": "Insert at head",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Pointer changes",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "n2": {
+                "status": null,
+                "tone": "blue",
+                "pill": null
+              },
+              "n0": {
+                "pill": null
+              },
+              "h5": {
+                "pill": {
+                  "text": "new head",
+                  "tone": "green",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "h5",
+                  "n0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "node = Node(5, head)   # node.next = old head",
+                "head = node            # new head"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Insert after a node: set the new node's next first",
+            "tag": "technique",
+            "body": [
+              "To insert 35 after 30, you hold the node 30 (cur). First point the new node at what comes after: new.next = cur.next. Now both 30 and 35 point to 40, and nothing is lost.",
+              "The order matters. If you change cur.next first, you lose the only pointer to 40."
+            ],
+            "short": "Insert, step 1",
+            "hud": [
+              {
+                "k": "Pointer changes so far",
+                "v": "1"
+              },
+              {
+                "k": "Nothing lost yet",
+                "v": "40 still reachable",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m": {
+                "pill": {
+                  "text": "new.next = cur.next",
+                  "tone": "orange",
+                  "icon": "link"
+                }
+              },
+              "h5": {
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m",
+                  "n3"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "You want to insert after cur. Which order is safe?",
+              "options": [
+                "cur.next = new, then new.next = cur.next",
+                "new.next = cur.next, then cur.next = new",
+                "Either order is fine"
+              ],
+              "answer": 1,
+              "why": "If you set cur.next = new first, the old next node is no longer reachable, so new.next = cur.next would copy the wrong pointer."
+            }
+          },
+          {
+            "title": "Insert after a node: now link the chain to it",
+            "tag": "solution",
+            "body": [
+              "Now set cur.next = new. The chain reads 30, 35, 40. Only two pointers changed, so inserting after a node you already hold is O(1).",
+              "Finding that node first may take O(n). The constant time is only for the pointer change itself."
+            ],
+            "short": "Insert, step 2",
+            "hud": [
+              {
+                "k": "Insert after a held node",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Find the node first",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "m": {
+                "tone": "green",
+                "pill": {
+                  "text": "inserted",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "n2": {
+                "pill": {
+                  "text": "cur",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n2",
+                  "m"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "new = Node(35, cur.next)   # step 1",
+                "cur.next = new              # step 2"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Delete a node: skip over it",
+            "tag": "solution",
+            "body": [
+              "To remove 20, stand on the node before it (10) and set prev.next = prev.next.next. The chain jumps straight from 10 to 30, and 20 is no longer reachable.",
+              "You need the previous node, because a singly linked node cannot look backwards. Deleting is O(1) once you hold the predecessor."
+            ],
+            "short": "Delete",
+            "hud": [
+              {
+                "k": "Delete after a held node",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Needs",
+                "v": "the previous node",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "m": {
+                "pill": null,
+                "tone": "blue"
+              },
+              "n2": {
+                "pill": null
+              },
+              "n1": {
+                "status": "dim",
+                "tone": "grey",
+                "pill": {
+                  "text": "unlinked",
+                  "tone": "grey",
+                  "icon": "x"
+                }
+              },
+              "n0": {
+                "pill": {
+                  "text": "prev",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n0",
+                  "n2"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "prev.next = prev.next.next"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "A dummy head removes the special cases",
+            "tag": "technique",
+            "body": [
+              "Inserting or deleting at the head changes the head variable, which is a different code path from every other position. And an empty list has no head at all.",
+              "Put a dummy node before the real head. Now every real node has a predecessor, and the code for the first node is the same as for any other. Return dummy.next at the end."
+            ],
+            "short": "Dummy head",
+            "hud": [
+              {
+                "k": "Head special case",
+                "v": "gone",
+                "tone": "good"
+              },
+              {
+                "k": "Empty list",
+                "v": "no special case",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n1": {
+                "pill": null
+              },
+              "n0": {
+                "pill": null
+              },
+              "dm": {
+                "pill": {
+                  "text": "dummy.next = head",
+                  "tone": "grey",
+                  "icon": "flag"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "dummy = Node(0, head)",
+                "prev = dummy",
+                "# ... same code for every node ...",
+                "return dummy.next"
+              ],
+              "hl": [
+                0,
+                3
+              ]
+            }
+          },
+          {
+            "title": "A tail pointer makes appending O(1)",
+            "tag": "technique",
+            "body": [
+              "Without a tail reference, adding at the end means walking the whole list to find the last node: O(n). If you also store a tail pointer, appending is two pointer changes.",
+              "The cost is that you must keep the tail correct after every delete of the last node."
+            ],
+            "short": "Tail pointer",
+            "hud": [
+              {
+                "k": "Append, no tail",
+                "v": "O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Append, with tail",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "dm": {
+                "pill": null
+              },
+              "n3": {
+                "pill": {
+                  "text": "tail",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              }
+            }
+          },
+          {
+            "title": "What each operation costs",
+            "tag": "insight",
+            "body": [
+              "Insert or delete at the beginning: O(1). At the end: O(1) with a tail pointer, otherwise O(n). In the middle: O(1) once you hold the node, but O(n) to find it. Read by position: O(n).",
+              "Arrays store items side by side, so they use the cache better. Linked lists pay for a pointer in every node, and the extra space can match or exceed the data."
+            ],
+            "short": "Costs",
+            "hud": [
+              {
+                "k": "Insert/delete at head",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Find by position",
+                "v": "O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Extra space",
+                "v": "one pointer per node",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "n3": {
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A singly linked list is a chain of nodes, each with one next pointer. Splice by changing a few pointers, and always change them in an order that never loses the rest of the chain.",
+              "Use a dummy head for clean code, a tail pointer for fast appends, and draw the pointers before you write them."
+            ],
+            "short": "Recap",
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 draw the nodes and arrows",
+                "2 save or set new.next before changing cur.next",
+                "3 dummy head for head changes",
+                "4 guard None before .next"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A singly linked list is a treasure hunt where each clue only tells you where the next clue is.",
+      "story": "In a treasure hunt, each clue says where to find the next one. You only start with the first clue. To add a new clue between two, you write on it where the next clue is, and then change the earlier clue to point to the new one. If you changed the earlier clue first, you would forget where the rest of the hunt went.",
+      "maps": [
+        [
+          "A clue",
+          "A node"
+        ],
+        [
+          "Where to find the next clue",
+          "The next pointer"
+        ],
+        [
+          "The first clue",
+          "The head"
+        ],
+        [
+          "Changing a clue's directions",
+          "Rewiring a pointer"
+        ]
+      ],
+      "words": [
+        [
+          "node",
+          "One item in the chain, holding a value and a pointer."
+        ],
+        [
+          "head",
+          "The first node, the only one you keep."
+        ],
+        [
+          "dummy head",
+          "A fake first node placed before the real one to avoid special cases."
+        ],
+        [
+          "tail pointer",
+          "A saved reference to the last node."
+        ],
+        [
+          "splice",
+          "Join pieces of a chain by changing a few pointers."
+        ]
+      ]
+    }
   }
 ]
