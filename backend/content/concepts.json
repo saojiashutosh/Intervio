@@ -108367,5 +108367,986 @@
         ]
       ]
     }
+  },
+  {
+    "id": "reversing-a-list",
+    "n": 152,
+    "level": 14,
+    "week": "Core",
+    "title": "Reversing a Linked List: Loop, Recursion and Sub-lists",
+    "tagline": "Flip every pointer with prev, cur and a saved next, then use the same idea for a recursive version and for part of a list.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Reversing a linked list means making each node point to the node that used to be before it, so 1, 2, 3, 4, 5 becomes 5, 4, 3, 2, 1. It is one of the most asked linked-list questions because it tests whether you can change pointers in the right order without losing part of the list. It also appears inside other problems, such as palindrome checks and reversing in groups.",
+      "## The loop version",
+      "Keep three references: prev (starts as None), cur (starts at the head) and a saved next. For each node do four steps in this order: save nxt = cur.next, flip cur.next = prev, advance prev = cur, advance cur = nxt. When cur becomes None, prev points at the last node you flipped, which is the new head, so you return prev.",
+      "The save must come first. As soon as cur.next points backwards, nothing in the flipped part knows about the rest of the list. If you forget to save it, the rest is lost. Each node is visited once, so the time is O(n), and only three variables are used, so extra space is O(1).",
+      "## Edge cases that fall out for free",
+      "An empty list returns None, because prev starts as None and the loop never runs. A one-node list returns the same node, with its next set to None. Two nodes need the flip to happen once, and the new head is the old second node.",
+      "## The recursive version",
+      "Reverse everything after the head by recursion, then fix the head: head.next.next = head makes the next node point back at head, and head.next = None cuts the old forward link. The base case is an empty list or a single node, which is already reversed. The recursion uses O(n) call-stack space, so for a very long list you can hit Python's recursion limit. The loop does not have this problem.",
+      "> A worked example: reverse 1, 2, 3. The recursive call reverses 2, 3 into 3, 2 and returns node 3. Then 2's next is 3, so head.next.next = head means 2.next.next = 1... for head = 1: head.next is 2, and 2.next = 1, so the chain is 3, 2, 1, and 1.next is set to None. The returned head is 3.",
+      "## Reversing only a section",
+      "To reverse positions m to n, use a dummy head, walk to the node before position m, and call it before. Then repeat n - m times: take the node after cur and move it to just after before. This keeps the nodes outside the section connected without any extra bookkeeping. It is still O(n) time and O(1) space.",
+      "## Reversing in groups of k",
+      "Count k nodes ahead. If fewer than k remain, stop and leave the tail as it is. Otherwise reverse that group, connect it to the previous group and to the next one, and repeat. The extra care is reconnecting the group boundaries.",
+      "## Where reversal is used",
+      "- Palindrome list: reverse the second half and compare.\n- Reorder list (L0, Ln, L1, Ln-1, ...): find the middle, reverse the second half, then interleave.\n- Add two numbers stored as lists with the digits in forward order: reverse both, add, reverse the result.",
+      "## How to talk through it",
+      "Draw the nodes and write prev and cur above them. Run one iteration slowly: save, flip, advance, advance. Then test an empty list, one node and two nodes."
+    ],
+    "keyPoints": [
+      "Loop: save cur.next, set cur.next = prev, then advance prev and cur. Return prev.",
+      "Time O(n), extra space O(1). The empty list and the one-node list work with no special code.",
+      "Recursive version: reverse the rest, then head.next.next = head and head.next = None. Stack space O(n).",
+      "Reverse a section with a dummy head and a before pointer; move the node after cur to the front of the section n - m times.",
+      "Reversal is a building block for palindrome checks, reorder list and group reversal."
+    ],
+    "sql": [
+      {
+        "title": "Reverse with a loop and with recursion",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef reverse_iter(head):\n    prev = None\n    while head:\n        nxt = head.next          # 1 save\n        head.next = prev         # 2 flip\n        prev = head              # 3 advance prev\n        head = nxt               # 4 advance cur\n    return prev\n\ndef reverse_rec(head):\n    if head is None or head.next is None:\n        return head\n    new_head = reverse_rec(head.next)\n    head.next.next = head\n    head.next = None\n    return new_head\n\nassert to_list(reverse_iter(build([1, 2, 3, 4, 5]))) == [5, 4, 3, 2, 1]\nassert to_list(reverse_rec(build([1, 2, 3, 4, 5]))) == [5, 4, 3, 2, 1]\nassert reverse_iter(None) is None and reverse_rec(None) is None\nassert to_list(reverse_iter(build([7]))) == [7]\nassert to_list(reverse_iter(build([1, 2]))) == [2, 1]"
+      },
+      {
+        "title": "Reverse positions m to n",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef reverse_between(head, m, n):\n    dummy = Node(0, head)\n    before = dummy\n    for _ in range(m - 1):\n        before = before.next\n    cur = before.next\n    for _ in range(n - m):\n        nxt = cur.next\n        cur.next = nxt.next          # unlink nxt\n        nxt.next = before.next       # put it at the front of the section\n        before.next = nxt\n    return dummy.next\n\nassert to_list(reverse_between(build([1, 2, 3, 4, 5]), 2, 4)) == [1, 4, 3, 2, 5]\nassert to_list(reverse_between(build([1, 2, 3, 4, 5]), 1, 5)) == [5, 4, 3, 2, 1]\nassert to_list(reverse_between(build([5]), 1, 1)) == [5]"
+      },
+      {
+        "title": "Reverse in groups of k",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\ndef reverse_k_group(head, k):\n    dummy = Node(0, head)\n    group_prev = dummy\n    while True:\n        kth = group_prev\n        for _ in range(k):\n            kth = kth.next\n            if kth is None:\n                return dummy.next               # fewer than k nodes left: keep them as they are\n        group_next = kth.next\n        prev, cur = group_next, group_prev.next\n        while cur is not group_next:\n            cur.next, prev, cur = prev, cur, cur.next\n        first_of_group = group_prev.next        # becomes the tail of the reversed group\n        group_prev.next = kth\n        group_prev = first_of_group\n\nassert to_list(reverse_k_group(build([1, 2, 3, 4, 5]), 2)) == [2, 1, 4, 3, 5]\nassert to_list(reverse_k_group(build([1, 2, 3, 4, 5]), 3)) == [3, 2, 1, 4, 5]\nassert to_list(reverse_k_group(build([1, 2, 3]), 1)) == [1, 2, 3]\nassert reverse_k_group(None, 2) is None"
+      }
+    ],
+    "django": {},
+    "exercise": "Write reverse_iter, reverse_rec, reverse_between and reverse_k_group without looking. After each one, run it on an empty list, one node, two nodes and a list that is shorter than k. Then use reverse_iter to write is_palindrome that restores the list, and reorder_list that turns 1, 2, 3, 4, 5 into 1, 5, 2, 4, 3.",
+    "pitfalls": [
+      "Flipping cur.next before saving it. The rest of the list is lost.",
+      "Returning head instead of prev. After the loop the old head is the tail.",
+      "Forgetting that the recursive version needs head.next = None, which leaves a cycle between the last two nodes.",
+      "Using recursion on a very long list and hitting the recursion limit.",
+      "In group reversal, reconnecting the groups wrongly, or reversing a short last group that should stay as it is."
+    ],
+    "interview": [
+      {
+        "q": "How do you reverse a linked list in place?",
+        "a": "Walk once with prev (None), cur (head) and a saved next. For each node: save cur.next, set cur.next to prev, move prev to cur, move cur to the saved next. Return prev. It is O(n) time and O(1) space."
+      },
+      {
+        "q": "Why must you save cur.next before changing it?",
+        "a": "After you point cur.next backwards, the only pointer to the rest of the list is gone. Saving it first keeps the remaining nodes reachable."
+      },
+      {
+        "q": "What is the cost of the recursive version?",
+        "a": "O(n) time, but O(n) stack space for the calls, so it can hit the recursion limit on long lists. The loop uses O(1) space."
+      },
+      {
+        "q": "How do you reverse only the nodes from position m to n?",
+        "a": "Use a dummy head and walk to the node before position m. Then repeat n - m times: remove the node after cur and insert it just after that before node. The rest of the list stays linked."
+      }
+    ],
+    "references": [
+      {
+        "title": "Linked list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Linked_list",
+        "kind": "Reference"
+      },
+      {
+        "title": "Programming FAQ: references and mutable objects (Python docs)",
+        "url": "https://docs.python.org/3/faq/programming.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: reversing a linked list is one of the most common coding-round questions. The pointer model and the costs come from the Wikipedia article I read in part. The four-step loop, the recursive and section-reversal versions and the interview advice are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. The recursion limit remark is general knowledge. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-linked-list",
+      "py-faq-programming",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "reverse",
+        "title": "Reversing a linked list, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or walk"
+          },
+          {
+            "kind": "write",
+            "label": "pointer change"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The goal",
+            "at": 0
+          },
+          {
+            "text": "Three pointers",
+            "at": 1
+          },
+          {
+            "text": "Flip one by one",
+            "at": 2
+          },
+          {
+            "text": "New head",
+            "at": 7
+          },
+          {
+            "text": "Recursion",
+            "at": 8
+          },
+          {
+            "text": "Sub-lists",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "r0",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 2.4,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r1",
+            "kind": "cube",
+            "x": -1.2,
+            "y": 1.2,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r3",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -1.2,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r4",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.4,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "nil",
+            "kind": "cube",
+            "x": -3.6,
+            "y": 3.6,
+            "label": "None",
+            "icon": "x",
+            "tone": "grey"
+          }
+        ],
+        "links": [
+          {
+            "a": "r0",
+            "b": "r1",
+            "dir": "to",
+            "until": 1
+          },
+          {
+            "a": "r1",
+            "b": "r2",
+            "dir": "to",
+            "until": 2
+          },
+          {
+            "a": "r2",
+            "b": "r3",
+            "dir": "to",
+            "until": 3
+          },
+          {
+            "a": "r3",
+            "b": "r4",
+            "dir": "to",
+            "until": 4
+          },
+          {
+            "a": "r0",
+            "b": "nil",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "r1",
+            "b": "r0",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "r2",
+            "b": "r1",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "r3",
+            "b": "r2",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "r4",
+            "b": "r3",
+            "dir": "to",
+            "from": 6
+          }
+        ],
+        "steps": [
+          {
+            "title": "The goal: flip every arrow",
+            "tag": "technique",
+            "body": [
+              "We have 1, 2, 3, 4, 5, and each node points to the next one. Reversing the list means every node must point to the one before it, so the order becomes 5, 4, 3, 2, 1.",
+              "We do it in place by changing pointers only. No new nodes are created, so extra space is O(1)."
+            ],
+            "short": "The goal",
+            "hud": [
+              {
+                "k": "Before",
+                "v": "1 2 3 4 5"
+              },
+              {
+                "k": "After",
+                "v": "5 4 3 2 1"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "r0": {
+                "pill": {
+                  "text": "head",
+                  "tone": "blue",
+                  "icon": "flag"
+                }
+              },
+              "r1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Three pointers: prev, cur and a saved next",
+            "tag": "technique",
+            "body": [
+              "Keep prev, which is None at first, and cur, which starts at the head. For each node do four things in order: save cur.next, point cur.next at prev, move prev to cur, move cur to the saved next.",
+              "The save comes first. Once cur.next points backwards, the rest of the list is reachable only through the saved pointer."
+            ],
+            "short": "Three pointers",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "None"
+              },
+              {
+                "k": "cur",
+                "v": "1"
+              },
+              {
+                "k": "saved next",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "r1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "nxt = cur.next    # 1 save",
+                "cur.next = prev  # 2 flip",
+                "prev = cur        # 3 advance prev",
+                "cur = nxt         # 4 advance cur"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            },
+            "predict": {
+              "question": "What goes wrong if you flip cur.next = prev before saving cur.next?",
+              "options": [
+                "Nothing, the pointers are independent",
+                "The rest of the list is lost, because nothing points to node 2 any more",
+                "The list becomes circular"
+              ],
+              "answer": 1,
+              "why": "Node 1 was the only thing pointing at node 2. After the flip, node 2 and everything behind it are unreachable."
+            }
+          },
+          {
+            "title": "Flip node 1: it now points to None",
+            "tag": "solution",
+            "body": [
+              "Save 2. Set 1.next = None, because prev is None. Move prev to 1 and cur to 2.",
+              "Node 1 was the head, so it becomes the tail of the reversed list. A tail points to None."
+            ],
+            "short": "Flip 1",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "1"
+              },
+              {
+                "k": "cur",
+                "v": "2"
+              },
+              {
+                "k": "Flipped",
+                "v": "1 of 5"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": {
+                  "text": "prev",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "r1": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "r2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "r0",
+                  "nil"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Flip node 2: it now points to 1",
+            "tag": "solution",
+            "body": [
+              "Save 3. Set 2.next = 1. Move prev to 2 and cur to 3.",
+              "The flipped part grows from the left. The part on the right is the still-unvisited list."
+            ],
+            "short": "Flip 2",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "2"
+              },
+              {
+                "k": "cur",
+                "v": "3"
+              },
+              {
+                "k": "Flipped",
+                "v": "2 of 5"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": {
+                  "text": "prev",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "r2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "r3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "r1",
+                  "r0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Flip node 3",
+            "tag": "solution",
+            "body": [
+              "Save 4. Set 3.next = 2. Move prev to 3 and cur to 4.",
+              "Each round does the same four steps, so the cost is O(1) per node."
+            ],
+            "short": "Flip 3",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "3"
+              },
+              {
+                "k": "cur",
+                "v": "4"
+              },
+              {
+                "k": "Flipped",
+                "v": "3 of 5"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": {
+                  "text": "prev",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "r3": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "r4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "r2",
+                  "r1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Flip node 4",
+            "tag": "solution",
+            "body": [
+              "Save 5. Set 4.next = 3. Move prev to 4 and cur to 5.",
+              "Only one node is left to visit."
+            ],
+            "short": "Flip 4",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "4"
+              },
+              {
+                "k": "cur",
+                "v": "5"
+              },
+              {
+                "k": "Flipped",
+                "v": "4 of 5"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "green",
+                "pill": {
+                  "text": "prev",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "r4": {
+                "tone": "orange",
+                "pill": {
+                  "text": "cur",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "r3",
+                  "r2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Flip node 5: cur becomes None",
+            "tag": "solution",
+            "body": [
+              "Save None. Set 5.next = 4. Move prev to 5 and cur to None. The loop ends because cur is None.",
+              "Every node was visited once, so the time is O(n)."
+            ],
+            "short": "Flip 5",
+            "hud": [
+              {
+                "k": "prev",
+                "v": "5"
+              },
+              {
+                "k": "cur",
+                "v": "None"
+              },
+              {
+                "k": "Flipped",
+                "v": "5 of 5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "green",
+                "pill": {
+                  "text": "prev",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "r4",
+                  "r3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Return prev: it is the new head",
+            "tag": "insight",
+            "body": [
+              "When the loop ends, prev points at the last node we flipped, which is the new head. Return prev, not head: the old head is now the tail.",
+              "The list reads 5, 4, 3, 2, 1. For an empty list prev is None, which is the right answer, and a one-node list comes back unchanged."
+            ],
+            "short": "New head",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "pill": {
+                  "text": "new head",
+                  "tone": "green",
+                  "icon": "flag"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "prev = None",
+                "while head:",
+                "    head.next, prev, head = prev, head, head.next",
+                "return prev"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "The recursive version",
+            "tag": "technique",
+            "body": [
+              "Recursion reverses the rest of the list first. Then you hook the current node behind it: head.next.next = head, and head.next = None. The base case is an empty list or a single node.",
+              "It is neat but uses O(n) stack space, so a very long list can hit Python's recursion limit. Prefer the loop for long lists."
+            ],
+            "short": "Recursion",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)"
+              },
+              {
+                "k": "Stack",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def reverse(head):",
+                "    if not head or not head.next: return head",
+                "    new_head = reverse(head.next)",
+                "    head.next.next = head",
+                "    head.next = None",
+                "    return new_head"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Reverse only part of the list",
+            "tag": "technique",
+            "body": [
+              "To reverse positions 2 to 4 only, walk to the node just before position 2 and call it prev. Then repeat n - m times: take the node after cur and move it to the front of the section. The nodes before and after the section stay connected.",
+              "Reversing in groups of k works the same way: reverse each full group and leave a short last group as it is."
+            ],
+            "short": "Sub-lists",
+            "hud": [
+              {
+                "k": "Positions 2 to 4",
+                "v": "1 2 3 4 5 becomes 1 4 3 2 5"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)"
+              }
+            ],
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Reverse by walking once with prev, cur and a saved next. Save, flip, advance. Return prev. The recursive version trades the loop for O(n) stack space.",
+              "Draw five nodes and flip them one at a time on paper. Test an empty list, one node and two nodes."
+            ],
+            "short": "Recap",
+            "set": {
+              "r0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 save cur.next first",
+                "2 point cur.next at prev",
+                "3 advance prev, then cur",
+                "4 return prev, not head"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Reversing a list is like turning a line of people to face the other way, one person at a time.",
+      "story": "People stand in a line, each holding the hand of the person in front. To reverse the line, you go along it and make each person let go of the person ahead and hold the person behind. But first you must remember who was ahead, or you lose the rest of the line. When you reach the end, the last person you turned is now the leader.",
+      "maps": [
+        [
+          "People holding hands",
+          "Nodes and pointers"
+        ],
+        [
+          "Remembering who was ahead",
+          "Saving cur.next"
+        ],
+        [
+          "Turning one person",
+          "Flipping one pointer"
+        ],
+        [
+          "The last one turned",
+          "The new head"
+        ]
+      ],
+      "words": [
+        [
+          "reverse",
+          "Make every pointer point to the node that was before it."
+        ],
+        [
+          "in place",
+          "Changing the existing nodes instead of building a new list."
+        ],
+        [
+          "recursion",
+          "A function that calls itself on a smaller part of the problem."
+        ],
+        [
+          "base case",
+          "The smallest input, answered directly."
+        ],
+        [
+          "section",
+          "A stretch of neighbouring nodes inside the list."
+        ]
+      ]
+    }
   }
 ]
