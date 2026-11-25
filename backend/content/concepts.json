@@ -110552,5 +110552,957 @@
         ]
       ]
     }
+  },
+  {
+    "id": "lru-cache-linked-list",
+    "n": 154,
+    "level": 14,
+    "week": "Core",
+    "title": "LRU Cache: Hash Map plus Doubly Linked List",
+    "tagline": "Build get and put in O(1) by pairing a dictionary with a doubly linked list, and see exactly which pointers move.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "An LRU cache keeps a limited number of items and, when it is full, throws away the Least Recently Used one. The interview version asks for get(key) and put(key, value) to run in O(1). No single built-in structure gives that, so you combine two. This lesson is about the pointer moves. The Design an LRU Cache lesson in the low-level design track covers the class design and what changes under concurrency.",
+      "## Why two structures",
+      "A dictionary finds a key in O(1) on average, but it cannot tell you which key is the oldest. A list can keep the order, but finding a key takes O(n). A doubly linked list can move or remove a node in O(1) when you already hold it, because the node knows both neighbours. So the dictionary maps each key to its node, and the list keeps the nodes in order of use.",
+      "## The layout",
+      "Put a front sentinel and a back sentinel at the ends. The most recently used node sits right after the front sentinel, and the least recently used node sits right before the back sentinel. Sentinels mean there is no None to check, even in an empty cache. Each node stores its key as well as its value, so that when you evict a node from the list you can also delete its entry from the dictionary.",
+      "## The operations",
+      "- get(key): if the key is missing, return a default. Otherwise unlink the node, push it to the front, and return its value. It is O(1).\n- put(key, value) for an existing key: update the value and move the node to the front.\n- put(key, value) for a new key: if the cache is full, unlink back.prev and delete its key from the dictionary. Then create a node, add it to the dictionary and push it to the front.",
+      "## Pointer work",
+      "The helper _unlink(node) sets node.prev.next = node.next and node.next.prev = node.prev. The helper _push_front(node) sets node.prev = front, node.next = front.next, then front.next.prev = node and front.next = node. All the other methods are built from these two, so there is only one place to get the pointers right.",
+      "> A worked example with capacity 3: put A, put B, put C gives the order C, B, A. get A moves A to the front: A, C, B. put D finds the cache full, so it evicts B, which is next to the back sentinel, and the order becomes D, A, C.",
+      "## The invariant to defend",
+      "After each operation, the dictionary has exactly the keys that are in the list, and there are never more than capacity of them. Most bugs come from evicting from the list but forgetting the dictionary, or the other way round.",
+      "## Policies and shortcuts",
+      "The Wikipedia article on cache replacement policies lists LRU, which discards the least recently used items first, next to FIFO, MRU, LFU and random replacement, and notes that exact LRU needs bookkeeping on every use, which is cumbersome. In Python, collections.OrderedDict can replace the hand-built list, with move_to_end on a hit and popitem(last=False) to evict. functools.lru_cache applies the same policy to function results, with a default of 128 entries.",
+      "## How to talk through it",
+      "Say why you need both structures, draw the sentinels, and walk get and put by hand. State the invariant out loud. Test a capacity of 1, updating an existing key, and a get for a missing key."
+    ],
+    "keyPoints": [
+      "Dictionary: key to node, for O(1) find. Doubly linked list: order of use, for O(1) move and evict.",
+      "Most recent node is after the front sentinel. Least recent is before the back sentinel.",
+      "get: unlink, push front. put when full: evict back.prev and its dictionary entry, then push the new node.",
+      "Nodes store their key so eviction can delete the dictionary entry.",
+      "OrderedDict (move_to_end, popitem(last=False)) and functools.lru_cache give the same policy in less code."
+    ],
+    "sql": [
+      {
+        "title": "An LRU cache from a dict and a doubly linked list",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key=None, val=None):\n        self.key, self.val = key, val\n        self.prev = self.next = None\n\nclass LRUCache:\n    def __init__(self, capacity):\n        self.cap = capacity\n        self.map = {}\n        self.front, self.back = Node(), Node()            # sentinels\n        self.front.next, self.back.prev = self.back, self.front\n\n    def _unlink(self, node):\n        node.prev.next = node.next\n        node.next.prev = node.prev\n\n    def _push_front(self, node):\n        node.prev, node.next = self.front, self.front.next\n        self.front.next.prev = node\n        self.front.next = node\n\n    def get(self, key):\n        if key not in self.map:\n            return -1\n        node = self.map[key]\n        self._unlink(node)\n        self._push_front(node)\n        return node.val\n\n    def put(self, key, val):\n        if key in self.map:\n            node = self.map[key]\n            node.val = val\n            self._unlink(node)\n            self._push_front(node)\n            return\n        if len(self.map) == self.cap:\n            lru = self.back.prev\n            self._unlink(lru)\n            del self.map[lru.key]\n        node = Node(key, val)\n        self.map[key] = node\n        self._push_front(node)\n\n    def keys(self):                                        # most recent first\n        out, node = [], self.front.next\n        while node is not self.back:\n            out.append(node.key)\n            node = node.next\n        return out\n\nc = LRUCache(3)\nfor k, v in ((\"A\", 1), (\"B\", 2), (\"C\", 3)):\n    c.put(k, v)\nassert c.keys() == [\"C\", \"B\", \"A\"]\nassert c.get(\"A\") == 1 and c.keys() == [\"A\", \"C\", \"B\"]\nc.put(\"D\", 4)                                              # evicts B\nassert c.keys() == [\"D\", \"A\", \"C\"] and c.get(\"B\") == -1\nc.put(\"C\", 30)                                             # update moves it to the front\nassert c.keys() == [\"C\", \"D\", \"A\"] and c.get(\"C\") == 30\nassert len(c.map) == len(c.keys()) == 3\none = LRUCache(1)\none.put(\"x\", 1); one.put(\"y\", 2)\nassert one.get(\"x\") == -1 and one.get(\"y\") == 2"
+      },
+      {
+        "title": "The same cache with OrderedDict, checked against the first",
+        "lang": "py",
+        "code": "from collections import OrderedDict\nimport random\n\nclass LRUOrdered:\n    def __init__(self, capacity):\n        self.cap, self.d = capacity, OrderedDict()\n\n    def get(self, key):\n        if key not in self.d:\n            return -1\n        self.d.move_to_end(key)                  # most recent at the end\n        return self.d[key]\n\n    def put(self, key, val):\n        self.d[key] = val\n        self.d.move_to_end(key)\n        if len(self.d) > self.cap:\n            self.d.popitem(last=False)           # drop the least recent\n\nclass Node:\n    def __init__(self, key=None, val=None):\n        self.key, self.val = key, val\n        self.prev = self.next = None\n\nclass LRUList:\n    def __init__(self, capacity):\n        self.cap, self.map = capacity, {}\n        self.front, self.back = Node(), Node()\n        self.front.next, self.back.prev = self.back, self.front\n    def _unlink(self, n):\n        n.prev.next, n.next.prev = n.next, n.prev\n    def _push(self, n):\n        n.prev, n.next = self.front, self.front.next\n        self.front.next.prev = n\n        self.front.next = n\n    def get(self, key):\n        if key not in self.map:\n            return -1\n        n = self.map[key]; self._unlink(n); self._push(n)\n        return n.val\n    def put(self, key, val):\n        if key in self.map:\n            n = self.map[key]; n.val = val; self._unlink(n); self._push(n); return\n        if len(self.map) == self.cap:\n            lru = self.back.prev; self._unlink(lru); del self.map[lru.key]\n        n = Node(key, val); self.map[key] = n; self._push(n)\n\nrandom.seed(9)\na, b = LRUOrdered(4), LRUList(4)\nfor _ in range(500):\n    key = random.randint(0, 7)\n    if random.random() < 0.5:\n        assert a.get(key) == b.get(key)\n    else:\n        v = random.randint(0, 99)\n        a.put(key, v); b.put(key, v)"
+      },
+      {
+        "title": "functools.lru_cache for function results",
+        "lang": "py",
+        "code": "from functools import lru_cache\n\n@lru_cache(maxsize=None)\ndef fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\n\nassert [fib(n) for n in range(16)][-1] == 610\ninfo = fib.cache_info()\nassert (info.hits, info.misses, info.currsize) == (28, 16, 16)\n\n@lru_cache(maxsize=2)\ndef square(x):\n    return x * x\n\nsquare(1); square(2); square(1); square(3)         # 3 evicts 2, the least recently used\nbefore = square.cache_info().misses\nsquare(2)\nassert square.cache_info().misses == before + 1     # 2 had to be recomputed\nsquare.cache_clear()\nassert square.cache_info().currsize == 0"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the LRUCache from memory with sentinels, _unlink and _push_front. Test capacity 1, updating an existing key, and a get for a missing key. Add a check() method that walks the list forwards and backwards and compares it with the dictionary. Then change the policy to FIFO, where get does not reorder, and say which lines changed.",
+    "pitfalls": [
+      "Evicting a node from the list but leaving its entry in the dictionary, or the reverse.",
+      "Not storing the key inside the node, so you cannot delete the dictionary entry on eviction.",
+      "Forgetting that put on an existing key must also move it to the front.",
+      "Updating next pointers and forgetting prev, so a later unlink breaks the list.",
+      "Evicting before checking whether the key already exists, which throws away an item for no reason."
+    ],
+    "interview": [
+      {
+        "q": "How do you build an LRU cache with O(1) get and put?",
+        "a": "Use a dictionary from key to node plus a doubly linked list ordered by recency. get finds the node by key, moves it to the front and returns the value. put adds at the front and, if the cache is full, evicts the node before the back sentinel and deletes its dictionary entry."
+      },
+      {
+        "q": "Why a doubly linked list and not a singly linked one?",
+        "a": "Moving or removing a node you already hold takes O(1) only if the node can reach its predecessor. A singly linked list would need a walk from the head to find that predecessor."
+      },
+      {
+        "q": "Why does each node store its key?",
+        "a": "When you evict the node at the back of the list, you must delete the matching entry from the dictionary. The node has to know which key that is."
+      },
+      {
+        "q": "How would you do this with less code in Python?",
+        "a": "Use collections.OrderedDict: move_to_end(key) on every get or put, and popitem(last=False) to evict when the size exceeds the capacity. For caching function results, use functools.lru_cache."
+      }
+    ],
+    "references": [
+      {
+        "title": "Cache replacement policies (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Cache_replacement_policies",
+        "kind": "Reference"
+      },
+      {
+        "title": "functools: lru_cache (Python docs)",
+        "url": "https://docs.python.org/3/library/functools.html#functools.lru_cache",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Doubly linked list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Doubly_linked_list",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: the LRU cache is one of the most common design-and-code questions in big-company interviews. The definition of LRU and the list of other policies come from the Wikipedia article cited, which I read in part, and the lru_cache defaults and statistics come from the Python functools page, which I read in full. The OrderedDict recipe is checked by running the code. The pointer walkthrough, sentinel layout and interview advice are my judgment. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-cache-replacement",
+      "wikipedia-doubly-linked-list",
+      "py-functools",
+      "py-collections"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "lrulist",
+        "title": "LRU cache with a linked list, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or walk"
+          },
+          {
+            "kind": "write",
+            "label": "pointer change"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Two structures",
+            "at": 1
+          },
+          {
+            "text": "put",
+            "at": 2
+          },
+          {
+            "text": "get moves to front",
+            "at": 4
+          },
+          {
+            "text": "Evict",
+            "at": 5
+          },
+          {
+            "text": "Other policies",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "H",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 2.7,
+            "label": "H",
+            "icon": "flag",
+            "tone": "grey"
+          },
+          {
+            "id": "T",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "T",
+            "icon": "flag",
+            "tone": "grey"
+          },
+          {
+            "id": "A",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "A",
+            "icon": "cell",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "B",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "B",
+            "icon": "cell",
+            "tone": "purple",
+            "from": 3
+          },
+          {
+            "id": "C",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "C",
+            "icon": "cell",
+            "tone": "teal",
+            "from": 4
+          },
+          {
+            "id": "D",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "D",
+            "icon": "cell",
+            "tone": "orange",
+            "from": 6
+          },
+          {
+            "id": "mp",
+            "kind": "db",
+            "x": 1.8,
+            "y": 1.8,
+            "label": "dict",
+            "icon": "db",
+            "tone": "blue",
+            "from": 1
+          }
+        ],
+        "links": [
+          {
+            "a": "H",
+            "b": "T",
+            "dir": "both",
+            "until": 1
+          },
+          {
+            "a": "A",
+            "b": "H",
+            "dir": "both",
+            "from": 2,
+            "until": 2
+          },
+          {
+            "a": "A",
+            "b": "H",
+            "dir": "both",
+            "from": 5,
+            "until": 5
+          },
+          {
+            "a": "A",
+            "b": "T",
+            "dir": "both",
+            "from": 2,
+            "until": 4
+          },
+          {
+            "a": "B",
+            "b": "H",
+            "dir": "both",
+            "from": 3,
+            "until": 3
+          },
+          {
+            "a": "A",
+            "b": "B",
+            "dir": "both",
+            "from": 3,
+            "until": 4
+          },
+          {
+            "a": "C",
+            "b": "H",
+            "dir": "both",
+            "from": 4,
+            "until": 4
+          },
+          {
+            "a": "B",
+            "b": "C",
+            "dir": "both",
+            "from": 4,
+            "until": 5
+          },
+          {
+            "a": "A",
+            "b": "C",
+            "dir": "both",
+            "from": 5
+          },
+          {
+            "a": "B",
+            "b": "T",
+            "dir": "both",
+            "from": 5,
+            "until": 5
+          },
+          {
+            "a": "D",
+            "b": "H",
+            "dir": "both",
+            "from": 6
+          },
+          {
+            "a": "A",
+            "b": "D",
+            "dir": "both",
+            "from": 6
+          },
+          {
+            "a": "C",
+            "b": "T",
+            "dir": "both",
+            "from": 6
+          },
+          {
+            "a": "mp",
+            "b": "A",
+            "dir": "to",
+            "dash": true,
+            "from": 2
+          },
+          {
+            "a": "mp",
+            "b": "B",
+            "dir": "to",
+            "dash": true,
+            "from": 3,
+            "until": 5
+          },
+          {
+            "a": "mp",
+            "b": "C",
+            "dir": "to",
+            "dash": true,
+            "from": 4
+          },
+          {
+            "a": "mp",
+            "b": "D",
+            "dir": "to",
+            "dash": true,
+            "from": 6
+          }
+        ],
+        "steps": [
+          {
+            "title": "The need: fast lookup and fast eviction",
+            "tag": "technique",
+            "body": [
+              "A cache holds the most useful items and throws something away when it is full. An LRU cache throws away the least recently used item. We want get and put to take O(1), and we want to know instantly which item is the oldest.",
+              "Here the capacity is 3. The list will order the items from most recent (next to H) to least recent (next to T)."
+            ],
+            "short": "The need",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "3"
+              },
+              {
+                "k": "get",
+                "v": "O(1)"
+              },
+              {
+                "k": "put",
+                "v": "O(1)"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "T": {
+                "x": -1.35,
+                "y": 1.35
+              }
+            }
+          },
+          {
+            "title": "Two structures, each covering the other's weakness",
+            "tag": "technique",
+            "body": [
+              "A dictionary finds a key in O(1), but it has no idea which key is oldest. A doubly linked list keeps the order and can move or remove a node in O(1), but it cannot find a key without walking.",
+              "Together: the dictionary maps each key to its node in the list. The list holds the order. H and T are sentinel nodes, so there are no edge cases at the ends."
+            ],
+            "short": "Two structures",
+            "hud": [
+              {
+                "k": "Dict",
+                "v": "key to node: O(1) find",
+                "tone": "good"
+              },
+              {
+                "k": "List",
+                "v": "order + O(1) move",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "T": {
+                "x": -1.35,
+                "y": 1.35
+              },
+              "mp": {
+                "pill": {
+                  "text": "key to node",
+                  "tone": "blue",
+                  "icon": "link"
+                }
+              }
+            }
+          },
+          {
+            "title": "put A: a new node goes to the front",
+            "tag": "solution",
+            "body": [
+              "A new key gets a node placed right after H, the front of the list, and an entry in the dictionary. Front means most recently used.",
+              "Four pointer changes: the node's prev and next, then H.next.prev and H.next."
+            ],
+            "short": "put A",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A"
+              },
+              {
+                "k": "Size",
+                "v": "1 of 3"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "A": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": {
+                  "text": "put(A)",
+                  "tone": "blue",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "T": {
+                "x": 0.0,
+                "y": 0.0
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "mp",
+                  "A"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "node = Node(key, val)",
+                "self.map[key] = node",
+                "self._push_front(node)"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "put B: the new node goes in front of A",
+            "tag": "solution",
+            "body": [
+              "B goes to the front, right after H, and A moves one place back. It is the same four pointer changes plus a dictionary entry.",
+              "The order from most to least recent is now B, A."
+            ],
+            "short": "put B",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "B A"
+              },
+              {
+                "k": "Size",
+                "v": "2 of 3"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "B": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": {
+                  "text": "put(B)",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "A": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 1.35,
+                "y": -1.35
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "mp",
+                  "B"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "put C: the cache is now full",
+            "tag": "solution",
+            "body": [
+              "C goes to the front, and the others move back. The order from most to least recent is C, B, A.",
+              "The dictionary now has 3 entries, which equals the capacity. The next new key will force an eviction."
+            ],
+            "short": "put C",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "C B A"
+              },
+              {
+                "k": "Size",
+                "v": "3 of 3",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "C": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": {
+                  "text": "put(C)",
+                  "tone": "teal",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "B": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "A": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "mp",
+                  "C"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "get A: move it to the front",
+            "tag": "solution",
+            "body": [
+              "A hit must also refresh the order. Find A's node through the dictionary in O(1), unlink it from where it is, and push it to the front. The order becomes A, C, B.",
+              "Because the list is doubly linked, unlinking a node you hold needs no walk."
+            ],
+            "short": "get A",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A C B"
+              },
+              {
+                "k": "Least recent",
+                "v": "B",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "A": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": {
+                  "text": "get(A): hit, now front",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "tone": "green"
+              },
+              "C": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "B": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "mp",
+                  "A"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "node = self.map[key]",
+                "self._unlink(node)",
+                "self._push_front(node)",
+                "return node.val"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            },
+            "predict": {
+              "question": "The cache is full with order A, C, B. A new key D arrives. Which key is evicted?",
+              "options": [
+                "A",
+                "B",
+                "C"
+              ],
+              "answer": 1,
+              "why": "B sits next to T, the back of the list, so B is the least recently used and is evicted."
+            }
+          },
+          {
+            "title": "put D when full: evict the node next to T",
+            "tag": "solution",
+            "body": [
+              "The cache is full, so first evict. The least recent node is T.prev, which is B. Unlink it, and delete its key from the dictionary. That is why each node stores its own key.",
+              "Then add D at the front. The order is D, A, C."
+            ],
+            "short": "Evict and add",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "D A C"
+              },
+              {
+                "k": "Evicted",
+                "v": "B",
+                "tone": "bad"
+              },
+              {
+                "k": "Size",
+                "v": "3 of 3"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "D": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": {
+                  "text": "put(D)",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "A": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null,
+                "tone": "blue"
+              },
+              "C": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              },
+              "B": {
+                "x": 1.0,
+                "y": -4.4,
+                "status": "down",
+                "pill": {
+                  "text": "evicted",
+                  "tone": "red",
+                  "icon": "x"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "mp",
+                  "D"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if len(self.map) == self.cap:",
+                "    lru = self.back.prev",
+                "    self._unlink(lru)",
+                "    del self.map[lru.key]"
+              ],
+              "hl": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Keep the two structures in step",
+            "tag": "insight",
+            "body": [
+              "After every operation the dictionary and the list must agree: the same keys, in the same count, never more than the capacity. A bug where you unlink a node but leave its dictionary entry gives wrong answers later.",
+              "Check this invariant in tests: walk the list, count the nodes and compare with len(map)."
+            ],
+            "short": "Invariant",
+            "hud": [
+              {
+                "k": "len(dict)",
+                "v": "= nodes in list",
+                "tone": "good"
+              },
+              {
+                "k": "Never more than",
+                "v": "capacity",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "D": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": null,
+                "status": null
+              },
+              "A": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "C": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              },
+              "B": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Other policies and shortcuts",
+            "tag": "insight",
+            "body": [
+              "LRU discards the least recently used item first. Other policies discard in the order items arrived (FIFO), the most recently used first (MRU) or the least often used (LFU). Hardware often uses a cheap approximation of LRU.",
+              "In Python, OrderedDict gives you the dict plus order in one object, and functools.lru_cache caches function results with LRU eviction."
+            ],
+            "short": "Other policies",
+            "hud": [
+              {
+                "k": "FIFO",
+                "v": "oldest arrival goes"
+              },
+              {
+                "k": "LFU",
+                "v": "least often used goes"
+              },
+              {
+                "k": "lru_cache",
+                "v": "built in for functions"
+              }
+            ],
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "D": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": null,
+                "status": null
+              },
+              "A": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "C": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "An LRU cache is a dictionary from key to node plus a doubly linked list with sentinels. get moves the node to the front. put adds at the front and, when full, evicts the node before T.",
+              "For class design and thread safety, see the Design an LRU Cache lesson. This lesson is the pointer mechanics under it."
+            ],
+            "short": "Recap",
+            "set": {
+              "H": {
+                "x": -2.7,
+                "y": 2.7
+              },
+              "D": {
+                "x": -1.35,
+                "y": 1.35,
+                "pill": null,
+                "status": null
+              },
+              "A": {
+                "x": 0.0,
+                "y": 0.0,
+                "pill": null,
+                "status": null
+              },
+              "C": {
+                "x": 1.35,
+                "y": -1.35,
+                "pill": null,
+                "status": null
+              },
+              "T": {
+                "x": 2.7,
+                "y": -2.7
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 dict: key to node",
+                "2 list: most recent next to H",
+                "3 get: unlink, push front",
+                "4 put when full: evict T.prev and its dict entry"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "An LRU cache is like a small desk where the things you used longest ago get put back in the cupboard first.",
+      "story": "Your desk has room for only three books. Each time you use a book, you put it on top of the pile. When you need a fourth book, you take the one at the bottom of the pile, the one you have not touched for the longest, and put it back on the shelf. A notebook lists where each book is, so you can find it without searching.",
+      "maps": [
+        [
+          "The pile of books",
+          "The linked list in order of use"
+        ],
+        [
+          "The top of the pile",
+          "The most recently used item"
+        ],
+        [
+          "The bottom book",
+          "The least recently used item"
+        ],
+        [
+          "The notebook of where books are",
+          "The dictionary"
+        ]
+      ],
+      "words": [
+        [
+          "cache",
+          "A small fast store for items you are likely to need again."
+        ],
+        [
+          "eviction",
+          "Removing an item to make room for a new one."
+        ],
+        [
+          "LRU",
+          "Least Recently Used: the item not used for the longest time."
+        ],
+        [
+          "sentinel",
+          "A dummy node at an end of the list that holds no data."
+        ],
+        [
+          "invariant",
+          "A fact that must stay true after every operation."
+        ]
+      ]
+    }
   }
 ]
