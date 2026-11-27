@@ -148548,5 +148548,1824 @@
         ]
       ]
     }
+  },
+  {
+    "id": "floyd-warshall",
+    "n": 190,
+    "level": 14,
+    "week": "Core",
+    "title": "Floyd-Warshall: All-Pairs Shortest Paths",
+    "tagline": "Fill a table of shortest distances between every pair of vertices by allowing one more stop-over vertex at a time, in three short loops.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 3,
+    "explain": [
+      "The Floyd-Warshall algorithm finds the shortest paths between all pairs of vertices in a weighted directed graph. The Wikipedia article says it works with positive or negative edge weights, provided there are no negative cycles. It takes Theta(V cubed) time and Theta(V squared) space, and the whole algorithm is three nested loops. It is an example of dynamic programming.",
+      "## The table",
+      "Keep a V by V table d where d[i][j] is the best known distance from i to j. Start with d[i][i] = 0, d[i][j] equal to the weight of the direct edge if there is one, and infinity otherwise. The algorithm improves the table in V stages.",
+      "## The idea: allowed stop-overs",
+      "Number the vertices 0 to V - 1. After stage k, d[i][j] is the length of the shortest path from i to j whose intermediate vertices all come from the first k + 1 vertices. To go from stage k - 1 to stage k, ask whether using vertex k as a stop-over helps. The new value is the smaller of the old d[i][j] and d[i][k] + d[k][j]. The article gives this recurrence over the number of allowed intermediate vertices, with the base case equal to the direct edge weight.",
+      "- for k in range(n): for i in range(n): for j in range(n): d[i][j] = min(d[i][j], d[i][k] + d[k][j])\n- The loop over k must be the outermost. The article warns that other orders of the loops can give wrong answers on some instances.",
+      "> A worked example: edges 1 to 3 (-2), 3 to 4 (2), 4 to 2 (-1), 2 to 1 (4) and 2 to 3 (3). At k = 1, vertex 2 can reach 3 through 1 at cost 4 - 2 = 2, which beats 3. After all four stages, the distance from 1 to 2 is -2 + 2 - 1 = -1, through 3 and 4.",
+      "## Negative cycles",
+      "Start with d[i][i] = 0. After the algorithm, if any d[i][i] is negative, vertex i lies on a negative cycle, and the distances are not meaningful. The article advises checking inside the innermost loop to avoid overflow from huge negative values.",
+      "## Rebuilding the paths",
+      "To recover an actual path, keep a second table next[i][j], the first vertex after i on the best path to j. When d[i][j] improves through k, set next[i][j] = next[i][k]. The article mentions storing the predecessor in a similar way, and notes that storing whole paths is costly.",
+      "## Transitive closure",
+      "Warshall's version of the algorithm uses a table of true and false values, with OR in place of min and AND in place of addition. It computes which vertices can reach which, the transitive closure.",
+      "## When to use it",
+      "Running Dijkstra from every vertex costs about V times (V + E) log V, which is better for sparse graphs. Floyd-Warshall is typically faster on dense graphs, handles negative weights directly, and is only a few lines long. The article notes Johnson's algorithm as the choice for sparse graphs with negative edges. Use Floyd-Warshall when V is a few hundred at most.",
+      "## How to talk through it",
+      "Describe the table and the three loops with k outermost. Explain the recurrence as allowing one more stop-over at a time, and give O(V cubed) and O(V squared). Mention the diagonal check for negative cycles."
+    ],
+    "keyPoints": [
+      "All-pairs shortest paths in a V by V table. Theta(V cubed) time, Theta(V squared) space.",
+      "Recurrence: d[i][j] = min(d[i][j], d[i][k] + d[k][j]), allowing vertex k as a stop-over.",
+      "Loop order matters: k outermost, then i, then j.",
+      "Allows negative edges. A negative d[i][i] means a negative cycle.",
+      "Keep a next table to rebuild paths. With booleans it gives the transitive closure."
+    ],
+    "sql": [
+      {
+        "title": "Floyd-Warshall with path reconstruction",
+        "lang": "py",
+        "code": "INF = float(\"inf\")\n\ndef floyd_warshall(n, edges):\n    d = [[INF] * n for _ in range(n)]\n    nxt = [[None] * n for _ in range(n)]\n    for i in range(n):\n        d[i][i] = 0\n    for a, b, w in edges:\n        d[a][b] = w\n        nxt[a][b] = b\n    for k in range(n):                                  # the stop-over vertex is the outer loop\n        for i in range(n):\n            for j in range(n):\n                if d[i][k] + d[k][j] < d[i][j]:\n                    d[i][j] = d[i][k] + d[k][j]\n                    nxt[i][j] = nxt[i][k]\n    return d, nxt\n\ndef path(nxt, i, j):\n    if nxt[i][j] is None:\n        return [i] if i == j else []\n    out = [i]\n    while i != j:\n        i = nxt[i][j]\n        out.append(i)\n    return out\n\nedges = [(0, 2, -2), (2, 3, 2), (3, 1, -1), (1, 0, 4), (1, 2, 3)]\nd, nxt = floyd_warshall(4, edges)\nassert d[0] == [0, -1, -2, 0]\nassert d[1] == [4, 0, 2, 4]\nassert d[3] == [3, -1, 1, 0]\nassert path(nxt, 0, 1) == [0, 2, 3, 1]\nassert all(d[i][i] == 0 for i in range(4))             # no negative cycle"
+      },
+      {
+        "title": "Negative cycles and the transitive closure",
+        "lang": "py",
+        "code": "INF = float(\"inf\")\n\ndef has_negative_cycle(n, edges):\n    d = [[INF] * n for _ in range(n)]\n    for i in range(n):\n        d[i][i] = 0\n    for a, b, w in edges:\n        d[a][b] = min(d[a][b], w)\n    for k in range(n):\n        for i in range(n):\n            for j in range(n):\n                if d[i][k] + d[k][j] < d[i][j]:\n                    d[i][j] = d[i][k] + d[k][j]\n    return any(d[i][i] < 0 for i in range(n))\n\nassert has_negative_cycle(3, [(0, 1, 1), (1, 2, -2), (2, 1, -1)])\nassert not has_negative_cycle(3, [(0, 1, 1), (1, 2, -2), (0, 2, 5)])\n\ndef transitive_closure(n, edges):\n    reach = [[i == j for j in range(n)] for i in range(n)]\n    for a, b in edges:\n        reach[a][b] = True\n    for k in range(n):\n        for i in range(n):\n            for j in range(n):\n                reach[i][j] = reach[i][j] or (reach[i][k] and reach[k][j])    # OR and AND instead of min and plus\n    return reach\n\nr = transitive_closure(4, [(0, 1), (1, 2)])\nassert r[0][2] and not r[2][0] and not r[0][3] and r[3][3]"
+      },
+      {
+        "title": "Check against Bellman-Ford from every source",
+        "lang": "py",
+        "code": "import random\n\nINF = float(\"inf\")\n\ndef floyd(n, edges):\n    d = [[INF] * n for _ in range(n)]\n    for i in range(n):\n        d[i][i] = 0\n    for a, b, w in edges:\n        d[a][b] = min(d[a][b], w)\n    for k in range(n):\n        for i in range(n):\n            for j in range(n):\n                if d[i][k] + d[k][j] < d[i][j]:\n                    d[i][j] = d[i][k] + d[k][j]\n    return d\n\ndef bellman(n, edges, s):\n    dist = [INF] * n\n    dist[s] = 0\n    for _ in range(n - 1):\n        for a, b, w in edges:\n            if dist[a] + w < dist[b]:\n                dist[b] = dist[a] + w\n    return dist\n\nrandom.seed(36)\nfor _ in range(150):\n    n = random.randint(1, 6)\n    edges = [(a, b, random.randint(0, 9)) for a in range(n) for b in range(n) if a != b and random.random() < 0.35]\n    d = floyd(n, edges)\n    assert all(d[s] == bellman(n, edges, s) for s in range(n))"
+      }
+    ],
+    "django": {},
+    "exercise": "Write floyd_warshall with a next table and a path function, and check it against Bellman-Ford from every source on random graphs. Then detect negative cycles from the diagonal, and write the transitive closure. Finally, change the loop order to i, j, k and find a small graph where the answer is wrong.",
+    "pitfalls": [
+      "Putting the k loop inside the others. The answer becomes wrong on some graphs.",
+      "Forgetting to set d[i][i] = 0, so paths from a vertex to itself are infinite.",
+      "Adding infinities and overflowing, in languages with fixed-size integers. Skip pairs that are unreachable.",
+      "Using it on a graph with a negative cycle without checking the diagonal.",
+      "Using it on a large sparse graph. V cubed is too slow. Run Dijkstra from each vertex."
+    ],
+    "interview": [
+      {
+        "q": "What does Floyd-Warshall compute and what is its complexity?",
+        "a": "The shortest paths between all pairs of vertices. It uses three nested loops over the vertices, so it takes Theta(V cubed) time and Theta(V squared) space. It allows negative edge weights but not negative cycles."
+      },
+      {
+        "q": "Why must the k loop be the outermost?",
+        "a": "At stage k the table must hold the shortest paths that use only the first k vertices as stops. If k were an inner loop, the values d[i][k] and d[k][j] would not yet be complete for that stage, and the result could be wrong."
+      },
+      {
+        "q": "How do you detect a negative cycle with it?",
+        "a": "After the algorithm, a negative value on the diagonal d[i][i] means vertex i lies on a negative cycle."
+      },
+      {
+        "q": "When would you choose Floyd-Warshall over running Dijkstra from every vertex?",
+        "a": "For small or dense graphs, when there are negative weights, or when you want a short, simple implementation. Dijkstra from every vertex is faster on large sparse graphs with non-negative weights."
+      }
+    ],
+    "references": [
+      {
+        "title": "Floyd-Warshall algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bellman-Ford algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: Floyd-Warshall is the standard all-pairs shortest path method and a classic dynamic programming example. The all-pairs problem, the Theta(V cubed) time and Theta(V squared) space, the recurrence over intermediate vertices, the k-i-j loop order, the negative cycle check, the path reconstruction and Warshall's transitive closure come from the Wikipedia Floyd-Warshall article, which I read in part. The worked example and the code are my own illustration and judgment, and the code is checked by running it against Bellman-Ford. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-floyd-warshall",
+      "wikipedia-bellman-ford",
+      "wikipedia-dijkstra",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "floyd",
+        "title": "Floyd-Warshall, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or relax"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "The idea",
+            "at": 2
+          },
+          {
+            "text": "Stop-overs",
+            "at": 3
+          },
+          {
+            "text": "Result",
+            "at": 7
+          },
+          {
+            "text": "Cost",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "m00",
+            "kind": "cube",
+            "x": -3.675,
+            "y": 0.225,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m01",
+            "kind": "cube",
+            "x": -2.375,
+            "y": -1.075,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m02",
+            "kind": "cube",
+            "x": -1.075,
+            "y": -2.375,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m03",
+            "kind": "cube",
+            "x": 0.225,
+            "y": -3.675,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m10",
+            "kind": "cube",
+            "x": -2.525,
+            "y": 1.375,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m11",
+            "kind": "cube",
+            "x": -1.225,
+            "y": 0.075,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m12",
+            "kind": "cube",
+            "x": 0.075,
+            "y": -1.225,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m13",
+            "kind": "cube",
+            "x": 1.375,
+            "y": -2.525,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m20",
+            "kind": "cube",
+            "x": -1.375,
+            "y": 2.525,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m21",
+            "kind": "cube",
+            "x": -0.075,
+            "y": 1.225,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m22",
+            "kind": "cube",
+            "x": 1.225,
+            "y": -0.075,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m23",
+            "kind": "cube",
+            "x": 2.525,
+            "y": -1.375,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m30",
+            "kind": "cube",
+            "x": -0.225,
+            "y": 3.675,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m31",
+            "kind": "cube",
+            "x": 1.075,
+            "y": 2.375,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m32",
+            "kind": "cube",
+            "x": 2.375,
+            "y": 1.075,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m33",
+            "kind": "cube",
+            "x": 3.675,
+            "y": -0.225,
+            "label": "0",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the shortest distance between every pair",
+            "tag": "technique",
+            "body": [
+              "Dijkstra and Bellman-Ford give distances from one source. Floyd-Warshall gives the distances between all pairs of vertices at once, in a table. The cell in row i and column j holds the shortest distance from vertex i to vertex j.",
+              "Negative edges are allowed, but not negative cycles."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Table",
+                "v": "row i, column j = distance i to j"
+              },
+              {
+                "k": "Output",
+                "v": "all V x V distances"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Start with the direct edges",
+            "tag": "technique",
+            "body": [
+              "The table begins with the direct edge weights. The diagonal is 0, a missing edge is infinity. The edges are 1 to 3 (-2), 3 to 4 (2), 4 to 2 (-1), 2 to 1 (4) and 2 to 3 (3).",
+              "Row 1 reads: 0, inf, -2, inf."
+            ],
+            "short": "The start",
+            "hud": [
+              {
+                "k": "1 to 3",
+                "v": "-2"
+              },
+              {
+                "k": "2 to 1",
+                "v": "4"
+              },
+              {
+                "k": "2 to 3",
+                "v": "3"
+              },
+              {
+                "k": "3 to 4",
+                "v": "2"
+              },
+              {
+                "k": "4 to 2",
+                "v": "-1"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The idea: allow one more stop-over vertex at a time",
+            "tag": "technique",
+            "body": [
+              "For k = 1, 2, 3, 4 in turn, ask: can a path from i to j be shorter if it may pass through vertex k, using only the stop-over vertices up to k? The new distance is the smaller of the old one and dist(i, k) + dist(k, j).",
+              "After the step for k, the table holds the shortest paths that use only the vertices 1 to k as stops."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Loop order",
+                "v": "k outermost, then i, then j",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for k in range(n):",
+                "    for i in range(n):",
+                "        for j in range(n):",
+                "            d[i][j] = min(d[i][j], d[i][k] + d[k][j])"
+              ],
+              "hl": [
+                0,
+                3
+              ]
+            }
+          },
+          {
+            "title": "k = 1: stop-over at vertex 1",
+            "tag": "solution",
+            "body": [
+              "Vertex 1 is the stop-over. Cells that improve: 2 to 3. Vertex 2 reaches 3 through 1 at cost 4 + (-2) = 2, which beats the direct 3.",
+              "Only paths through vertex 1 are new."
+            ],
+            "short": "k = 1",
+            "hud": [
+              {
+                "k": "Improved",
+                "v": "2 to 3"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 1",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m13": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Vertex 2 reaches 1 at cost 4, and vertex 1 reaches 3 at cost -2. What is a path from 2 to 3 through 1?",
+              "options": [
+                "4 + (-2) = 2",
+                "4",
+                "-2"
+              ],
+              "answer": 0,
+              "why": "A path from 2 to 3 through 1 costs dist(2, 1) + dist(1, 3) = 4 + (-2) = 2, cheaper than the direct edge 3."
+            }
+          },
+          {
+            "title": "k = 2: stop-over at vertex 2",
+            "tag": "solution",
+            "body": [
+              "Vertex 2 is the new stop-over. Cells that improve: 4 to 1, 4 to 3. For example, 4 to 1 goes through 2: -1 + 4 = 3.",
+              "The table now allows stops at 1 and 2."
+            ],
+            "short": "k = 2",
+            "hud": [
+              {
+                "k": "Improved",
+                "v": "4 to 1, 4 to 3"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 2",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 2",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "k = 3: stop-over at vertex 3",
+            "tag": "solution",
+            "body": [
+              "Vertex 3 is the stop-over. Cells that improve: 1 to 4, 2 to 4. Paths from 1 or 2 can now continue 3 to 4.",
+              "Many cells reach their final values here."
+            ],
+            "short": "k = 3",
+            "hud": [
+              {
+                "k": "Improved",
+                "v": "1 to 4, 2 to 4"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 3",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 3",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m20": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "inf",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "k = 4: the last stop-over",
+            "tag": "solution",
+            "body": [
+              "Vertex 4 is the last stop-over. Cells that improve: 1 to 2, 3 to 1, 3 to 2. After this step, every vertex has been allowed as a stop.",
+              "The table is final."
+            ],
+            "short": "k = 4",
+            "hud": [
+              {
+                "k": "Improved",
+                "v": "1 to 2, 3 to 1, 3 to 2"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 4",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 4",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "via 4",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The result: all shortest distances",
+            "tag": "insight",
+            "body": [
+              "The table now holds the shortest distance between every pair. For example, 1 to 2 costs -1 (1, 3, 4, 2: -2 + 2 - 1), and 2 to 4 costs 4.",
+              "The diagonal stays 0, which shows that there is no negative cycle."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "1 to 2",
+                "v": "-1",
+                "tone": "good"
+              },
+              {
+                "k": "2 to 4",
+                "v": "4",
+                "tone": "good"
+              },
+              {
+                "k": "Diagonal",
+                "v": "all 0: no negative cycle",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence, and why k is the outer loop",
+            "tag": "insight",
+            "body": [
+              "The Wikipedia article states the recurrence: the shortest path from i to j using stops up to k is the smaller of the path without k and the path through k, which is the shortest from i to k plus the shortest from k to j, both using stops up to k - 1.",
+              "The loop for k must be outermost. The article notes that other loop orders can give wrong answers."
+            ],
+            "short": "The recurrence",
+            "hud": [
+              {
+                "k": "Outer loop",
+                "v": "k, always",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Recurrence",
+              "lines": [
+                "d(i, j, k) = min(d(i, j, k-1),",
+                "                  d(i, k, k-1) + d(k, j, k-1))"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Negative cycles and transitive closure",
+            "tag": "technique",
+            "body": [
+              "If a negative cycle exists, some diagonal entry ends up negative: a vertex can reach itself at negative cost. Check the diagonal at the end. For a graph with a negative cycle the other numbers are not meaningful.",
+              "Warshall's version uses true and false instead of distances, with AND and OR, to find which vertices can reach which: the transitive closure."
+            ],
+            "short": "Cycles and closure",
+            "hud": [
+              {
+                "k": "Negative d[i][i]",
+                "v": "negative cycle",
+                "tone": "bad"
+              },
+              {
+                "k": "Booleans with AND and OR",
+                "v": "reachability: transitive closure"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost: Theta(V cubed)",
+            "tag": "insight",
+            "body": [
+              "Three nested loops over V give Theta(V cubed) time, and the table needs Theta(V squared) space. The article gives these for the worst, best and average cases.",
+              "Running Dijkstra from every vertex costs O(V (V + E) log V), better for sparse graphs. Floyd-Warshall wins on dense graphs and with negative weights, and its code is very short."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "V cubed",
+                "tone": "warn"
+              },
+              {
+                "k": "Space",
+                "v": "V squared"
+              },
+              {
+                "k": "Dense graphs",
+                "v": "Floyd-Warshall",
+                "tone": "good"
+              },
+              {
+                "k": "Sparse graphs",
+                "v": "Dijkstra from each vertex",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Floyd-Warshall fills a V by V table, allowing one more stop-over vertex k at a time, with k as the outermost loop. It gives all-pairs shortest paths in O(V cubed), allows negative weights, and shows a negative cycle on the diagonal.",
+              "Use it for small or dense graphs and for transitive closure."
+            ],
+            "short": "Recap",
+            "set": {
+              "m00": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "-2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m03": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m11": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m13": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m20": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "-1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m33": {
+                "label": "0",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 d[i][j] = direct edge, inf if none, 0 on the diagonal",
+                "2 for k, then i, then j",
+                "3 d[i][j] = min(d[i][j], d[i][k] + d[k][j])",
+                "4 negative diagonal = negative cycle"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Floyd-Warshall is like improving a table of travel times by asking, one town at a time, whether going through that town helps.",
+      "story": "You have a table of travel times between all pairs of towns. First you ask: does going through town 1 give any pair a faster trip? You fix the table. Then you ask the same about town 2, using the newly improved table, and so on for every town. By the end, the table holds the quickest trip between every pair of towns.",
+      "maps": [
+        [
+          "The table of travel times",
+          "The distance matrix"
+        ],
+        [
+          "Asking about going through one town",
+          "Allowing a stop-over vertex k"
+        ],
+        [
+          "Fixing the table",
+          "Updating d[i][j]"
+        ],
+        [
+          "Going through every town in turn",
+          "The outer loop over k"
+        ]
+      ],
+      "words": [
+        [
+          "all-pairs",
+          "Shortest paths between every pair of vertices."
+        ],
+        [
+          "stop-over",
+          "A vertex that a path passes through between its start and end."
+        ],
+        [
+          "dynamic programming",
+          "Solving a problem by building on solutions of smaller versions."
+        ],
+        [
+          "transitive closure",
+          "Which vertices can reach which others."
+        ],
+        [
+          "diagonal",
+          "The cells of the table where the row and column are the same."
+        ]
+      ]
+    }
   }
 ]
