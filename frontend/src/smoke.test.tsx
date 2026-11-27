@@ -616,7 +616,17 @@ describe('stage lessons: isometric step-through diagrams', () => {
     'arrays', 'dynamic-arrays', 'in-place-two-pointers', 'sliding-window-strings', 'prefix-sums', 'maximum-subarray',
     'merge-intervals', 'pattern-matching', 'kmp-search', 'matrices-2d',
     'singly-linked-lists', 'doubly-linked-lists', 'fast-slow-pointers', 'reversing-a-list', 'merge-sorted-lists', 'lru-cache-linked-list',
-    'stacks', 'balanced-brackets', 'queues', 'circular-buffer', 'deques', 'monotonic-stack', 'monotonic-queue']
+    'stacks', 'balanced-brackets', 'queues', 'circular-buffer', 'deques', 'monotonic-stack', 'monotonic-queue',
+    'hash-tables', 'collision-handling', 'resizing-rehashing', 'sets-and-maps', 'bloom-filters',
+    'binary-trees', 'tree-traversals', 'lowest-common-ancestor', 'binary-search-trees', 'bst-deletion', 'balanced-trees', 'tries', 'segment-trees',
+    'binary-heaps', 'building-a-heap', 'priority-queues', 'top-k', 'median-of-a-stream', 'heap-sort',
+    'graph-representation', 'breadth-first-search', 'depth-first-search', 'connected-components', 'cycle-detection', 'topological-sort',
+    'strongly-connected-components', 'shortest-paths', 'bellman-ford', 'floyd-warshall', 'union-find', 'minimum-spanning-trees', 'prims-algorithm',
+    'binary-search', 'binary-search-on-the-answer', 'simple-sorts', 'merge-sort', 'quick-sort', 'quickselect', 'counting-radix-sort', 'stability-and-sorting-limits',
+    'interval-scheduling', 'huffman-coding', 'when-greedy-fails',
+    'subsets-and-combinations', 'permutations', 'n-queens', 'maze-solving',
+    'memoization', 'tabulation', 'grid-paths', 'knapsack', 'coin-change', 'longest-increasing-subsequence', 'longest-common-subsequence', 'edit-distance',
+    'bits-and-masks', 'bit-tricks', 'bitsets', 'p-vs-np']
   const rail = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
   const heading = (c: HTMLElement) => c.querySelector('.stage-text h4')?.textContent ?? ''
 

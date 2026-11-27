@@ -2141,6 +2141,546 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Queue, LifoQueue and PriorityQueue; maxsize blocks put when full; get blocks when empty; Full and Empty exceptions; task_done and join; the classes are thread safe."
+    },
+    {
+      "key": "wikipedia-hash-table",
+      "title": "Hash table (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hash_table",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A hash function maps a key to a bucket index; load factor alpha = n/m; chaining versus open addressing; Theta(1) average and O(n) worst case for search, insert and delete; resizing by doubling and rehashing keeps amortized O(1); typical maximum load factors."
+    },
+    {
+      "key": "wikipedia-open-addressing",
+      "title": "Open addressing (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Open_addressing",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Probing finds another slot after a collision; linear, quadratic and double hashing with their clustering and cache trade-offs; load factors normally limited to about 80%; deleting needs a shift-back or a deleted marker."
+    },
+    {
+      "key": "wikipedia-hash-function",
+      "title": "Hash function (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hash_function",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A hash function maps data of arbitrary size to fixed-size values; it must be deterministic, fast and spread keys uniformly; universal hashing; perfect hashing for a known static set."
+    },
+    {
+      "key": "wikipedia-bloom-filter",
+      "title": "Bloom filter (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bloom_filter",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A bit array of m bits and k hash functions; false positives possible, false negatives not; false-positive probability about (1 - e^(-kn/m))^k; optimal k = (m/n) ln 2; about 9.6 bits per element for a 1% error; items cannot be removed."
+    },
+    {
+      "key": "py-stdtypes-dict-set",
+      "title": "Built-in types: dict, set and frozenset (Python docs)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "dict keys must be hashable and dictionaries keep insertion order; get, setdefault, pop, update and views; set is an unordered collection of distinct hashable objects with union, intersection, difference and symmetric difference; frozenset is hashable."
+    },
+    {
+      "key": "py-glossary-hashable",
+      "title": "Glossary: hashable (Python docs)",
+      "url": "https://docs.python.org/3/glossary.html#term-hashable",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "An object is hashable if its hash never changes and it can be compared for equality; equal hashable objects must have equal hashes; lists and dicts are not hashable; a tuple is hashable only if its items are."
+    },
+    {
+      "key": "py-counter-defaultdict",
+      "title": "collections: Counter and defaultdict (Python docs)",
+      "url": "https://docs.python.org/3/library/collections.html#collections.Counter",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Counter is a dict subclass for counting hashable objects, returns zero for missing items and has most_common; defaultdict calls default_factory for a missing key and is simpler and faster than setdefault for grouping."
+    },
+    {
+      "key": "wikipedia-binary-tree",
+      "title": "Binary tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Each node has at most two children; full, perfect, complete and balanced trees; height counted in edges; node-count bounds; a complete tree stores in an array with children at 2i+1 and 2i+2; degenerate trees behave like lists."
+    },
+    {
+      "key": "wikipedia-tree-traversal",
+      "title": "Tree traversal (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Tree_traversal",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Pre-order NLR, in-order LNR, post-order LRN and level-order; in-order on a BST gives ascending keys; stack-based traversal uses O(h) space; pre-order with in-order determines a tree; Morris traversal."
+    },
+    {
+      "key": "wikipedia-lowest-common-ancestor",
+      "title": "Lowest common ancestor (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Lowest_common_ancestor",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The LCA of v and w is the deepest node with both as descendants, and a node counts as its own descendant; root-path method costs O(h); Tarjan's offline algorithm; Euler tour plus range minimum query; dist(v,w) = depth(v) + depth(w) - 2 depth(LCA)."
+    },
+    {
+      "key": "wikipedia-binary-search-tree",
+      "title": "Binary search tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Ordering property; search, insert and delete are O(h), Theta(log n) average and O(n) worst case; insertion adds a leaf; successor rules; three deletion cases; in-order visits keys in order; degeneration into a list."
+    },
+    {
+      "key": "wikipedia-self-balancing-bst",
+      "title": "Self-balancing binary search tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Self-balancing_binary_search_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Self-balancing trees keep height O(log n) with rotations that preserve in-order sequence; sorted insertion degenerates a plain BST; minimum height floor(log2 n); AVL, red-black, splay and treap examples."
+    },
+    {
+      "key": "wikipedia-avl-tree",
+      "title": "AVL tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/AVL_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Balance factor in {-1, 0, 1}; the four cases Left-Left, Right-Right, Left-Right and Right-Left fixed by single or double rotations; height below about 1.44 log2 n; search, insert and delete O(log n)."
+    },
+    {
+      "key": "wikipedia-segment-tree",
+      "title": "Segment tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Segment_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A segment tree answers an associative function over a contiguous range in O(log n); each node covers the union of its children's intervals; stabbing queries O(log n + k); invented by Bentley in 1977."
+    },
+    {
+      "key": "wikipedia-binary-heap",
+      "title": "Binary heap (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_heap",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A complete binary tree with the heap property; insert by sift-up and extract by sift-down, both O(log n); Floyd's build-heap is O(n); array layout with children at 2i+1 and 2i+2; searching is O(n); introduced by Williams in 1964."
+    },
+    {
+      "key": "wikipedia-heapsort",
+      "title": "Heapsort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Heapsort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Build a max-heap in O(n), then repeatedly swap the root to the end and sift down; O(n log n) in all cases, O(1) auxiliary space, not stable; quicksort is usually 2 to 3 times faster in practice."
+    },
+    {
+      "key": "wikipedia-priority-queue",
+      "title": "Priority queue (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Priority_queue",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Insert, find-min, extract-min and decrease-key; unsorted array O(1) insert and O(n) extract, sorted array the reverse, binary heap O(log n) for both; used by Dijkstra, Prim and Huffman coding; Python's heapq is a binary min-heap on a list."
+    },
+    {
+      "key": "wikipedia-adjacency-list",
+      "title": "Adjacency list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Adjacency_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "One neighbour list per vertex; space proportional to |V| + |E|; listing neighbours costs time proportional to the degree; an edge test is slower than in a matrix; a matrix needs space proportional to |V|^2."
+    },
+    {
+      "key": "wikipedia-adjacency-matrix",
+      "title": "Adjacency matrix (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Adjacency_matrix",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "An n x n matrix with A_ij = 1 for an edge; symmetric for undirected graphs; edge test at once; neighbour listing scans a row, time proportional to |V|; sparse graphs need less space as lists."
+    },
+    {
+      "key": "wikipedia-breadth-first-search",
+      "title": "Breadth-first search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Breadth-first_search",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "BFS explores all nodes at the current depth before the next, using a queue; marks a vertex when it is enqueued; O(|V| + |E|) time; finds shortest paths measured in edges; used to test bipartiteness."
+    },
+    {
+      "key": "wikipedia-depth-first-search",
+      "title": "Depth-first search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "DFS explores as far as possible along each branch before backtracking, using a stack; O(|V| + |E|); edges classed as tree, back, forward and cross; reverse postorder gives a topological sort; applications include components and strongly connected components."
+    },
+    {
+      "key": "wikipedia-component-graph-theory",
+      "title": "Component (graph theory) (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Component_(graph_theory)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A component is a maximal connected subgraph; components partition the vertices; found in linear time with BFS or DFS; union-find handles incremental connectivity in amortized inverse-Ackermann time; a spanning forest has n - c edges."
+    },
+    {
+      "key": "wikipedia-topological-sorting",
+      "title": "Topological sorting (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Topological_sorting",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A linear order with every edge u -> v placing u first; exists exactly for graphs with no directed cycle; Kahn's algorithm and the DFS-based algorithm, both O(|V| + |E|); unique only when consecutive vertices are joined by an edge; used for build order and task scheduling."
+    },
+    {
+      "key": "wikipedia-strongly-connected-component",
+      "title": "Strongly connected component (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Strongly_connected_component",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Maximal sets of vertices that can all reach each other; contracting them gives a DAG; Kosaraju's two-pass algorithm and Tarjan's one-pass algorithm run in linear time; 2-SAT is unsatisfiable exactly when a variable and its negation share a component."
+    },
+    {
+      "key": "wikipedia-bellman-ford",
+      "title": "Bellman-Ford algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Relaxes every edge |V| - 1 times; handles negative weights; O(|V||E|); an extra pass that still relaxes an edge reveals a reachable negative cycle; stops early when a round changes nothing."
+    },
+    {
+      "key": "wikipedia-floyd-warshall",
+      "title": "Floyd-Warshall algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "All-pairs shortest paths in Theta(|V|^3) time and Theta(|V|^2) space; recurrence over intermediate vertices k with k as the outer loop; negative edges allowed but no negative cycles; Warshall's transitive-closure variant."
+    },
+    {
+      "key": "wikipedia-minimum-spanning-tree",
+      "title": "Minimum spanning tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Minimum_spanning_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A spanning tree has n - 1 edges; the minimum one connects all vertices at least total weight; unique when weights are distinct; the cycle and cut properties justify the greedy algorithms of Kruskal, Prim and Boruvka."
+    },
+    {
+      "key": "wikipedia-prims-algorithm",
+      "title": "Prim's algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Prim%27s_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Grows one tree from a start vertex, always adding the cheapest edge to a vertex outside it; O(|V|^2) with an array, O(|E| log |V|) with a binary heap, O(|E| + |V| log |V|) with a Fibonacci heap; works on connected graphs."
+    },
+    {
+      "key": "wikipedia-kruskals-algorithm",
+      "title": "Kruskal's algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Kruskal%27s_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Sort edges by weight and add each edge that joins two different trees, checked with a disjoint-set structure; O(E log E) with the sort dominating; first published by Kruskal in 1956."
+    },
+    {
+      "key": "wikipedia-binary-search",
+      "title": "Binary search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_search_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Binary search needs a sorted array; worst case O(log n) with floor(log2 n + 1) iterations and O(1) space; midpoint L + floor((R - L) / 2); leftmost and rightmost match variants; absent targets give a rank; hash tables are faster for exact lookups."
+    },
+    {
+      "key": "wikipedia-insertion-sort",
+      "title": "Insertion sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Insertion_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Worst and average O(n squared), best O(n) on sorted input; stable, in place and adaptive; efficient for small or nearly sorted data and used inside faster sorts below a small threshold; writes O(n squared) versus selection sort's O(n)."
+    },
+    {
+      "key": "wikipedia-selection-sort",
+      "title": "Selection sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Selection_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Repeatedly moves the minimum of the unsorted part to the front; always n(n - 1)/2 comparisons and at most n - 1 swaps; in place; the usual swap version is not stable; useful when writes are costly; heapsort is selection sort with a heap."
+    },
+    {
+      "key": "wikipedia-bubble-sort",
+      "title": "Bubble sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bubble_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Swaps adjacent out-of-order pairs until a pass makes no swap; O(n squared) worst and average, O(n) best with the early exit; stable and in place; rarely used because insertion sort is usually faster."
+    },
+    {
+      "key": "wikipedia-quicksort",
+      "title": "Quicksort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Quicksort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Divide and conquer around a pivot; average O(n log n), worst case O(n squared); in place and not stable; Lomuto and Hoare partition schemes; first or last pivot degrades on sorted input; random or median-of-three pivots help."
+    },
+    {
+      "key": "wikipedia-quickselect",
+      "title": "Quickselect (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Quickselect",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Finds the k-th smallest element by partitioning and recursing into one side; average O(n), worst case O(n squared); in place; the shown code assumes Lomuto partitioning; random pivot makes bad cases very unlikely; median of medians gives linear worst case."
+    },
+    {
+      "key": "wikipedia-counting-sort",
+      "title": "Counting sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Counting_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Counts how many times each integer key occurs, takes prefix sums, then places items stably from the end; O(n + k) time and space; not a comparison sort; practical only when the key range is not much larger than n."
+    },
+    {
+      "key": "wikipedia-radix-sort",
+      "title": "Radix sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Radix_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Sorts digit by digit with a stable sort for each digit; least-significant-digit radix sort runs in Theta(d(n + k)); most-significant-digit variants are not necessarily stable; non-comparative."
+    },
+    {
+      "key": "wikipedia-sorting-algorithm",
+      "title": "Sorting algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Sorting_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A sort is stable when equal keys keep their input order; comparison sorts cannot beat O(n log n) on average; table of common sorts with best, average and worst cases, memory and stability."
+    },
+    {
+      "key": "wikipedia-greedy-algorithm",
+      "title": "Greedy algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Greedy_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A greedy algorithm makes the locally best choice at each step and never reconsiders; no formal definition of when it works; exchange arguments; optimal for activity selection, Dijkstra, Kruskal, Prim and Huffman coding; fails on some other problems."
+    },
+    {
+      "key": "wikipedia-huffman-coding",
+      "title": "Huffman coding (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Huffman_coding",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Builds an optimal prefix code from symbol weights by repeatedly merging the two lowest-weight nodes with a priority queue, in O(n log n); decoding walks the tree bit by bit; optimal among prefix codes for known symbol probabilities."
+    },
+    {
+      "key": "wikipedia-backtracking",
+      "title": "Backtracking (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Backtracking",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Builds candidates incrementally and abandons one as soon as it cannot be completed; partial candidates are nodes of a search tree explored depth-first; reject and accept tests; examples include eight queens, Sudoku and SAT solvers."
+    },
+    {
+      "key": "wikipedia-eight-queens",
+      "title": "Eight queens puzzle (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Eight_queens_puzzle",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "92 solutions for n = 8, or 12 up to rotation and reflection; solutions exist for every n except 2 and 3; brute force has 4,426,165,368 arrangements, one queen per column cuts it to 8^8 and permutations to 8!; backtracking solves it instantly."
+    },
+    {
+      "key": "wikipedia-power-set",
+      "title": "Power set (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Power_set",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The set of all subsets of a set of n elements has 2^n members; subsets correspond to n-bit binary numbers; recursive definition P(S) = P(T) union {t + e for t in P(T)}."
+    },
+    {
+      "key": "wikipedia-permutation",
+      "title": "Permutation (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Permutation",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "There are n! permutations of n distinct objects; k-permutations number n!/(n-k)!; a derangement has no fixed points."
+    },
+    {
+      "key": "py-itertools",
+      "title": "itertools: permutations, combinations and product (Python docs)",
+      "url": "https://docs.python.org/3/library/itertools.html#itertools.permutations",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "permutations(iterable, r) yields r-length orderings in lexicographic order by position; combinations(iterable, r) yields sorted subsequences; product gives the Cartesian product; counts are n!/(n-r)! and C(n, r)."
+    },
+    {
+      "key": "wikipedia-dynamic-programming",
+      "title": "Dynamic programming (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Needs optimal substructure and overlapping subproblems; top-down memoization versus bottom-up tabulation; the Fibonacci example turns an exponential recursion into O(n); developed by Bellman in the 1950s."
+    },
+    {
+      "key": "wikipedia-memoization",
+      "title": "Memoization (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Memoization",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Stores the results of calls to pure functions so repeated calls return the stored value; a space-time trade-off; only valid for referentially transparent functions; normally implemented with a hash table."
+    },
+    {
+      "key": "wikipedia-knapsack",
+      "title": "Knapsack problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Knapsack_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "0-1 knapsack maximizes value under a weight limit W; the recurrence m[i, w] runs in O(nW) time, pseudo-polynomial; the decision version is NP-complete; two rows are enough when only the value is needed."
+    },
+    {
+      "key": "wikipedia-change-making",
+      "title": "Change-making problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Change-making_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Minimum number of coins for an amount; dynamic programming in O(nW); greedy works for canonical coin systems but fails for others, for example coins 25, 10, 1 with amount 40 gives 7 coins greedily against 4 optimally."
+    },
+    {
+      "key": "wikipedia-lis",
+      "title": "Longest increasing subsequence (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Longest_increasing_subsequence",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Solvable in O(n log n) time with binary search on smallest tails; the LIS of a sequence equals the LCS of the sequence and its sorted copy; worked example 2, 8, 9, 5, 6, 7, 1 gives 2, 5, 6, 7."
+    },
+    {
+      "key": "wikipedia-lcs",
+      "title": "Longest common subsequence (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Longest_common_subsequence",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Subsequence elements need not be contiguous; the O(m n) table recurrence on matches and maxima; backtracking from the corner recovers the sequence; ABCD and ACBAD give length 3; used by diff."
+    },
+    {
+      "key": "wikipedia-edit-distance",
+      "title": "Edit distance (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Edit_distance",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Levenshtein distance counts insertions, deletions and substitutions; the Wagner-Fischer table takes Theta(m n) time; two rows reduce space to Theta(min(m, n)); kitten to sitting is 3."
+    },
+    {
+      "key": "wikipedia-bitwise-operation",
+      "title": "Bitwise operation (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bitwise_operation",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "AND, OR, XOR and NOT act on each bit; AND with a mask tests or clears bits, OR sets them, XOR toggles them and x XOR x is 0; a left shift multiplies by 2^n and an arithmetic right shift divides by 2^n."
+    },
+    {
+      "key": "py-bitwise",
+      "title": "Bitwise operations on integer types (Python docs)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Python integers behave as two's complement with infinitely many sign bits; operators |, ^, &, <<, >> and ~; int.bit_length and int.bit_count (from 3.10); shifts by a negative count raise ValueError."
+    },
+    {
+      "key": "wikipedia-bit-array",
+      "title": "Bit array (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bit_array",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A bit array stores one bit per item and can implement a set; set, clear, test and toggle with shifts and masks; union, intersection and difference are word-wide operations; population count; wasteful for sparse sets."
+    },
+    {
+      "key": "wikipedia-hamming-weight",
+      "title": "Hamming weight (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hamming_weight",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The number of 1 bits, or population count; x AND (x - 1) clears the lowest set bit, so repeating it counts bits in as many steps as there are 1s; Hamming distance is the weight of A XOR B; Python offers int.bit_count."
+    },
+    {
+      "key": "wikipedia-p-vs-np",
+      "title": "P versus NP problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/P_versus_NP_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "P is solvable in polynomial time and NP is verifiable in polynomial time; whether they are equal is an open Millennium Prize problem; most experts believe P is not equal to NP; SAT is NP-complete by the Cook-Levin theorem."
+    },
+    {
+      "key": "wikipedia-np-completeness",
+      "title": "NP-completeness (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/NP-completeness",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A problem is NP-complete if it is in NP and every problem in NP reduces to it in polynomial time; prove it by showing membership in NP and reducing a known NP-complete problem to it; practical approaches are approximation, restricted inputs and heuristics."
+    },
+    {
+      "key": "wikipedia-tsp",
+      "title": "Travelling salesman problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Travelling_salesman_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Find the shortest tour that visits each city once and returns; NP-hard, with an NP-complete decision version; brute force tries all permutations; Christofides-Serdyukov gives a 1.5 approximation for metric instances."
+    },
+    {
+      "key": "wikipedia-sat",
+      "title": "Boolean satisfiability problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Boolean_satisfiability_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "SAT asks whether some assignment makes a Boolean formula true; the first NP-complete problem; 3-SAT is NP-complete but 2-SAT is solvable in polynomial time; DPLL is a backtracking solver."
     }
   ],
   "levels": [
