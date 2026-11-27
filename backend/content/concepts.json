@@ -194532,5 +194532,2168 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bit-tricks",
+    "n": 218,
+    "level": 14,
+    "week": "Core",
+    "title": "Bit Tricks: Counting, Powers of Two and XOR",
+    "tagline": "Learn the few bit identities behind many interview answers: clear the lowest bit, count bits, test for powers of two, and cancel pairs with XOR.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A handful of bit identities solve many classic problems without loops or extra memory. All of them come from what happens to the bits when you subtract 1 or XOR two numbers. The Wikipedia article on the Hamming weight describes x AND (x - 1) as clearing the lowest set bit, so repeating it counts the ones in as many steps as there are ones.",
+      "## What subtracting 1 does",
+      "Take a number and look at its lowest 1 bit. Subtracting 1 turns that bit into 0 and turns all the zeros below it into ones. Everything above it is unchanged. For 104, which is 01101000, 103 is 01100111. The two numbers agree above the lowest 1 and differ from it downward.",
+      "## Clear the lowest set bit: x & (x - 1)",
+      "AND of x and x - 1 keeps the agreeing upper bits and zeroes the rest. So it removes the lowest 1 bit. 104 & 103 = 96, which is 01100000.",
+      "## Count the ones",
+      "Repeat x = x & (x - 1) until x is 0, and count the steps. Each step removes one 1. For 104 the values are 104, 96, 64, 0, so there are 3 ones. The number of ones is called the Hamming weight or population count. This loop takes as many steps as there are ones. Python 3.10 added int.bit_count(), and bin(x).count('1') works in every version.",
+      "## Power of two",
+      "A power of two has exactly one 1 bit. Clearing it leaves 0. So x is a power of two when x > 0 and x & (x - 1) == 0. The check x > 0 is needed, because 0 & -1 is also 0.",
+      "## Isolate the lowest set bit: x & -x",
+      "In two's complement, -x is the same as ~x + 1. That keeps the lowest 1 and the zeros below it, and flips everything above. So x & -x keeps only the lowest set bit: for 104 it is 8. Fenwick trees use this to move between nodes.",
+      "## XOR tricks",
+      "XOR has three properties: x ^ x = 0, x ^ 0 = x, and the order does not matter. If a list has every value twice except one, the XOR of the whole list is the single value, because the pairs cancel: 4 ^ 1 ^ 2 ^ 1 ^ 2 = 4. It needs O(1) memory. To find the missing number in 0..n, XOR all the indexes and all the values together. For [3, 0, 1] the answer is 2.",
+      "> A worked example: Hamming distance is the number of bit positions where two numbers differ, which the Wikipedia article gives as the Hamming weight of A XOR B. For 1 (001) and 4 (100), the XOR is 101, which has two ones, so the distance is 2.",
+      "## Gray code",
+      "The Gray code of i is i ^ (i >> 1). Consecutive codes differ in exactly one bit. For 3 bits the order is 0, 1, 3, 2, 6, 7, 5, 4. It is used in rotary encoders and puzzle solving.",
+      "## Swapping with XOR",
+      "a ^= b; b ^= a; a ^= b swaps two integers without a temporary. It works, but it is less clear than a, b = b, a, and it zeroes the value if both names refer to the same location. Use the clear form.",
+      "## How to talk through it",
+      "Explain what x - 1 does to the bits, then derive the tricks: clear the lowest bit, count bits, power of two. Mention x & -x, and XOR cancelling pairs. State the cost: O(number of ones) or O(1)."
+    ],
+    "keyPoints": [
+      "x - 1 flips the lowest 1 and the zeros below it. x & (x - 1) clears the lowest 1.",
+      "Repeat it to count ones (Hamming weight): as many steps as ones. bit_count() in Python 3.10+.",
+      "Power of two: x > 0 and x & (x - 1) == 0. Lowest set bit: x & -x.",
+      "XOR cancels pairs: single number, missing number in O(1) memory. Hamming distance = bit_count(a ^ b).",
+      "Gray code i ^ (i >> 1): neighbours differ by one bit."
+    ],
+    "sql": [
+      {
+        "title": "Clear the lowest bit, count bits, powers of two",
+        "lang": "py",
+        "code": "import random\n\ndef count_bits(x):\n    steps = 0\n    while x:\n        x &= x - 1                                      # clear the lowest set bit\n        steps += 1\n    return steps\n\ndef is_power_of_two(x):\n    return x > 0 and x & (x - 1) == 0\n\nassert 104 & 103 == 96\nassert count_bits(104) == 3 and count_bits(0) == 0 and count_bits(255) == 8\nassert [x for x in range(1, 70) if is_power_of_two(x)] == [1, 2, 4, 8, 16, 32, 64]\nassert not is_power_of_two(0) and not is_power_of_two(-4)\nassert 104 & -104 == 8\n\nrandom.seed(86)\nfor _ in range(500):\n    x = random.randint(0, 10 ** 9)\n    assert count_bits(x) == bin(x).count(\"1\") == x.bit_count()"
+      },
+      {
+        "title": "XOR: single number, missing number, Hamming distance",
+        "lang": "py",
+        "code": "from functools import reduce\nfrom operator import xor\n\ndef single_number(a):\n    return reduce(xor, a, 0)\n\ndef missing_number(a):\n    n = len(a)\n    result = n\n    for i, v in enumerate(a):\n        result ^= i ^ v\n    return result\n\ndef hamming_distance(a, b):\n    return (a ^ b).bit_count()\n\nassert single_number([4, 1, 2, 1, 2]) == 4 and single_number([7]) == 7\nassert missing_number([3, 0, 1]) == 2 and missing_number([0, 1]) == 2 and missing_number([1]) == 0\nassert hamming_distance(1, 4) == 2 and hamming_distance(7, 7) == 0 and hamming_distance(0b1011, 0b1001) == 1"
+      },
+      {
+        "title": "Gray code and the lowest set bit",
+        "lang": "py",
+        "code": "def gray(i):\n    return i ^ (i >> 1)\n\ncodes = [gray(i) for i in range(8)]\nassert codes == [0, 1, 3, 2, 6, 7, 5, 4]\nassert all((a ^ b).bit_count() == 1 for a, b in zip(codes, codes[1:]))          # one bit changes each step\nassert len(set(codes)) == 8                                                      # every code appears once\n\ndef bits_set(x):\n    positions = []\n    while x:\n        low = x & -x                                    # the lowest set bit\n        positions.append(low.bit_length() - 1)\n        x ^= low                                        # remove it\n    return positions\n\nassert bits_set(104) == [3, 5, 6]\nassert bits_set(0) == [] and bits_set(1) == [0]\n\na, b = 5, 9\na ^= b; b ^= a; a ^= b                                  # swap with XOR\nassert (a, b) == (9, 5)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write count_bits with the clear-lowest-bit loop and check it against bin(x).count('1') on 500 random numbers. Write is_power_of_two and test it on 0 and negative numbers. Solve single number and missing number with XOR. Write bits_set using x & -x. Then generate the Gray code for 3 bits and check that neighbours differ in one bit.",
+    "pitfalls": [
+      "Forgetting x > 0 in the power of two test.",
+      "Thinking x & (x - 1) removes the highest bit. It removes the lowest.",
+      "Using the XOR trick when values appear three times, or in other counts than pairs.",
+      "Using the swap trick on the same variable, which gives 0.",
+      "Operator precedence: in Python & binds tighter than ==, so x & (x - 1) == 0 works, but in C it does not. Add brackets when in doubt."
+    ],
+    "interview": [
+      {
+        "q": "How do you count the 1 bits in an integer?",
+        "a": "Repeat x &= x - 1 until x is 0 and count the steps. Each step clears the lowest 1, so it takes as many steps as there are ones. In Python 3.10 and later use int.bit_count()."
+      },
+      {
+        "q": "How do you check whether a number is a power of two?",
+        "a": "x > 0 and x & (x - 1) == 0. A power of two has one 1 bit, and clearing it leaves 0."
+      },
+      {
+        "q": "How do you find the number that appears once when all others appear twice?",
+        "a": "XOR all the numbers. Pairs cancel because x ^ x = 0, and the single number is left. It takes O(n) time and O(1) memory."
+      },
+      {
+        "q": "What is the Hamming distance of two numbers?",
+        "a": "The number of bit positions where they differ: the count of ones in a XOR b."
+      }
+    ],
+    "references": [
+      {
+        "title": "Hamming weight (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hamming_weight",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bitwise operation (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bitwise_operation",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bitwise operations on integer types (Python docs)",
+        "url": "https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: these identities are the standard bit puzzles in interviews. That the Hamming weight is the number of 1 bits, that x AND (x - 1) clears the lowest set bit so repeating it counts them in as many steps as there are ones, that the Hamming distance is the weight of A XOR B, and that Python offers int.bit_count come from the Wikipedia Hamming weight article, which I read in part. The properties of XOR, including x XOR x being 0, come from the Wikipedia bitwise operation article, which I read in part. The Gray code, the worked values and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-hamming-weight",
+      "wikipedia-bitwise-operation",
+      "py-bitwise",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bittricks",
+        "title": "Bit tricks, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read"
+          },
+          {
+            "kind": "write",
+            "label": "change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Tricks",
+            "at": 0
+          },
+          {
+            "text": "x - 1",
+            "at": 1
+          },
+          {
+            "text": "Clear lowest",
+            "at": 2
+          },
+          {
+            "text": "Count bits",
+            "at": 3
+          },
+          {
+            "text": "Power of two",
+            "at": 4
+          },
+          {
+            "text": "XOR pairs",
+            "at": 6
+          },
+          {
+            "text": "Gray code",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "x0",
+            "kind": "cube",
+            "x": -4.362,
+            "y": 1.762,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x1",
+            "kind": "cube",
+            "x": -3.487,
+            "y": 0.887,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x2",
+            "kind": "cube",
+            "x": -2.612,
+            "y": 0.012,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x3",
+            "kind": "cube",
+            "x": -1.738,
+            "y": -0.863,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x4",
+            "kind": "cube",
+            "x": -0.863,
+            "y": -1.738,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x5",
+            "kind": "cube",
+            "x": 0.012,
+            "y": -2.612,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x6",
+            "kind": "cube",
+            "x": 0.887,
+            "y": -3.487,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x7",
+            "kind": "cube",
+            "x": 1.762,
+            "y": -4.362,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y0",
+            "kind": "cube",
+            "x": -3.062,
+            "y": 3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y1",
+            "kind": "cube",
+            "x": -2.188,
+            "y": 2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y2",
+            "kind": "cube",
+            "x": -1.312,
+            "y": 1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y3",
+            "kind": "cube",
+            "x": -0.438,
+            "y": 0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y4",
+            "kind": "cube",
+            "x": 0.438,
+            "y": -0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y5",
+            "kind": "cube",
+            "x": 1.312,
+            "y": -1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y6",
+            "kind": "cube",
+            "x": 2.188,
+            "y": -2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "y7",
+            "kind": "cube",
+            "x": 3.062,
+            "y": -3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z0",
+            "kind": "cube",
+            "x": -1.762,
+            "y": 4.362,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z1",
+            "kind": "cube",
+            "x": -0.887,
+            "y": 3.487,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z2",
+            "kind": "cube",
+            "x": -0.012,
+            "y": 2.612,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z3",
+            "kind": "cube",
+            "x": 0.863,
+            "y": 1.738,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z4",
+            "kind": "cube",
+            "x": 1.738,
+            "y": 0.863,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z5",
+            "kind": "cube",
+            "x": 2.612,
+            "y": -0.012,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z6",
+            "kind": "cube",
+            "x": 3.487,
+            "y": -0.887,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "z7",
+            "kind": "cube",
+            "x": 4.362,
+            "y": -1.762,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Small tricks that save loops",
+            "tag": "technique",
+            "body": [
+              "A few one-line bit tricks turn loops into constant time. They look like magic, but each follows from how subtracting 1 changes the bits. We use the number 104, which is 01101000.",
+              "Learn the five below and you can solve many interview puzzles."
+            ],
+            "short": "Tricks",
+            "hud": [
+              {
+                "k": "Number",
+                "v": "104 = 01101000"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "hidden": true
+              },
+              "y1": {
+                "hidden": true
+              },
+              "y2": {
+                "hidden": true
+              },
+              "y3": {
+                "hidden": true
+              },
+              "y4": {
+                "hidden": true
+              },
+              "y5": {
+                "hidden": true
+              },
+              "y6": {
+                "hidden": true
+              },
+              "y7": {
+                "hidden": true
+              },
+              "z0": {
+                "hidden": true
+              },
+              "z1": {
+                "hidden": true
+              },
+              "z2": {
+                "hidden": true
+              },
+              "z3": {
+                "hidden": true
+              },
+              "z4": {
+                "hidden": true
+              },
+              "z5": {
+                "hidden": true
+              },
+              "z6": {
+                "hidden": true
+              },
+              "z7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "x - 1 flips the lowest one and the zeros below it",
+            "tag": "insight",
+            "body": [
+              "Subtracting 1 turns the lowest 1 bit into 0, and all the zeros under it into ones. 104 is 01101000, and 103 is 01100111. Above the lowest set bit, nothing changes.",
+              "So x and x - 1 agree on everything above the lowest set bit, and disagree on it and all below."
+            ],
+            "short": "x - 1",
+            "hud": [
+              {
+                "k": "104",
+                "v": "01101000"
+              },
+              {
+                "k": "103",
+                "v": "01100111"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "hidden": true
+              },
+              "z1": {
+                "hidden": true
+              },
+              "z2": {
+                "hidden": true
+              },
+              "z3": {
+                "hidden": true
+              },
+              "z4": {
+                "hidden": true
+              },
+              "z5": {
+                "hidden": true
+              },
+              "z6": {
+                "hidden": true
+              },
+              "z7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "x & (x - 1) clears the lowest set bit",
+            "tag": "solution",
+            "body": [
+              "AND the two: the bits above agree and stay, and the lowest set bit and the bits below are 0 in at least one of the two, so they become 0. 01101000 AND 01100111 = 01100000, which is 96.",
+              "The lowest 1 is gone."
+            ],
+            "short": "Clear lowest",
+            "hud": [
+              {
+                "k": "x & (x - 1)",
+                "v": "96 = 01100000",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            },
+            "predict": {
+              "question": "What is 12 & 11? (12 is 1100, 11 is 1011)",
+              "options": [
+                "8",
+                "12",
+                "0"
+              ],
+              "answer": 0,
+              "why": "1100 AND 1011 = 1000, which is 8. The lowest set bit of 12, worth 4, was cleared."
+            }
+          },
+          {
+            "title": "Count the one bits (Kernighan)",
+            "tag": "solution",
+            "body": [
+              "Repeat x = x & (x - 1) until x is 0. Each step removes one 1 bit, so the number of steps is the number of ones. For 104 the values are 104, 96, 64, 0: three steps, so 3 ones.",
+              "The loop runs as many times as there are ones, not 8 or 32 times. This count is called the Hamming weight or population count. Python has int.bit_count()."
+            ],
+            "short": "Count bits",
+            "hud": [
+              {
+                "k": "Sequence",
+                "v": "104, 96, 64, 0"
+              },
+              {
+                "k": "Ones",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "Is it a power of two?",
+            "tag": "solution",
+            "body": [
+              "A power of two has exactly one 1 bit, for example 64 is 01000000. Clear the lowest 1 and nothing is left. So x is a power of two if x > 0 and x & (x - 1) == 0.",
+              "For 104 the result was 96, not 0, so 104 is not a power of two."
+            ],
+            "short": "Power of two",
+            "hud": [
+              {
+                "k": "64 & 63",
+                "v": "0",
+                "tone": "good"
+              },
+              {
+                "k": "104 & 103",
+                "v": "96: not a power of two"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "Isolate the lowest set bit: x & -x",
+            "tag": "solution",
+            "body": [
+              "In two's complement, -x is ~x + 1, which keeps the lowest 1 of x and flips everything above it. So x AND -x leaves only the lowest set bit. For 104 the result is 00001000, which is 8.",
+              "It is useful for Fenwick trees and for iterating over the bits of a number."
+            ],
+            "short": "Lowest set bit",
+            "hud": [
+              {
+                "k": "104 & -104",
+                "v": "8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "XOR cancels pairs",
+            "tag": "technique",
+            "body": [
+              "x XOR x is 0, x XOR 0 is x, and the order does not matter. So XOR of a list in which every value appears twice except one gives the single value: 4 XOR 1 XOR 2 XOR 1 XOR 2 = 4.",
+              "It uses O(1) extra memory, where a set or counter would use O(n)."
+            ],
+            "short": "XOR pairs",
+            "hud": [
+              {
+                "k": "[4, 1, 2, 1, 2]",
+                "v": "XOR is 4",
+                "tone": "good"
+              },
+              {
+                "k": "Extra memory",
+                "v": "O(1)"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "Missing number and Hamming distance",
+            "tag": "technique",
+            "body": [
+              "To find the missing number in 0..n, XOR all the indexes 0..n with all the values. Everything cancels except the missing one: for [3, 0, 1] the answer is 2. The Hamming distance of two numbers is the number of positions where their bits differ: bit_count(a XOR b). For 1 and 4 it is 2.",
+              "The Wikipedia article on Hamming weight defines the Hamming distance as the weight of A XOR B."
+            ],
+            "short": "More XOR",
+            "hud": [
+              {
+                "k": "Missing in [3, 0, 1]",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "Distance 1 and 4",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "Gray code and swapping",
+            "tag": "insight",
+            "body": [
+              "The Gray code of i is i ^ (i >> 1). Neighbouring codes differ in exactly one bit: for 3 bits the order is 0, 1, 3, 2, 6, 7, 5, 4. Swapping two numbers by XOR (a ^= b; b ^= a; a ^= b) works but is not clearer than a, b = b, a, and fails if both names are the same object.",
+              "Use the clear version in real code."
+            ],
+            "short": "Gray code",
+            "hud": [
+              {
+                "k": "Gray code, 3 bits",
+                "v": "0 1 3 2 6 7 5 4"
+              },
+              {
+                "k": "Swap by XOR",
+                "v": "avoid it",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "z7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "x & (x - 1) clears the lowest set bit: count bits, test for a power of two. x & -x isolates it. XOR cancels pairs: single number, missing number. XOR then count gives the Hamming distance.",
+              "Each trick is O(1) or O(number of ones)."
+            ],
+            "short": "Recap",
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null,
+                "hidden": false
+              },
+              "y0": {
+                "hidden": true
+              },
+              "y1": {
+                "hidden": true
+              },
+              "y2": {
+                "hidden": true
+              },
+              "y3": {
+                "hidden": true
+              },
+              "y4": {
+                "hidden": true
+              },
+              "y5": {
+                "hidden": true
+              },
+              "y6": {
+                "hidden": true
+              },
+              "y7": {
+                "hidden": true
+              },
+              "z0": {
+                "hidden": true
+              },
+              "z1": {
+                "hidden": true
+              },
+              "z2": {
+                "hidden": true
+              },
+              "z3": {
+                "hidden": true
+              },
+              "z4": {
+                "hidden": true
+              },
+              "z5": {
+                "hidden": true
+              },
+              "z6": {
+                "hidden": true
+              },
+              "z7": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 x & (x - 1): clear the lowest 1",
+                "2 x & -x: keep only the lowest 1",
+                "3 XOR of pairs cancels",
+                "4 bit_count(a ^ b): Hamming distance"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Subtracting 1 is like a car's odometer rolling over: the lowest digit that can drop does, and the digits below it flip to nines.",
+      "story": "When an odometer reads 1000 and you go back one, it becomes 0999: the lowest non-zero digit drops and the zeros below it turn into nines. In binary it is the same, with ones instead of nines. If you compare 1000 with 0999 digit by digit, they agree above the changed place and differ from it downward. Bit tricks use that to find or remove the lowest 1 in a single step.",
+      "maps": [
+        [
+          "The odometer rolling back",
+          "Subtracting 1"
+        ],
+        [
+          "The lowest non-zero digit",
+          "The lowest set bit"
+        ],
+        [
+          "Zeros turning into nines",
+          "Zeros turning into ones"
+        ],
+        [
+          "Comparing the two readings",
+          "AND of x and x - 1"
+        ]
+      ],
+      "words": [
+        [
+          "Hamming weight",
+          "The number of 1 bits in a number."
+        ],
+        [
+          "population count",
+          "Another name for the Hamming weight."
+        ],
+        [
+          "Gray code",
+          "An ordering of numbers where neighbours differ in one bit."
+        ],
+        [
+          "XOR",
+          "A bit operation that is 1 where the two bits differ."
+        ],
+        [
+          "Hamming distance",
+          "The number of bit positions where two numbers differ."
+        ]
+      ]
+    }
   }
 ]
