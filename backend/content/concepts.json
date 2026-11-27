@@ -156329,5 +156329,1020 @@
         ]
       ]
     }
+  },
+  {
+    "id": "simple-sorts",
+    "n": 196,
+    "level": 14,
+    "week": "Core",
+    "title": "Simple Sorts: Insertion, Selection and Bubble",
+    "tagline": "Learn the three O(n squared) sorts, what each does best, and why insertion sort still matters inside faster algorithms.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "Insertion sort, selection sort and bubble sort are the three simple sorting algorithms. Each takes O(n squared) time in the worst case and sorts in place with O(1) extra space. You will rarely use them on large data, but interviewers ask about them because they test loops, invariants and the ideas of stability and adaptivity. Insertion sort in particular is used inside real sorting algorithms.",
+      "## Insertion sort",
+      "Keep the left part of the array sorted. Take the next item and shift every larger sorted item one place right, then drop the item into the gap. The invariant is: after the loop reaches index i, the first i entries are sorted, as the Wikipedia article states. The worst case, reverse order, costs O(n squared) comparisons and moves. The best case, already sorted, costs O(n), since nothing needs to shift. It is stable, in place, and adaptive: if each item is at most k places from its final position, it takes O(kn). The article says it is efficient for small data sets, and that quicksort implementations often switch to it below a threshold commonly around ten.",
+      "## Selection sort",
+      "Find the smallest item in the unsorted part, and swap it into the first unsorted position. Repeat. The article notes that it always makes (n - 1) + (n - 2) + ... + 1 = n(n - 1)/2 comparisons, whatever the input, but at most n - 1 swaps. That makes it a good choice when writes are expensive, such as flash memory. The usual swap-based version is not stable, because the swap can carry an item past equal items. Heapsort is described as selection sort that finds the minimum with a heap.",
+      "## Bubble sort",
+      "Walk along the array and swap each pair of neighbours that is out of order. After one pass, the largest item has reached the end. Repeat passes until a pass makes no swaps, using a flag. The article gives O(n squared) for the worst and average case and O(n) for the best, with the early exit. It is stable and in place. It is rarely used in practice, since insertion sort is generally faster and no more complex.",
+      "> A worked example: insertion sort on 5, 2, 4, 6, 1, 3. After 2: 2, 5, 4, 6, 1, 3. After 4: 2, 4, 5, 6, 1, 3. After 6: no shift. After 1: 1, 2, 4, 5, 6, 3. After 3: 1, 2, 3, 4, 5, 6. Selection sort starts by swapping 1 with 5, giving 1, 2, 4, 6, 5, 3. One bubble pass gives 2, 4, 5, 1, 3, 6.",
+      "## Comparing them",
+      "- Insertion: worst O(n squared), best O(n), stable, adaptive, O(n squared) writes.\n- Selection: always O(n squared) comparisons, at most n - 1 swaps, not stable.\n- Bubble: worst O(n squared), best O(n) with early exit, stable, many swaps.",
+      "## Where they are used",
+      "Hybrid algorithms use insertion sort on small ranges, because its simple loop beats the overhead of recursion. Python's own sort uses binary insertion sort on short runs. If an interviewer asks you to sort something simple and small, or a nearly sorted array, insertion sort is a good answer.",
+      "## Common mistakes",
+      "Shifting items one at a time with swaps, which does more writes than needed. Forgetting the early exit in bubble sort. Using selection sort and expecting stability. Comparing the wrong indexes at the array ends.",
+      "## How to talk through it",
+      "Name the invariant: the left part is sorted. Show one step of each algorithm. Give the worst and best cases, say which are stable, and mention that faster algorithms use insertion sort for small ranges."
+    ],
+    "keyPoints": [
+      "All three are O(n squared) in the worst case and in place. They differ in best case, writes and stability.",
+      "Insertion sort: sorted prefix, shift and insert. O(n) on sorted input, stable, adaptive. Used for small ranges inside faster sorts.",
+      "Selection sort: swap the minimum into place. Always n(n - 1)/2 comparisons, at most n - 1 swaps, not stable.",
+      "Bubble sort: swap adjacent pairs, stop when a pass has no swaps. O(n) best case, stable, rarely used.",
+      "State the invariant: after step i, the first i items are sorted (insertion) or final (selection)."
+    ],
+    "sql": [
+      {
+        "title": "The three sorts, counting comparisons and moves",
+        "lang": "py",
+        "code": "def insertion_sort(a):\n    a, comparisons, writes = list(a), 0, 0\n    for i in range(1, len(a)):\n        x, j = a[i], i - 1\n        while j >= 0:\n            comparisons += 1\n            if a[j] <= x:                                  # <= keeps equal items in order: stable\n                break\n            a[j + 1] = a[j]\n            writes += 1\n            j -= 1\n        a[j + 1] = x\n        writes += 1\n    return a, comparisons, writes\n\ndef selection_sort(a):\n    a, comparisons, swaps = list(a), 0, 0\n    for i in range(len(a) - 1):\n        m = i\n        for j in range(i + 1, len(a)):\n            comparisons += 1\n            if a[j] < a[m]:\n                m = j\n        if m != i:\n            a[i], a[m] = a[m], a[i]\n            swaps += 1\n    return a, comparisons, swaps\n\ndef bubble_sort(a):\n    a, comparisons, swaps = list(a), 0, 0\n    for end in range(len(a) - 1, 0, -1):\n        swapped = False\n        for j in range(end):\n            comparisons += 1\n            if a[j] > a[j + 1]:\n                a[j], a[j + 1] = a[j + 1], a[j]\n                swaps += 1\n                swapped = True\n        if not swapped:                                    # a pass with no swap: sorted\n            break\n    return a, comparisons, swaps\n\ndata = [5, 2, 4, 6, 1, 3]\nassert insertion_sort(data)[0] == selection_sort(data)[0] == bubble_sort(data)[0] == [1, 2, 3, 4, 5, 6]\nn = 8\nordered, reverse = list(range(n)), list(range(n, 0, -1))\nassert insertion_sort(ordered)[1] == n - 1                     # best case: n - 1 comparisons\nassert insertion_sort(reverse)[1] == n * (n - 1) // 2          # worst case\nassert selection_sort(ordered)[1] == selection_sort(reverse)[1] == n * (n - 1) // 2\nassert selection_sort(reverse)[2] <= n - 1                     # at most n - 1 swaps\nassert bubble_sort(ordered)[1] == n - 1                        # the early exit makes it O(n)"
+      },
+      {
+        "title": "Stability: which of them keep equal items in order",
+        "lang": "py",
+        "code": "def insertion_by_key(a, key):\n    a = list(a)\n    for i in range(1, len(a)):\n        x, j = a[i], i - 1\n        while j >= 0 and key(a[j]) > key(x):\n            a[j + 1] = a[j]\n            j -= 1\n        a[j + 1] = x\n    return a\n\ndef selection_by_key(a, key):\n    a = list(a)\n    for i in range(len(a) - 1):\n        m = min(range(i, len(a)), key=lambda k: key(a[k]))\n        a[i], a[m] = a[m], a[i]\n    return a\n\nrecords = [(2, \"a\"), (2, \"b\"), (1, \"c\")]\nby_key = lambda r: r[0]\nassert insertion_by_key(records, by_key) == [(1, \"c\"), (2, \"a\"), (2, \"b\")]      # stable: a before b\nassert selection_by_key(records, by_key) == [(1, \"c\"), (2, \"b\"), (2, \"a\")]      # not stable: b jumped ahead of a\nassert sorted(records, key=by_key) == [(1, \"c\"), (2, \"a\"), (2, \"b\")]            # Python's sort is stable"
+      },
+      {
+        "title": "Check them against sorted on random data, and the small-range hybrid",
+        "lang": "py",
+        "code": "import random\n\ndef insertion_range(a, lo, hi):                          # sort a[lo:hi] in place\n    for i in range(lo + 1, hi):\n        x, j = a[i], i - 1\n        while j >= lo and a[j] > x:\n            a[j + 1] = a[j]\n            j -= 1\n        a[j + 1] = x\n\ndef hybrid_sort(a, lo=0, hi=None):\n    hi = len(a) if hi is None else hi\n    if hi - lo <= 10:\n        insertion_range(a, lo, hi)                       # small ranges: the simple loop wins\n        return a\n    mid = (lo + hi) // 2\n    hybrid_sort(a, lo, mid)\n    hybrid_sort(a, mid, hi)\n    merged = sorted(a[lo:mid] + a[mid:hi])               # stand-in for the merge step\n    a[lo:hi] = merged\n    return a\n\nrandom.seed(54)\nfor _ in range(200):\n    data = [random.randint(-30, 30) for _ in range(random.randint(0, 60))]\n    assert hybrid_sort(list(data)) == sorted(data)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write insertion sort, selection sort and bubble sort with comparison and write counters. Check them against sorted on 200 random lists, and compare the counters for sorted, reverse and random input of 1,000 items. Then add a key function and show which of the three is stable. Finally, make insertion sort faster by using binary search to find the insertion point, and say whether the total cost is still O(n squared).",
+    "pitfalls": [
+      "Using strict greater-than in the wrong place in insertion sort, which can break stability.",
+      "Forgetting the early-exit flag in bubble sort, so a sorted array still takes O(n squared).",
+      "Swapping at every step of insertion sort instead of shifting, which triples the writes.",
+      "Expecting selection sort to be stable. Its swaps can move an item past equal ones.",
+      "Using these on large inputs. Use the built-in sort."
+    ],
+    "interview": [
+      {
+        "q": "What is the time complexity of insertion sort?",
+        "a": "O(n squared) in the worst and average case, when the input is in reverse or random order, and O(n) in the best case, when the input is already sorted. It is stable and uses O(1) extra space."
+      },
+      {
+        "q": "Why would you use insertion sort when faster sorts exist?",
+        "a": "It is very fast on small arrays and nearly sorted arrays, because of its simple loop and its adaptivity. Faster algorithms such as quicksort and Timsort switch to it for short ranges."
+      },
+      {
+        "q": "What is the difference between selection sort and bubble sort?",
+        "a": "Selection sort finds the smallest item and swaps it into place, making at most n - 1 swaps but always n(n - 1)/2 comparisons. Bubble sort swaps adjacent out-of-order pairs, with many swaps, and can stop early. Bubble sort is stable, selection sort is usually not."
+      },
+      {
+        "q": "How can you tell if a sort is stable?",
+        "a": "A sort is stable if equal items keep the order they had in the input. Insertion sort and bubble sort are stable. The usual selection sort is not, because its swap can carry an item past equal items."
+      }
+    ],
+    "references": [
+      {
+        "title": "Insertion sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Insertion_sort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Selection sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Selection_sort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bubble sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bubble_sort",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: the simple sorts appear in interviews to test loops, invariants and stability. The costs, stability, adaptivity, the invariant and the use inside quicksort come from the Wikipedia insertion sort article, which I read in part, the n(n - 1)/2 comparisons and n - 1 swaps from the Wikipedia selection sort article, which I read in full, and the early exit and rarity from the Wikipedia bubble sort article, which I read in part. The worked trace and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-insertion-sort",
+      "wikipedia-selection-sort",
+      "wikipedia-bubble-sort",
+      "py-sorting"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "simplesorts",
+        "title": "Insertion, selection and bubble sort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or probe"
+          },
+          {
+            "kind": "write",
+            "label": "move or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Insert 2",
+            "at": 1
+          },
+          {
+            "text": "Insertion cost",
+            "at": 6
+          },
+          {
+            "text": "Selection sort",
+            "at": 7
+          },
+          {
+            "text": "Bubble sort",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 1.8,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": -0.6,
+            "y": 0.6,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": 0.6,
+            "y": -0.6,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s4",
+            "kind": "cube",
+            "x": 1.8,
+            "y": -1.8,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s5",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Sorting by hand: insertion sort",
+            "tag": "technique",
+            "body": [
+              "Insertion sort works like sorting playing cards in your hand. Keep the left part sorted. Take the next card and slide it left into its place in the sorted part. We sort 5, 2, 4, 6, 1, 3. The green cells are the sorted part.",
+              "It is simple, and fast on small or nearly sorted data."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "grows from the left"
+              },
+              {
+                "k": "Each step",
+                "v": "insert one item into place"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "sorted: just 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Insert 2: 1 shift",
+            "tag": "solution",
+            "body": [
+              "Take 2. Compare it with the sorted items on its left and shift each bigger one a place to the right. 2 moves 1 place left to index 0.",
+              "The sorted part is now 2 5."
+            ],
+            "short": "Insert 2",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "2 5"
+              },
+              {
+                "k": "Shifts",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "2 placed",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s1",
+                  "s0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert 4: 1 shift",
+            "tag": "solution",
+            "body": [
+              "Take 4. Compare it with the sorted items on its left and shift each bigger one a place to the right. 4 moves 1 place left to index 1.",
+              "The sorted part is now 2 4 5."
+            ],
+            "short": "Insert 4",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "2 4 5"
+              },
+              {
+                "k": "Shifts",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "4",
+                "tone": "green",
+                "pill": {
+                  "text": "4 placed",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s2",
+                  "s1"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The sorted part is 2, 5 and the next item is 4. Where does 4 go?",
+              "options": [
+                "Before 2",
+                "Between 2 and 5",
+                "After 5"
+              ],
+              "answer": 1,
+              "why": "4 is larger than 2 and smaller than 5, so it goes between them."
+            }
+          },
+          {
+            "title": "Insert 6: no shift",
+            "tag": "solution",
+            "body": [
+              "Take 6. Compare it with the sorted items on its left and shift each bigger one a place to the right. 6 is already larger than its left neighbour, so it stays.",
+              "The sorted part is now 2 4 5 6."
+            ],
+            "short": "Insert 6",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "2 4 5 6"
+              },
+              {
+                "k": "Shifts",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "6",
+                "tone": "green",
+                "pill": {
+                  "text": "6 placed",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Insert 1: 4 shifts",
+            "tag": "solution",
+            "body": [
+              "Take 1. Compare it with the sorted items on its left and shift each bigger one a place to the right. 1 moves 4 places left to index 0.",
+              "The sorted part is now 1 2 4 5 6."
+            ],
+            "short": "Insert 1",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "1 2 4 5 6"
+              },
+              {
+                "k": "Shifts",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "1 placed",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s4",
+                  "s0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert 3: 3 shifts",
+            "tag": "solution",
+            "body": [
+              "Take 3. Compare it with the sorted items on its left and shift each bigger one a place to the right. 3 moves 3 places left to index 2.",
+              "The sorted part is now 1 2 3 4 5 6."
+            ],
+            "short": "Insert 3",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "1 2 3 4 5 6"
+              },
+              {
+                "k": "Shifts",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "3 placed",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s5",
+                  "s2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insertion sort: cost and strengths",
+            "tag": "insight",
+            "body": [
+              "In the worst case, reverse order, every item shifts past all the earlier ones: O(n squared). On sorted input there is nothing to shift, so it takes O(n). It is stable, in place and adaptive. The Wikipedia article notes that quicksort implementations often switch to it for small ranges, at a threshold commonly around ten.",
+              "Its writes are O(n squared), against O(n) for selection sort."
+            ],
+            "short": "Insertion cost",
+            "hud": [
+              {
+                "k": "Worst",
+                "v": "O(n squared)",
+                "tone": "bad"
+              },
+              {
+                "k": "Best, sorted input",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "yes",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Selection sort: pick the minimum",
+            "tag": "technique",
+            "body": [
+              "Selection sort scans the unsorted part for the smallest item, and swaps it into the first unsorted place. On 5, 2, 4, 6, 1, 3, the smallest is 1, at index 4, and it swaps with 5. The array becomes 1 2 4 6 5 3.",
+              "It always makes n(n - 1)/2 comparisons, but only n - 1 swaps at most."
+            ],
+            "short": "Selection sort",
+            "hud": [
+              {
+                "k": "Comparisons",
+                "v": "always n(n - 1)/2"
+              },
+              {
+                "k": "Swaps",
+                "v": "at most n - 1",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "no, in the usual form",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "1 swapped in",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "5 swapped out",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s0",
+                  "s4"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Bubble sort: swap neighbours",
+            "tag": "technique",
+            "body": [
+              "Bubble sort walks along the array swapping neighbours that are out of order. After one pass, the largest item has bubbled to the end. On 5, 2, 4, 6, 1, 3 the first pass gives 2 4 5 1 3 6, with 6 at the end.",
+              "Repeat passes until one pass makes no swap. That early exit makes the best case O(n)."
+            ],
+            "short": "Bubble sort",
+            "hud": [
+              {
+                "k": "Worst and average",
+                "v": "O(n squared)",
+                "tone": "bad"
+              },
+              {
+                "k": "Best with early exit",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "6",
+                "tone": "green",
+                "pill": {
+                  "text": "largest in place",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s0",
+                  "s1",
+                  "s2",
+                  "s3",
+                  "s4",
+                  "s5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Side by side",
+            "tag": "insight",
+            "body": [
+              "All three take O(n squared) comparisons in the worst case, and use O(1) extra space. Insertion sort is adaptive and stable, selection sort does the fewest writes, and bubble sort is stable but usually the slowest. The Wikipedia article says bubble sort is rarely used in practice.",
+              "For real work, use the built-in sort. For tiny or nearly sorted arrays, insertion sort is a good simple choice."
+            ],
+            "short": "Comparison",
+            "hud": [
+              {
+                "k": "Insertion",
+                "v": "best on small or nearly sorted data",
+                "tone": "good"
+              },
+              {
+                "k": "Selection",
+                "v": "fewest swaps"
+              },
+              {
+                "k": "Bubble",
+                "v": "rarely used",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Insertion sort slides each item into the sorted left part. Selection sort picks the minimum each time. Bubble sort swaps neighbours. All O(n squared) worst case, in place. Insertion and bubble are stable. Insertion sort is the one worth knowing well.",
+              "They are the building block of hybrid sorts, which use them on small ranges."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "6",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 insertion: shift and place, O(n) if sorted",
+                "2 selection: n - 1 swaps, not stable",
+                "3 bubble: early exit makes best case O(n)",
+                "4 all O(n squared) worst case"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Insertion sort is how most people sort a hand of playing cards, one card at a time.",
+      "story": "You pick up cards one at a time with your right hand. The cards in your left hand are always in order. For each new card, you slide it into the right place among the cards you already hold. If you are handed an almost sorted hand, you hardly have to move anything. Selection sort is different: you search the pile for the lowest card each time and put it next.",
+      "maps": [
+        [
+          "The cards in your left hand",
+          "The sorted part"
+        ],
+        [
+          "The next card",
+          "The item being inserted"
+        ],
+        [
+          "Sliding it into place",
+          "Shifting larger items right"
+        ],
+        [
+          "Searching for the lowest card",
+          "Selection sort"
+        ]
+      ],
+      "words": [
+        [
+          "insertion sort",
+          "Sort by inserting each item into its place in the sorted part."
+        ],
+        [
+          "selection sort",
+          "Sort by repeatedly moving the smallest remaining item to the front."
+        ],
+        [
+          "bubble sort",
+          "Sort by swapping neighbours that are out of order."
+        ],
+        [
+          "stable",
+          "Equal items keep the order they had before sorting."
+        ],
+        [
+          "in place",
+          "Sorting inside the array, with no second array."
+        ]
+      ]
+    }
   }
 ]
