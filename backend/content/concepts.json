@@ -128217,5 +128217,1069 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bst-deletion",
+    "n": 171,
+    "level": 14,
+    "week": "Core",
+    "title": "BST Deletion: Leaf, One Child and Two Children",
+    "tagline": "Remove a key from a binary search tree without breaking the order, using the successor when the node has two children.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Inserting into a binary search tree is easy: the new key becomes a leaf. Deleting is harder, because the key may be anywhere, and its subtrees must stay attached in the right order. The Wikipedia article on binary search trees describes three cases for deletion, depending on how many children the node has.",
+      "## The three cases",
+      "- No children: replace the node with nothing, by clearing the pointer in its parent.\n- One child: replace the node with that child, so the child's whole subtree moves up.\n- Two children: replace the node with its in-order successor. The article describes this in two sub-cases. You may also use the in-order predecessor instead.",
+      "## The two-children case",
+      "The in-order successor is the smallest key in the node's right subtree: go right once, then left as far as you can. It sits where the next larger key must be, so putting it in the deleted node's place keeps every left key smaller and every right key larger. The successor has no left child, since it is the leftmost node, so removing it is one of the easy cases. In code you copy the successor's key into the node, then delete the successor from the right subtree.",
+      "## Why it works",
+      "After you copy the successor's key up, all keys in the left subtree are still smaller, because the successor was larger than the deleted key and the deleted key was larger than everything on the left. All keys in the remaining right subtree are larger than the successor, because it was the minimum there. The order is intact.",
+      "> A worked example: the tree with 5 at the root, 3 and 8 below it, then 2, 4, 7 and 9, and 6 as the left child of 7. Delete 3: it has two children. Its successor is 4, the leftmost node of its right subtree. Copy 4 up, and remove the old 4. Delete 7: it has one child, 6, so 6 takes its place. Delete 2: it is a leaf, so it is simply removed. The in-order walk stays sorted throughout.",
+      "## Recursive code",
+      "Write delete so it returns the new root of the subtree. If the key is smaller, set node.left = delete(node.left, key). If larger, set node.right = delete(node.right, key). If it equals the node, then if there is no left child, return the right child. If there is no right child, return the left child. Otherwise find the successor, copy its key, and set node.right = delete(node.right, successor key). Return the node.",
+      "## Cost and balance",
+      "Finding the node takes O(h), and finding the successor takes up to O(h), so deletion costs O(h): O(log n) on a balanced tree and O(n) on a chain. Many deletions can unbalance a tree, just as sorted insertions do. Using the predecessor and the successor alternately keeps it more even, and self-balancing trees repair the shape after each delete.",
+      "## Common mistakes",
+      "Forgetting to return the new subtree root from the recursive call, so the parent keeps pointing at the old node. Looking for the successor in the left subtree. Deleting a key that is not in the tree. Breaking the tree when the deleted node is the root.",
+      "## How to talk through it",
+      "Name the three cases and draw one example for each. Show the successor search for the two-children case. State the cost as O(h), then test deleting the root, a leaf, a node with one child and a missing key."
+    ],
+    "keyPoints": [
+      "Three cases: a leaf is removed, a node with one child is replaced by that child, a node with two children takes its successor's key.",
+      "The in-order successor is the leftmost node of the right subtree. It has no left child, so its own removal is easy.",
+      "The predecessor (rightmost of the left subtree) works equally well.",
+      "Recursive delete returns the new root of the subtree. Cost O(h).",
+      "In-order stays sorted after every deletion. Deletions can unbalance the tree."
+    ],
+    "sql": [
+      {
+        "title": "Recursive deletion",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key, left=None, right=None):\n        self.key, self.left, self.right = key, left, right\n\ndef insert(node, key):\n    if node is None:\n        return Node(key)\n    if key < node.key:\n        node.left = insert(node.left, key)\n    elif key > node.key:\n        node.right = insert(node.right, key)\n    return node\n\ndef delete(node, key):\n    if node is None:\n        return None                                  # the key is not in the tree\n    if key < node.key:\n        node.left = delete(node.left, key)\n    elif key > node.key:\n        node.right = delete(node.right, key)\n    else:\n        if node.left is None:                        # no child, or only a right child\n            return node.right\n        if node.right is None:                       # only a left child\n            return node.left\n        succ = node.right                            # two children: the leftmost node on the right\n        while succ.left:\n            succ = succ.left\n        node.key = succ.key\n        node.right = delete(node.right, succ.key)\n    return node\n\ndef inorder(n):\n    return [] if n is None else inorder(n.left) + [n.key] + inorder(n.right)\n\nroot = None\nfor k in (5, 3, 8, 2, 4, 7, 9, 6):\n    root = insert(root, k)\nassert inorder(root) == [2, 3, 4, 5, 6, 7, 8, 9]\nroot = delete(root, 3)                                # two children\nassert root.left.key == 4 and root.left.left.key == 2 and root.left.right is None\nroot = delete(root, 7)                                # one child\nassert root.right.left.key == 6\nroot = delete(root, 2)                                # a leaf\nassert inorder(root) == [4, 5, 6, 8, 9]\nroot = delete(root, 5)                                # the root, with two children\nassert root.key == 6 and inorder(root) == [4, 6, 8, 9]\nassert inorder(delete(root, 100)) == [4, 6, 8, 9]     # a missing key changes nothing\nassert delete(None, 1) is None"
+      },
+      {
+        "title": "Check against a sorted list on random operations",
+        "lang": "py",
+        "code": "import random\n\nclass Node:\n    def __init__(self, key):\n        self.key = key\n        self.left = self.right = None\n\ndef insert(node, key):\n    if node is None:\n        return Node(key)\n    if key < node.key:\n        node.left = insert(node.left, key)\n    elif key > node.key:\n        node.right = insert(node.right, key)\n    return node\n\ndef delete(node, key):\n    if node is None:\n        return None\n    if key < node.key:\n        node.left = delete(node.left, key)\n    elif key > node.key:\n        node.right = delete(node.right, key)\n    else:\n        if node.left is None:\n            return node.right\n        if node.right is None:\n            return node.left\n        pred = node.left                             # use the predecessor this time\n        while pred.right:\n            pred = pred.right\n        node.key = pred.key\n        node.left = delete(node.left, pred.key)\n    return node\n\ndef inorder(n):\n    return [] if n is None else inorder(n.left) + [n.key] + inorder(n.right)\n\nrandom.seed(12)\nroot, model = None, set()\nfor _ in range(600):\n    key = random.randint(0, 60)\n    if random.random() < 0.55:\n        root = insert(root, key); model.add(key)\n    else:\n        root = delete(root, key); model.discard(key)\n    assert inorder(root) == sorted(model)"
+      },
+      {
+        "title": "Find the successor and the predecessor",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key, left=None, right=None):\n        self.key, self.left, self.right = key, left, right\n\ndef minimum(node):\n    while node.left:\n        node = node.left\n    return node\n\ndef maximum(node):\n    while node.right:\n        node = node.right\n    return node\n\nt = Node(5, Node(3, Node(2), Node(4)), Node(8, Node(7, Node(6)), Node(9)))\nassert minimum(t.right).key == 6                      # leftmost of the right subtree: the successor of 5\nassert maximum(t.left).key == 4                       # rightmost of the left subtree: the predecessor of 5\nassert minimum(t).key == 2 and maximum(t).key == 9"
+      }
+    ],
+    "django": {},
+    "exercise": "Write insert and delete, and test all three cases and the root with an inorder check. Then change delete to use the predecessor, and run both on 600 random operations against a sorted set. Finally, write delete iteratively, without recursion, and say which pointers you have to keep track of.",
+    "pitfalls": [
+      "Not returning the new subtree root from the recursive call, so the parent keeps pointing at the deleted node.",
+      "Looking for the successor in the left subtree. It is in the right subtree.",
+      "Replacing a two-child node by one of its children and losing the other child's subtree.",
+      "Forgetting the case of a missing key, or an empty tree.",
+      "Deleting the successor node without recursing, which can leave a duplicate key in the tree."
+    ],
+    "interview": [
+      {
+        "q": "How do you delete a node from a binary search tree?",
+        "a": "Find it. If it is a leaf, remove it. If it has one child, replace it with that child. If it has two children, copy the key of its in-order successor, the leftmost node of its right subtree, into it, and delete the successor from the right subtree."
+      },
+      {
+        "q": "Why is the in-order successor a good replacement?",
+        "a": "It is the smallest key larger than the deleted one, so it keeps every left key smaller and every right key larger. Having no left child, it is easy to remove."
+      },
+      {
+        "q": "Can you use the predecessor instead of the successor?",
+        "a": "Yes. The predecessor, the largest key in the left subtree, keeps the order equally well."
+      },
+      {
+        "q": "What is the cost of deletion?",
+        "a": "O(h), where h is the height: O(log n) on a balanced tree and O(n) on a degenerate one."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+        "kind": "Reference"
+      },
+      {
+        "title": "Self-balancing binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Self-balancing_binary_search_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: BST deletion is a very common tree follow-up because of its three cases. The three deletion cases, the use of the in-order successor or predecessor, and the O(h) cost come from the Wikipedia binary search tree article, which I read in part. The worked example, the recursive code and the interview advice are my own illustration and judgment, and the code is checked by running it against a sorted set. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-search-tree",
+      "wikipedia-self-balancing-bst",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bstdelete",
+        "title": "Deleting from a BST, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "search or visit"
+          },
+          {
+            "kind": "write",
+            "label": "insert, change or rotate"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Three cases",
+            "at": 0
+          },
+          {
+            "text": "Two children",
+            "at": 1
+          },
+          {
+            "text": "One child",
+            "at": 4
+          },
+          {
+            "text": "A leaf",
+            "at": 6
+          },
+          {
+            "text": "Cost",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "d0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "5",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "8",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "7",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "9",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d11",
+            "kind": "cube",
+            "x": 2.206,
+            "y": 1.394,
+            "label": "6",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "d0",
+            "b": "d1",
+            "dir": "none"
+          },
+          {
+            "a": "d0",
+            "b": "d2",
+            "dir": "none"
+          },
+          {
+            "a": "d1",
+            "b": "d3",
+            "dir": "none"
+          },
+          {
+            "a": "d1",
+            "b": "d4",
+            "dir": "none"
+          },
+          {
+            "a": "d2",
+            "b": "d5",
+            "dir": "none"
+          },
+          {
+            "a": "d2",
+            "b": "d6",
+            "dir": "none"
+          },
+          {
+            "a": "d5",
+            "b": "d11",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Deleting is harder than inserting",
+            "tag": "technique",
+            "body": [
+              "A new key is always a leaf, but the key you delete can be anywhere, and its subtrees must stay attached in the right order. There are three cases, depending on how many children the node has.",
+              "No children: remove it. One child: replace it by that child. Two children: replace it by its in-order successor."
+            ],
+            "short": "Three cases",
+            "hud": [
+              {
+                "k": "0 children",
+                "v": "just remove it"
+              },
+              {
+                "k": "1 child",
+                "v": "the child takes its place"
+              },
+              {
+                "k": "2 children",
+                "v": "use the successor"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            }
+          },
+          {
+            "title": "Delete 3: it has two children",
+            "tag": "problem",
+            "body": [
+              "The node 3 has the children 2 and 4. We cannot simply remove it, because both children would be left hanging. We need a key that can sit in its place and keep the order.",
+              "The key that fits is the next larger key, the in-order successor. The next smaller key, the predecessor, works too."
+            ],
+            "short": "Two children",
+            "hud": [
+              {
+                "k": "Target",
+                "v": "3, with children 2 and 4",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "red",
+                "pill": {
+                  "text": "delete 3",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            }
+          },
+          {
+            "title": "Find the successor: leftmost in the right subtree",
+            "tag": "technique",
+            "body": [
+              "The successor of 3 is the smallest key in its right subtree. Go right once, to 4, then left as far as possible. 4 has no left child, so the successor is 4.",
+              "The successor has at most one child, a right child, because it is the leftmost node. That makes it easy to remove."
+            ],
+            "short": "Successor",
+            "hud": [
+              {
+                "k": "Successor",
+                "v": "leftmost node of the right subtree"
+              },
+              {
+                "k": "Children of the successor",
+                "v": "at most 1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "red",
+                "pill": {
+                  "text": "delete 3",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "successor: 4",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d1",
+                  "d4"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Copy the successor's key up, then delete the old node",
+            "tag": "solution",
+            "body": [
+              "Overwrite the key 3 with 4. Then delete the old node holding 4, which is an easy case with no children. The tree stays ordered: 2 is on the left of 4, and everything on the right is bigger.",
+              "Only keys moved, and the tree shape changed by one removed leaf."
+            ],
+            "short": "Replace",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "2 4 5 6 7 8 9",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now holds 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "succ = leftmost(node.right)",
+                "node.key = succ.key",
+                "node.right = delete(node.right, succ.key)"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Delete 7: it has one child",
+            "tag": "problem",
+            "body": [
+              "The node 7 has a single child, 6. When a node has one child, the child's whole subtree can take its place directly, because the child is already in the right range.",
+              "No successor is needed."
+            ],
+            "short": "One child",
+            "hud": [
+              {
+                "k": "Target",
+                "v": "7, with the single child 6",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "red",
+                "pill": {
+                  "text": "delete 7",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null,
+                "label": "7"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            },
+            "predict": {
+              "question": "The node 7 has one child, 6. After deleting 7, what is in 7's old place?",
+              "options": [
+                "The subtree rooted at 6",
+                "The node 8",
+                "Nothing: the place stays empty"
+              ],
+              "answer": 0,
+              "why": "With one child, the child's subtree moves up into the parent's link."
+            }
+          },
+          {
+            "title": "The child takes its place",
+            "tag": "solution",
+            "body": [
+              "The parent 8 now points to 6 instead of 7. The picture shows 6 in the old position. A node with one child is replaced by that child.",
+              "This is also the cheap case: one pointer changes."
+            ],
+            "short": "Splice",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "2 4 5 6 8 9",
+                "tone": "good"
+              },
+              {
+                "k": "Pointers changed",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "6 moved up",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "6"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Delete 2: a leaf",
+            "tag": "solution",
+            "body": [
+              "2 has no children. Delete it by clearing the pointer in its parent. Nothing else changes.",
+              "This is the simplest case, and the recursive code falls into it when both children are empty."
+            ],
+            "short": "A leaf",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "4 5 6 8 9",
+                "tone": "good"
+              },
+              {
+                "k": "Pointers changed",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": true
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "The predecessor works as well",
+            "tag": "insight",
+            "body": [
+              "You may use the largest key of the left subtree, the predecessor, instead of the successor. Both keep the order. A common refinement alternates between them so the tree does not lean to one side after many deletions.",
+              "The Wikipedia article gives the three cases and mentions both choices."
+            ],
+            "short": "Predecessor",
+            "hud": [
+              {
+                "k": "Successor",
+                "v": "min of right subtree"
+              },
+              {
+                "k": "Predecessor",
+                "v": "max of left subtree"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": true
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Cost and balance",
+            "tag": "insight",
+            "body": [
+              "Deletion finds the node in O(h) and finds the successor in O(h), so it costs O(h) in total. That is O(log n) when the tree is balanced, and O(n) when it is a chain.",
+              "Deletions can unbalance a tree, as insertions can. Self-balancing trees rebalance after each delete."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Delete",
+                "v": "O(h)",
+                "tone": "warn"
+              },
+              {
+                "k": "Balanced tree",
+                "v": "O(log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": true
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Delete in three cases: a leaf is removed, a node with one child is replaced by that child, and a node with two children takes the key of its successor, whose old node is then deleted.",
+              "Write it recursively and return the new root of each subtree."
+            ],
+            "short": "Recap",
+            "set": {
+              "d0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "d1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "d2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "d3": {
+                "hidden": true
+              },
+              "d4": {
+                "hidden": true
+              },
+              "d5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "d6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "d11": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 find the node: O(h)",
+                "2 no child: remove",
+                "3 one child: child takes over",
+                "4 two children: copy successor, delete it"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Deleting from a search tree is like removing a name from a sorted guest list without leaving a gap.",
+      "story": "A sorted list on a wall has names in order. If you take a name off the end of a branch, nothing else is disturbed. If the name had one name hanging below it, that name simply moves up. But if the name had two names hanging below, you find the next name in the alphabet from the right branch and move it up, so the order still holds.",
+      "maps": [
+        [
+          "A name at the end of a branch",
+          "A leaf"
+        ],
+        [
+          "A name with one name below",
+          "A node with one child"
+        ],
+        [
+          "The next name in the alphabet",
+          "The in-order successor"
+        ],
+        [
+          "Moving a name up",
+          "Replacing the deleted key"
+        ]
+      ],
+      "words": [
+        [
+          "successor",
+          "The next larger key in the tree."
+        ],
+        [
+          "predecessor",
+          "The next smaller key in the tree."
+        ],
+        [
+          "leaf",
+          "A node with no children."
+        ],
+        [
+          "subtree",
+          "A node together with everything below it."
+        ],
+        [
+          "in-order",
+          "Visiting left subtree, node, then right subtree."
+        ]
+      ]
+    }
   }
 ]
