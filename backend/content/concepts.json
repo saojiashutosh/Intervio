@@ -179694,5 +179694,1788 @@
         ]
       ]
     }
+  },
+  {
+    "id": "grid-paths",
+    "n": 211,
+    "level": 14,
+    "week": "Core",
+    "title": "Grid Paths: Two-Dimensional Dynamic Programming",
+    "tagline": "Count the routes across a grid with blocked cells, find the cheapest route, and learn how a two-dimensional table is filled and shrunk.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Grid problems are the easiest way into two-dimensional dynamic programming. A robot moves from the top left corner to the bottom right, only right or down. How many routes are there, or which route is cheapest? The table has one cell for each position, and a cell is built from the cell above it and the cell to its left.",
+      "## Counting routes",
+      "Let routes(r, c) be the number of routes from the start to the cell in row r and column c. The robot enters a cell from above or from the left, and those two groups of routes are different, so routes(r, c) = routes(r - 1, c) + routes(r, c - 1). The start has 1 route. The first row and the first column have 1 route each, as there is only one way in, unless something blocks it. A blocked cell has 0 routes. Cells outside the grid count as 0.",
+      "> A worked example: a 4 by 5 grid with two blocked cells. Row 0 is 1, 1, 1, 1, 1. Row 1 is 1 2 0 1 2. Row 2 is 1 3 3 0 2. Row 3 is 1 4 7 7 9. The last cell is 9, the number of routes.",
+      "## The fill order",
+      "Each cell reads the cell above and the cell to the left. So fill row by row, from left to right in each row. Then both inputs are filled when you need them. Filling column by column works as well.",
+      "## The cheapest route",
+      "If each cell has a cost, define cost(r, c) as the least total cost from the start to that cell. The recurrence is cost(r, c) = grid[r][c] plus the smaller of cost(r - 1, c) and cost(r, c - 1). The shape of the table is the same. Counting problems add the two neighbours. Optimisation problems take the minimum or the maximum.",
+      "## Cost",
+      "There are rows times columns cells and each takes O(1), so the time is O(rows times columns). A table of the same size uses as much memory. Because row r reads only row r - 1 and the cell on its left, one row is enough: update it in place, left to right. That brings the memory to O(columns). Keep the whole table if you need to rebuild the route itself, by walking back from the last cell to the neighbour that gave the best value.",
+      "## Without dynamic programming",
+      "With no blocked cells, the number of routes is a binomial coefficient: a route has rows - 1 down moves and columns - 1 right moves in some order, which is C(rows + columns - 2, rows - 1). With blocked cells there is no simple formula, so the table is the way.",
+      "## The shape appears again",
+      "The same two-dimensional table, filled by rows, solves knapsack, longest common subsequence and edit distance. In each, a cell depends on its neighbours above and to the left, and the answer is in a corner.",
+      "## How to talk through it",
+      "Say what a cell means, give the recurrence for counting or for the best value, set the base cases and blocked cells, and fill by rows. Give O(rows times columns), and mention the one-row trick."
+    ],
+    "keyPoints": [
+      "A cell is the answer for one position. routes(r, c) = routes above + routes on the left.",
+      "Blocked cells are 0. The first row and column are 1 until a block. Fill by rows.",
+      "Counting uses a sum. Cheapest or best route uses a min or max.",
+      "O(rows x columns) time. One row is enough to save memory, but keep the table to rebuild the route.",
+      "The same table shape solves knapsack, LCS and edit distance."
+    ],
+    "sql": [
+      {
+        "title": "Count routes with blocked cells",
+        "lang": "py",
+        "code": "from math import comb\n\ndef count_routes(rows, cols, blocked=()):\n    blocked = set(blocked)\n    dp = [[0] * cols for _ in range(rows)]\n    for r in range(rows):\n        for c in range(cols):\n            if (r, c) in blocked:\n                dp[r][c] = 0\n            elif r == 0 and c == 0:\n                dp[r][c] = 1\n            else:\n                dp[r][c] = (dp[r - 1][c] if r else 0) + (dp[r][c - 1] if c else 0)\n    return dp[-1][-1]\n\nassert count_routes(4, 5) == comb(7, 3) == 35                      # no blocks: a binomial coefficient\nassert count_routes(4, 5, {(1, 2), (2, 3)}) == 9\nassert count_routes(3, 3, {(1, 1)}) == 2\nassert count_routes(2, 2, {(0, 1), (1, 0)}) == 0\nassert count_routes(1, 1) == 1"
+      },
+      {
+        "title": "The cheapest route, and one row of memory",
+        "lang": "py",
+        "code": "def cheapest(grid):\n    rows, cols = len(grid), len(grid[0])\n    dp = [[0] * cols for _ in range(rows)]\n    for r in range(rows):\n        for c in range(cols):\n            best = min([dp[r - 1][c]] * (r > 0) + [dp[r][c - 1]] * (c > 0) or [0])\n            dp[r][c] = grid[r][c] + best\n    return dp[-1][-1]\n\ndef cheapest_one_row(grid):\n    cols = len(grid[0])\n    row = [0] * cols\n    for r in range(len(grid)):\n        for c in range(cols):\n            if r == 0 and c == 0:\n                row[c] = grid[0][0]\n            elif r == 0:\n                row[c] = row[c - 1] + grid[r][c]\n            elif c == 0:\n                row[c] = row[c] + grid[r][c]\n            else:\n                row[c] = min(row[c], row[c - 1]) + grid[r][c]\n    return row[-1]\n\nG = [[1, 3, 1], [1, 5, 1], [4, 2, 1]]\nassert cheapest(G) == cheapest_one_row(G) == 7                  # 1 + 3 + 1 + 1 + 1\nassert cheapest([[5]]) == 5\nimport random\nrandom.seed(76)\nfor _ in range(100):\n    width = random.randint(1, 5)\n    h = [[random.randint(1, 9) for _ in range(width)] for _ in range(random.randint(1, 5))]\n    assert cheapest(h) == cheapest_one_row(h)"
+      },
+      {
+        "title": "Rebuild the route by walking back",
+        "lang": "py",
+        "code": "def cheapest_route(grid):\n    rows, cols = len(grid), len(grid[0])\n    INF = float(\"inf\")\n    dp = [[INF] * cols for _ in range(rows)]\n    for r in range(rows):\n        for c in range(cols):\n            if r == 0 and c == 0:\n                dp[r][c] = grid[0][0]\n            else:\n                dp[r][c] = grid[r][c] + min(dp[r - 1][c] if r else INF, dp[r][c - 1] if c else INF)\n    route, r, c = [(rows - 1, cols - 1)], rows - 1, cols - 1\n    while (r, c) != (0, 0):                                    # step to the neighbour with the smaller table value\n        up = dp[r - 1][c] if r else INF\n        left = dp[r][c - 1] if c else INF\n        r, c = (r - 1, c) if up <= left else (r, c - 1)\n        route.append((r, c))\n    return dp[-1][-1], route[::-1]\n\ntotal, route = cheapest_route([[1, 3, 1], [1, 5, 1], [4, 2, 1]])\nassert total == 7 and route[0] == (0, 0) and route[-1] == (2, 2)\nassert sum([[1, 3, 1], [1, 5, 1], [4, 2, 1]][r][c] for r, c in route) == total\nassert all(b[0] - a[0] + b[1] - a[1] == 1 for a, b in zip(route, route[1:]))     # right or down only"
+      }
+    ],
+    "django": {},
+    "exercise": "Write count_routes with blocked cells and check the no-block case against math.comb. Write the cheapest route, then reduce it to one row of memory and check that both agree on random grids. Finally, rebuild the actual route by walking back from the last cell.",
+    "pitfalls": [
+      "Forgetting that a blocked cell is 0, and the cells next to it still get routes from their other neighbour.",
+      "Reading cell (r - 1, c) when r = 0. Python then reads the last row without an error, which gives wrong answers.",
+      "Filling the table in an order where a cell reads one that is not ready.",
+      "Using the one-row trick when you need to rebuild the route.",
+      "Using min on cost when the problem asks for the number of routes."
+    ],
+    "interview": [
+      {
+        "q": "How do you count the paths from the top left to the bottom right of a grid?",
+        "a": "Let a cell hold the number of paths to it. A cell is the sum of the cell above and the cell to the left, a blocked cell is 0 and the start is 1. Fill by rows. The answer is in the last cell, in O(rows x columns)."
+      },
+      {
+        "q": "How do you find the cheapest path?",
+        "a": "Replace the sum with the cell's own cost plus the minimum of the cell above and the cell to the left."
+      },
+      {
+        "q": "How can you reduce the memory?",
+        "a": "Each row depends only on the row above and the cell to the left, so keep one row and update it in place, giving O(columns) memory."
+      },
+      {
+        "q": "How do you recover the path itself?",
+        "a": "Keep the whole table and walk back from the last cell, at each step moving to the neighbour with the smaller (or the larger, for maximum) table value."
+      }
+    ],
+    "references": [
+      {
+        "title": "Dynamic programming (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: counting and optimising paths in a grid is the standard first two-dimensional dynamic programming problem in interviews. The use of overlapping subproblems and a table filled from smaller cases comes from the Wikipedia dynamic programming article, which I read in part. The grid, the blocked cells, the recurrences and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-dynamic-programming",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "gridpaths",
+        "title": "Grid paths, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "The recurrence",
+            "at": 1
+          },
+          {
+            "text": "Row 0",
+            "at": 2
+          },
+          {
+            "text": "Rows",
+            "at": 3
+          },
+          {
+            "text": "The answer",
+            "at": 6
+          },
+          {
+            "text": "One row",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "g0_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g0_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g0_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g0_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g0_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g1_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g1_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g1_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g1_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g1_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g2_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g2_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g2_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g2_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g2_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g3_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g3_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g3_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g3_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "g3_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Count the routes across a grid",
+            "tag": "technique",
+            "body": [
+              "A robot is at the top left corner of a 4 by 5 grid and wants to reach the bottom right corner. It can move only right or down. Two cells, shown as #, are blocked. How many different routes are there?",
+              "Let routes(r, c) be the number of routes from the start to the cell in row r and column c."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Grid",
+                "v": "4 rows, 5 columns"
+              },
+              {
+                "k": "Moves",
+                "v": "right or down"
+              },
+              {
+                "k": "Blocked",
+                "v": "2 cells"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence",
+            "tag": "technique",
+            "body": [
+              "The robot reaches a cell from the cell above it, or from the cell to its left. So routes(r, c) = routes(r - 1, c) + routes(r, c - 1). A blocked cell has 0 routes. The start has 1.",
+              "Cells outside the grid count as 0."
+            ],
+            "short": "Recurrence",
+            "set": {
+              "g0_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if blocked: dp[r][c] = 0",
+                "else: dp[r][c] = dp[r-1][c] + dp[r][c-1]"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Row 0: one route along the top",
+            "tag": "solution",
+            "body": [
+              "In the first row the only way in is from the left, so every cell has 1 route: 1 1 1 1 1. The start counts as 1.",
+              "The same holds for the first column, until a blocked cell."
+            ],
+            "short": "Row 0",
+            "hud": [
+              {
+                "k": "Row 0",
+                "v": "1 1 1 1 1"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Row 1: add the cell above and the cell on the left",
+            "tag": "solution",
+            "body": [
+              "Fill row 1 from left to right. Each cell is the cell above plus the cell to its left. The row becomes 1 2 0 1 2.",
+              "A blocked cell is set to 0, and the cell after it gets routes only from above."
+            ],
+            "short": "Row 1",
+            "hud": [
+              {
+                "k": "Row 1",
+                "v": "1 2 0 1 2"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Row 0 is 1 1 1 1 1. The first cell of row 1 is 1. What is the second cell of row 1?",
+              "options": [
+                "1",
+                "2",
+                "3"
+              ],
+              "answer": 1,
+              "why": "It is the cell above, 1, plus the cell on the left, 1, which is 2."
+            }
+          },
+          {
+            "title": "Row 2: add the cell above and the cell on the left",
+            "tag": "solution",
+            "body": [
+              "Fill row 2 from left to right. Each cell is the cell above plus the cell to its left. The row becomes 1 3 3 0 2.",
+              "A blocked cell is set to 0, and the cell after it gets routes only from above."
+            ],
+            "short": "Row 2",
+            "hud": [
+              {
+                "k": "Row 2",
+                "v": "1 3 3 0 2"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Row 3: add the cell above and the cell on the left",
+            "tag": "solution",
+            "body": [
+              "Fill row 3 from left to right. Each cell is the cell above plus the cell to its left. The row becomes 1 4 7 7 9.",
+              "No blocked cell here."
+            ],
+            "short": "Row 3",
+            "hud": [
+              {
+                "k": "Row 3",
+                "v": "1 4 7 7 9"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "4",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "7",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "7",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "9",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The answer is in the last cell",
+            "tag": "insight",
+            "body": [
+              "The bottom right cell holds 9, so there are 9 routes. Without blocked cells there would be C(7, 3) = 35.",
+              "The work is one addition per cell: O(rows times columns)."
+            ],
+            "short": "The answer",
+            "hud": [
+              {
+                "k": "Routes",
+                "v": "9",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(rows x columns)"
+              }
+            ],
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A variant: the cheapest route",
+            "tag": "technique",
+            "body": [
+              "If each cell has a cost, and you want the cheapest route, change the recurrence to cost(r, c) = grid[r][c] + the smaller of cost(r - 1, c) and cost(r, c - 1). The shape of the table is the same.",
+              "Counting uses a sum, optimising uses a minimum or a maximum."
+            ],
+            "short": "Cheapest route",
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "dp[r][c] = grid[r][c] + min(dp[r-1][c], dp[r][c-1])"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Save memory with one row",
+            "tag": "technique",
+            "body": [
+              "Row r reads only row r - 1 and the cell to its left, so one row is enough: update it in place from left to right. The memory falls from O(rows times columns) to O(columns).",
+              "Keep the whole table if you must rebuild the route itself."
+            ],
+            "short": "One row",
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "row = [1] + [0] * (cols - 1)",
+                "for r in range(rows):",
+                "    for c in range(1, cols):",
+                "        row[c] += row[c - 1]"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Grid problems use a two-dimensional table: a cell is the answer for that position, built from the cell above and the cell to the left. Sum for counting routes, min or max for best routes. Blocked cells reset to 0. Fill by rows.",
+              "The same table shape appears in knapsack, LCS and edit distance."
+            ],
+            "short": "Recap",
+            "set": {
+              "g0_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g0_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_2": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g1_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_1": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g2_3": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "g2_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_1": {
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_2": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_3": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "g3_4": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 cell = routes to this position",
+                "2 above + left, blocked = 0",
+                "3 fill by rows",
+                "4 answer in the last cell"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Counting grid routes is like counting the ways to reach each street corner in a city where you may only walk east or south.",
+      "story": "You stand at the north west corner of a city block grid, and you may only walk east or south. For each corner you write down how many different walks lead to it. A corner on the top edge has one walk. Any other corner can be reached from the corner north of it or the corner west of it, so you add the two numbers you already wrote. If a street is closed, you write zero. By the time you reach the south east corner, the number there is the answer.",
+      "maps": [
+        [
+          "A street corner",
+          "A cell of the table"
+        ],
+        [
+          "Walks from the north and the west",
+          "The cell above and the cell on the left"
+        ],
+        [
+          "A closed street",
+          "A blocked cell: 0"
+        ],
+        [
+          "The south east corner",
+          "The answer cell"
+        ]
+      ],
+      "words": [
+        [
+          "dynamic programming",
+          "Solving a problem by combining answers to smaller problems."
+        ],
+        [
+          "table",
+          "A grid of stored answers."
+        ],
+        [
+          "blocked cell",
+          "A cell that cannot be entered."
+        ],
+        [
+          "binomial coefficient",
+          "The number of ways to choose k items from n, written C(n, k)."
+        ],
+        [
+          "route",
+          "One way of moving from the start to the end."
+        ]
+      ]
+    }
   }
 ]
