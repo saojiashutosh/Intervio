@@ -198818,5 +198818,1471 @@
         ]
       ]
     }
+  },
+  {
+    "id": "p-vs-np",
+    "n": 220,
+    "level": 14,
+    "week": "Core",
+    "title": "P versus NP: Easy to Check, Hard to Find",
+    "tagline": "Understand the classes P and NP, what NP-complete means, why the question is open, and what to do when an interview problem is NP-hard.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "Some problems are quick to solve, and some are quick to check once someone gives you the answer. The question of whether those are the same set is called P versus NP. The Wikipedia article states that P is the class of problems solvable in polynomial time and NP the class whose answers are verifiable in polynomial time, and that whether they are equal is an open Millennium Prize problem. Most experts believe that P is not equal to NP.",
+      "## Fast means polynomial",
+      "An algorithm is efficient when its running time is bounded by a polynomial in the input size n, such as n, n log n, n squared or n cubed. Exponential time, like 2 to the power n, is far worse. At n = 20, n cubed is 8,000 and 2^n is 1,048,576. At n = 60, 2^n is over 10^18, which at a billion steps a second takes about 36 years.",
+      "## The class P",
+      "P contains the decision problems that an algorithm can solve in polynomial time. Sorting, searching, shortest paths and minimum spanning trees are all in P. These are the problems we think of as tractable.",
+      "## The class NP",
+      "NP contains the decision problems whose yes-answers can be verified in polynomial time, given a certificate, which is a proof of the answer. The name means nondeterministic polynomial time, and it does not mean not polynomial. Take subset sum: given numbers and a target, is there a group of numbers that adds up to the target? If someone says the group 4 and 5 works for the target 9, you check by adding them, which takes time proportional to n. So subset sum is in NP. Finding such a group seems to need a search through 2^n subsets.",
+      "> A worked example: numbers 3, 34, 4, 12, 5 and 2, and the target 9. The guess 4 and 5 is checked in one addition: 4 + 5 = 9. The guess 3, 34 and 4 is rejected at once: the sum is 41. Finding a correct group from scratch may need up to 2^6 = 64 tries.",
+      "## P is inside NP",
+      "If you can solve a problem in polynomial time, you can check an answer in polynomial time by solving it again. So P is a subset of NP. What is not known is whether P equals NP, which is whether every problem with quickly checkable answers can also be solved quickly. If P = NP were true, many problems that we think are hard, including breaking certain codes, would have fast solutions.",
+      "## NP-complete",
+      "A problem is NP-complete when it is in NP and every problem in NP reduces to it in polynomial time. These are the hardest problems in NP. The Wikipedia article on NP-completeness says to prove a problem NP-complete you show it is in NP and reduce a known NP-complete problem to it. The Boolean satisfiability problem, SAT, was the first, by the Cook-Levin theorem. Others include 3-SAT, subset sum, and the decision versions of the knapsack and the travelling salesman problems. If any one of them has a polynomial algorithm, all of NP does, and P equals NP.",
+      "## Reductions",
+      "A reduction converts instances of problem A into instances of problem B in polynomial time, so that a fast solver for B would give one for A. Example: in a graph, a set S of vertices is independent, meaning no two are joined, exactly when all the other vertices form a vertex cover, meaning every edge touches one of them. So independent set and vertex cover reduce to each other with no work at all.",
+      "## Small changes, big differences",
+      "SAT asks if some assignment of true and false makes a Boolean formula true. The Wikipedia article says that 3-SAT, with at most three variables in each clause, is NP-complete, while 2-SAT is solvable in polynomial time. So a problem that looks only slightly different can be on the other side of the divide. Do not guess the class from the look of the problem.",
+      "## The travelling salesman problem",
+      "Find the shortest tour that visits every city once and returns to the start. The Wikipedia article says it is NP-hard and the decision version is NP-complete. Brute force tries all the orders of the cities, which is (n - 1)! tours. For metric instances, the Christofides-Serdyukov algorithm gives a tour at most 1.5 times the best.",
+      "## What to do with an NP-hard problem",
+      "- Exact methods for small inputs: backtracking with pruning, dynamic programming over subsets, or a SAT solver based on DPLL, which is a backtracking search.\n- Approximation algorithms with a proven bound on how far from the best they are.\n- Heuristics that work well in practice without a proof.\n- Restricted versions that are in P, such as small numbers for subset sum, where dynamic programming is fast.",
+      "## How to talk through it",
+      "Say it looks like a known NP-complete problem, and name it. Ask how big n is. Give the exact method for small n, and offer an approximation or heuristic for large n. Never claim a fast exact algorithm without a proof."
+    ],
+    "keyPoints": [
+      "P: solvable in polynomial time. NP: yes-answers checkable in polynomial time, given a certificate. P is inside NP.",
+      "Whether P = NP is open (a Millennium Prize problem). Most experts believe not.",
+      "NP-complete: in NP, and every NP problem reduces to it. A fast algorithm for one gives one for all. SAT was first (Cook-Levin).",
+      "Prove NP-completeness: show it is in NP and reduce a known NP-complete problem to it.",
+      "2-SAT is in P but 3-SAT is NP-complete. In practice: exact for small n, approximation or heuristics for large n."
+    ],
+    "sql": [
+      {
+        "title": "Checking is fast, finding is slow: subset sum",
+        "lang": "py",
+        "code": "from itertools import combinations\n\ndef verify(numbers, target, chosen):\n    # the certificate is a list of indexes; checking takes one pass\n    return len(set(chosen)) == len(chosen) and all(0 <= i < len(numbers) for i in chosen) and sum(numbers[i] for i in chosen) == target\n\ndef solve(numbers, target):\n    tried = 0\n    for r in range(len(numbers) + 1):\n        for chosen in combinations(range(len(numbers)), r):\n            tried += 1\n            if verify(numbers, target, chosen):\n                return list(chosen), tried\n    return None, tried\n\nNUMS = [3, 34, 4, 12, 5, 2]\nassert verify(NUMS, 9, [2, 4]) is True                  # 4 + 5\nassert verify(NUMS, 9, [0, 1, 2]) is False              # 3 + 34 + 4 = 41\nchosen, tried = solve(NUMS, 9)\nassert verify(NUMS, 9, chosen)\nassert solve(NUMS, 1000)[1] == 2 ** len(NUMS)           # no answer: every one of the 64 subsets was tried"
+      },
+      {
+        "title": "Exponential growth, in numbers",
+        "lang": "py",
+        "code": "import math\n\nassert 20 ** 3 == 8000 and 2 ** 20 == 1048576\nassert 2 ** 60 > 10 ** 18\nyears = 2 ** 60 / 1e9 / (3600 * 24 * 365)             # at a billion steps a second\nassert 36 < years < 37\nassert math.factorial(10 - 1) == 362880                # tours of 10 cities, fixing the start\nassert math.factorial(20 - 1) > 10 ** 17\n\nfor n in (10, 20, 30, 40):\n    assert 2 ** n > n ** 3 or n == 10                  # from n = 20, exponential is far bigger than cubic\nassert 2 ** 10 > 10 ** 3                               # 1,024 against 1,000: they cross near n = 10"
+      },
+      {
+        "title": "SAT: verify fast, search 2^n; and a reduction",
+        "lang": "py",
+        "code": "from itertools import product, combinations\nimport random\n\n# a clause is a list of non-zero integers: k means variable k is true, -k means it is false\ndef verify_sat(clauses, assignment):\n    return all(any(assignment[abs(l)] == (l > 0) for l in clause) for clause in clauses)\n\ndef solve_sat(clauses, n):\n    tried = 0\n    for values in product([False, True], repeat=n):\n        tried += 1\n        assignment = {i + 1: v for i, v in enumerate(values)}\n        if verify_sat(clauses, assignment):\n            return assignment, tried\n    return None, tried\n\nF = [[1, 2], [-1, 3], [-2, -3]]                        # (x1 or x2) and (not x1 or x3) and (not x2 or not x3)\nmodel, tried = solve_sat(F, 3)\nassert model is not None and verify_sat(F, model)\nassert solve_sat([[1], [-1]], 1)[0] is None            # unsatisfiable\nassert solve_sat([[1], [-1]], 1)[1] == 2\n\n# independent set and vertex cover: one is the complement of the other\ndef is_independent(edges, s):\n    return not any(a in s and b in s for a, b in edges)\n\ndef is_vertex_cover(edges, c):\n    return all(a in c or b in c for a, b in edges)\n\nrandom.seed(90)\nfor _ in range(100):\n    n = random.randint(1, 6)\n    edges = [e for e in combinations(range(n), 2) if random.random() < 0.4]\n    for r in range(n + 1):\n        for s in combinations(range(n), r):\n            s = set(s)\n            assert is_independent(edges, s) == is_vertex_cover(edges, set(range(n)) - s)"
+      },
+      {
+        "title": "Travelling salesman: brute force against a heuristic",
+        "lang": "py",
+        "code": "from itertools import permutations\nimport math\nimport random\n\ndef tour_length(points, order):\n    return sum(math.dist(points[order[i]], points[order[(i + 1) % len(order)]]) for i in range(len(order)))\n\ndef brute_force(points):\n    n = len(points)\n    best = min(permutations(range(1, n)), key=lambda p: tour_length(points, (0,) + p))     # (n - 1)! tours\n    return tour_length(points, (0,) + best)\n\ndef nearest_neighbour(points):\n    left, order = set(range(1, len(points))), [0]\n    while left:\n        last = points[order[-1]]\n        nxt = min(left, key=lambda j: math.dist(last, points[j]))\n        order.append(nxt)\n        left.remove(nxt)\n    return tour_length(points, order)\n\ndef verify_tour(points, order, limit):\n    return sorted(order) == list(range(len(points))) and tour_length(points, order) <= limit     # a quick check\n\nrandom.seed(92)\nfor _ in range(30):\n    pts = [(random.random(), random.random()) for _ in range(7)]\n    best, quick = brute_force(pts), nearest_neighbour(pts)\n    assert quick >= best - 1e-9                            # the heuristic is never better than the optimum\nassert verify_tour([(0, 0), (1, 0), (1, 1), (0, 1)], [0, 1, 2, 3], 4.0)\nassert not verify_tour([(0, 0), (1, 0), (1, 1), (0, 1)], [0, 2, 1, 3], 4.0)\nassert len(list(permutations(range(1, 6)))) == math.factorial(5) == 120      # 6 cities, start fixed: 5! tours"
+      }
+    ],
+    "django": {},
+    "exercise": "Write verify and solve for subset sum, and count how many subsets solve tries when there is no answer. Compute how long 2^60 steps take at a billion steps a second. Write a SAT verifier and a brute-force solver, and check them on a satisfiable and an unsatisfiable formula. Check that independent sets are the complements of vertex covers on random graphs. Finally, compare brute force for the travelling salesman with the nearest-neighbour heuristic on random points.",
+    "pitfalls": [
+      "Reading NP as not polynomial. It means nondeterministic polynomial time: checkable in polynomial time.",
+      "Saying that NP-hard problems cannot be solved. They can be solved for small inputs, or approximately.",
+      "Claiming that you proved P is not NP, or that it is, from an argument that is really just a guess.",
+      "Judging a problem's class by its look: 2-SAT is easy and 3-SAT is NP-complete.",
+      "Treating an exponential method as useless: for n up to about 20 it is fine."
+    ],
+    "interview": [
+      {
+        "q": "What are P and NP?",
+        "a": "P is the class of problems solvable in polynomial time. NP is the class of problems whose yes-answers can be verified in polynomial time given a certificate. P is inside NP. Whether they are equal is an open problem."
+      },
+      {
+        "q": "What does NP-complete mean?",
+        "a": "A problem is NP-complete if it is in NP and every problem in NP reduces to it in polynomial time. A fast algorithm for any NP-complete problem would give one for all of NP, so P would equal NP."
+      },
+      {
+        "q": "How do you prove a problem is NP-complete?",
+        "a": "Show that it is in NP, by giving a polynomial-time verifier, and show that a known NP-complete problem reduces to it in polynomial time."
+      },
+      {
+        "q": "What do you do when you meet an NP-hard problem?",
+        "a": "Check the input size. For small n, use an exact method such as backtracking or dynamic programming. For large n, use an approximation algorithm with a bound, or a heuristic, or solve a restricted version that is in P."
+      }
+    ],
+    "references": [
+      {
+        "title": "P versus NP problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/P_versus_NP_problem",
+        "kind": "Reference"
+      },
+      {
+        "title": "NP-completeness (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/NP-completeness",
+        "kind": "Reference"
+      },
+      {
+        "title": "Travelling salesman problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Travelling_salesman_problem",
+        "kind": "Reference"
+      },
+      {
+        "title": "Boolean satisfiability problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Boolean_satisfiability_problem",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: interviews and exams ask what P, NP and NP-complete mean, and you need to recognise when a problem is NP-hard. That P is solvable in polynomial time and NP is verifiable in polynomial time, that the question is an open Millennium Prize problem, that most experts believe P is not equal to NP, and that SAT is NP-complete by the Cook-Levin theorem come from the Wikipedia P versus NP article, which I read in part. The definition of NP-complete, the recipe of showing membership in NP and reducing a known NP-complete problem, and the practical approaches of approximation, restricted inputs and heuristics come from the Wikipedia NP-completeness article, which I read in part. The travelling salesman facts, including NP-hardness, the brute force over permutations and the 1.5 approximation, come from the Wikipedia travelling salesman problem article, which I read in part. The facts that SAT was the first NP-complete problem, that 3-SAT is NP-complete and 2-SAT is in P, and that DPLL is a backtracking solver come from the Wikipedia Boolean satisfiability article, which I read in part. The subset sum example, the independent set and vertex cover reduction and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-p-vs-np",
+      "wikipedia-np-completeness",
+      "wikipedia-tsp",
+      "wikipedia-sat",
+      "wikipedia-knapsack"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "pvsnp",
+        "title": "P versus NP, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "check or try"
+          },
+          {
+            "kind": "write",
+            "label": "choose"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Find and check",
+            "at": 0
+          },
+          {
+            "text": "The class P",
+            "at": 2
+          },
+          {
+            "text": "A quick check",
+            "at": 4
+          },
+          {
+            "text": "The class NP",
+            "at": 6
+          },
+          {
+            "text": "P = NP?",
+            "at": 8
+          },
+          {
+            "text": "NP-complete",
+            "at": 9
+          },
+          {
+            "text": "Practical options",
+            "at": 12
+          }
+        ],
+        "nodes": [
+          {
+            "id": "n0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 2.2,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": -2.6,
+            "y": 1.0,
+            "label": "34",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": -1.4,
+            "y": -0.2,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": -0.2,
+            "y": -1.4,
+            "label": "12",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n4",
+            "kind": "cube",
+            "x": 1.0,
+            "y": -2.6,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "n5",
+            "kind": "cube",
+            "x": 2.2,
+            "y": -3.8,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "tgt",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 2.4,
+            "label": "9",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "sum",
+            "kind": "cube",
+            "x": 2.4,
+            "y": 0.0,
+            "label": "?",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Two different questions: find and check",
+            "tag": "technique",
+            "body": [
+              "Finding an answer and checking an answer can have very different costs. A jigsaw puzzle takes a long time to solve, but a glance tells you if a finished one is right. Computer science asks the same: for which problems is solving about as easy as checking?",
+              "This lesson is about that question, called P versus NP."
+            ],
+            "short": "Find and check",
+            "hud": [
+              {
+                "k": "Solving",
+                "v": "may be slow"
+              },
+              {
+                "k": "Checking",
+                "v": "may be fast"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Fast means polynomial",
+            "tag": "insight",
+            "body": [
+              "An algorithm is called fast, or efficient, when its time grows like a polynomial in the input size n, such as n, n log n, n squared or n cubed. It is slow when it grows exponentially, like 2 to the power n. At n = 20, n cubed is 8,000 but 2^n is 1,048,576. At n = 60, 2^n is over a billion billion.",
+              "At a billion steps a second, 2^60 steps take about 36 years."
+            ],
+            "short": "Polynomial or exponential",
+            "hud": [
+              {
+                "k": "n = 20",
+                "v": "n^3 = 8,000; 2^n = 1,048,576"
+              },
+              {
+                "k": "n = 60",
+                "v": "2^n is over 10^18",
+                "tone": "bad"
+              },
+              {
+                "k": "2^60 steps",
+                "v": "about 36 years",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The class P",
+            "tag": "technique",
+            "body": [
+              "P is the set of problems that some algorithm solves in polynomial time. Sorting is in P, and so are binary search, shortest paths and minimum spanning trees. In the Wikipedia article, P means solvable in polynomial time.",
+              "These are the problems we call tractable."
+            ],
+            "short": "The class P",
+            "hud": [
+              {
+                "k": "In P",
+                "v": "sorting, shortest path, spanning tree, search",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A problem that looks hard: subset sum",
+            "tag": "technique",
+            "body": [
+              "Take the numbers 3, 34, 4, 12, 5 and 2, and the target 9. Is there a group of the numbers that adds up to exactly 9? This is subset sum. Try to find one by eye.",
+              "With 6 numbers it is small. With 60 numbers it is not."
+            ],
+            "short": "Subset sum",
+            "hud": [
+              {
+                "k": "Numbers",
+                "v": "3, 34, 4, 12, 5, 2"
+              },
+              {
+                "k": "Target",
+                "v": "9"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Checking a guess is quick",
+            "tag": "solution",
+            "body": [
+              "Suppose someone says: take 4 and 5. Check it: add them, 4 + 5 = 9. It matches the target. The check needs one pass over the chosen numbers, so it takes time proportional to n, which is polynomial.",
+              "The guess is called a certificate, a proof that the answer is yes that is easy to verify."
+            ],
+            "short": "A quick check",
+            "hud": [
+              {
+                "k": "Guess",
+                "v": "4 and 5"
+              },
+              {
+                "k": "Check",
+                "v": "4 + 5 = 9",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "matches",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n2",
+                  "sum"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "n4",
+                  "sum"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "Someone claims that 3, 34 and 4 add up to 9. How do you check?",
+              "options": [
+                "Add them: 41, so no",
+                "Try all subsets",
+                "It cannot be checked"
+              ],
+              "answer": 0,
+              "why": "A check is just adding the chosen numbers. 3 + 34 + 4 = 41, which is not 9."
+            }
+          },
+          {
+            "title": "Finding one means searching",
+            "tag": "problem",
+            "body": [
+              "To find a group yourself, you may have to try the subsets: with n numbers there are 2^n of them, here 64. Each try is quick but there are very many. The best known methods for the general problem still take exponential time in the worst case.",
+              "A special method, dynamic programming, takes time proportional to n times the target, which is only fast when the target is small."
+            ],
+            "short": "Searching",
+            "hud": [
+              {
+                "k": "Subsets of 6 numbers",
+                "v": "64"
+              },
+              {
+                "k": "Subsets of 60",
+                "v": "over 10^18",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "orange",
+                "pill": null,
+                "status": "dim"
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The class NP",
+            "tag": "insight",
+            "body": [
+              "NP is the set of problems whose yes-answers can be checked in polynomial time, given a certificate. Subset sum is in NP, because we can check a guess quickly. NP does not mean not polynomial. It stands for nondeterministic polynomial time.",
+              "The Wikipedia article describes NP as the problems verifiable in polynomial time."
+            ],
+            "short": "The class NP",
+            "hud": [
+              {
+                "k": "NP",
+                "v": "yes-answers checkable in polynomial time"
+              },
+              {
+                "k": "Certificate",
+                "v": "a guess to check"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "P sits inside NP",
+            "tag": "insight",
+            "body": [
+              "If you can solve a problem quickly, you can check an answer quickly: just solve it again and compare. So every problem in P is also in NP. What nobody knows is whether the two classes are the same.",
+              "P is a subset of NP. The question is whether it is a proper subset."
+            ],
+            "short": "P inside NP",
+            "hud": [
+              {
+                "k": "P",
+                "v": "solved fast"
+              },
+              {
+                "k": "NP",
+                "v": "checked fast"
+              },
+              {
+                "k": "P is in NP",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The big question: is P = NP?",
+            "tag": "problem",
+            "body": [
+              "Is every problem whose answer can be checked quickly also solvable quickly? Nobody has proved it either way. It is one of the Millennium Prize problems. Most experts believe that P is not equal to NP, as the Wikipedia article says, but it is unproven.",
+              "If P = NP, many problems seen as hard, such as breaking some codes, would have fast solutions."
+            ],
+            "short": "P = NP?",
+            "hud": [
+              {
+                "k": "Status",
+                "v": "open"
+              },
+              {
+                "k": "Most experts",
+                "v": "believe P is not NP",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "NP-complete: the hardest problems in NP",
+            "tag": "insight",
+            "body": [
+              "A problem is NP-complete if it is in NP and every problem in NP can be turned into it in polynomial time. These are the hardest problems in NP. The Wikipedia article says SAT was the first, by the Cook-Levin theorem. Others include 3-SAT, subset sum and the decision versions of the knapsack and the travelling salesman problems.",
+              "If any one NP-complete problem had a fast algorithm, they all would, and P would equal NP."
+            ],
+            "short": "NP-complete",
+            "hud": [
+              {
+                "k": "First one",
+                "v": "SAT (Cook-Levin)"
+              },
+              {
+                "k": "Others",
+                "v": "3-SAT, subset sum, knapsack, TSP decisions"
+              },
+              {
+                "k": "One fast = all fast",
+                "v": "P = NP",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Reductions: turn one problem into another",
+            "tag": "technique",
+            "body": [
+              "A reduction converts any instance of problem A into an instance of problem B in polynomial time, so a fast solver for B would solve A. To show a problem is NP-complete, show it is in NP and reduce a known NP-complete problem to it.",
+              "Example: a set S of vertices is an independent set exactly when all the other vertices form a vertex cover. So one problem converts into the other with no work."
+            ],
+            "short": "Reductions",
+            "hud": [
+              {
+                "k": "Recipe",
+                "v": "in NP + reduce a known one to it"
+              },
+              {
+                "k": "Example",
+                "v": "independent set and vertex cover"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A small change can make it hard",
+            "tag": "insight",
+            "body": [
+              "SAT asks if some true or false assignment makes a formula true. When every clause has at most 2 variables (2-SAT), there is a polynomial algorithm. With 3 variables per clause (3-SAT) the problem is NP-complete. The Wikipedia article notes both.",
+              "Do not guess hardness from how a problem looks. The same pattern can sit on either side."
+            ],
+            "short": "2-SAT and 3-SAT",
+            "hud": [
+              {
+                "k": "2-SAT",
+                "v": "in P",
+                "tone": "good"
+              },
+              {
+                "k": "3-SAT",
+                "v": "NP-complete",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "What to do when a problem is NP-hard",
+            "tag": "technique",
+            "body": [
+              "You do not give up. Options: an approximation algorithm with a proven bound (the Christofides-Serdyukov method gives a tour at most 1.5 times the best for the travelling salesman on metric instances); a heuristic that is good but not proven; an exact method that is fast for small inputs, such as backtracking, dynamic programming over subsets or a SAT solver; or a restricted version of the problem that is in P.",
+              "Check the sizes. If n is at most about 20, 2^n is fine."
+            ],
+            "short": "Practical options",
+            "hud": [
+              {
+                "k": "Approximation",
+                "v": "proven bound"
+              },
+              {
+                "k": "Heuristic",
+                "v": "good, no proof"
+              },
+              {
+                "k": "Exact, small n",
+                "v": "backtracking, DP, DPLL"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In an interview",
+            "tag": "insight",
+            "body": [
+              "If a problem looks like subset sum, travelling salesman, colouring or SAT, say so. Do not claim a fast exact algorithm. Ask how big n is, give a brute force or exact method for small n, then offer an approximation, a heuristic or a special case that is solvable.",
+              "Naming a problem as NP-hard and explaining your plan is a strong answer."
+            ],
+            "short": "In an interview",
+            "hud": [
+              {
+                "k": "Say",
+                "v": "it looks NP-hard"
+              },
+              {
+                "k": "Then",
+                "v": "ask n, give exact for small n, offer a heuristic"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "P: solvable quickly. NP: checkable quickly. P is inside NP, and whether they are equal is open. NP-complete problems are the hardest in NP: a fast algorithm for one gives one for all. Recognise them, then use exact methods for small inputs or approximations for big ones.",
+              "Fast checking does not give fast finding, as far as anyone knows."
+            ],
+            "short": "Recap",
+            "set": {
+              "n0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "34",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "tgt": {
+                "label": "9",
+                "tone": "purple",
+                "pill": {
+                  "text": "target",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "sum": {
+                "label": "?",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 P = solvable in polynomial time",
+                "2 NP = checkable in polynomial time",
+                "3 NP-complete = hardest in NP",
+                "4 NP-hard in practice: exact if small, else approximate"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "P versus NP is like the difference between solving a sudoku and checking a finished one.",
+      "story": "A friend hands you a finished sudoku and asks if it is right. You glance along each row, column and box and tell them in a minute. But if they hand you a blank hard puzzle, finding the solution can take hours. Checking is quick and finding is slow. The big open question is whether every puzzle with an easy check also has an easy way to find the answer, or whether finding is truly harder.",
+      "maps": [
+        [
+          "Checking a finished puzzle",
+          "Verifying a certificate"
+        ],
+        [
+          "Solving a blank puzzle",
+          "Finding an answer"
+        ],
+        [
+          "A finished sudoku",
+          "A certificate"
+        ],
+        [
+          "Whether finding can always be as easy as checking",
+          "P versus NP"
+        ]
+      ],
+      "words": [
+        [
+          "polynomial time",
+          "Time that grows like a power of the input size, such as n squared."
+        ],
+        [
+          "certificate",
+          "A proof of a yes-answer that can be checked quickly."
+        ],
+        [
+          "NP-complete",
+          "The hardest problems in NP: a fast solution for one would solve all."
+        ],
+        [
+          "reduction",
+          "A way to turn one problem into another."
+        ],
+        [
+          "approximation",
+          "An answer that is provably close to the best, found quickly."
+        ]
+      ]
+    }
   }
 ]
