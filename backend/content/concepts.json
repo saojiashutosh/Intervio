@@ -150367,5 +150367,1406 @@
         ]
       ]
     }
+  },
+  {
+    "id": "union-find",
+    "n": 191,
+    "level": 14,
+    "week": "Core",
+    "title": "Union-Find: Merging Groups in Almost Constant Time",
+    "tagline": "Keep disjoint groups as trees, merge them with union, ask which group an item is in with find, and keep trees flat with union by size and path compression.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A union-find structure, also called a disjoint-set union, keeps a collection of items split into groups that do not overlap. It supports two operations: find, which tells you which group an item belongs to, and union, which merges the groups of two items. Two items are in the same group if find gives the same answer for both. The structure is the standard way to track connectivity when connections only get added.",
+      "## Groups as trees",
+      "Each group is a tree stored in an array. parent[x] is the parent of x, and a root has parent[x] = x. find(x) follows parent links until it reaches a root, and that root names the group. union(a, b) finds both roots, and if they differ, makes one root the parent of the other. The Princeton notes call the plain version quick-union, and point out that the trees can become tall, so finds become slow.",
+      "## Union by size",
+      "To keep trees short, hang the smaller tree under the larger one. Keep a size for each root. The Princeton notes call this weighted quick-union, and show that the depth of any item is at most log2 n. So find and union cost O(log n).",
+      "## Path compression",
+      "During a find, remember the items on the path to the root. When you reach the root, point all of them directly at it. Later finds on those items take one step. The Princeton notes show that union by size plus path compression gives almost constant time per operation. The Wikipedia article states that union-find supports adding items and edges, and asking about components, each in amortized inverse-Ackermann time, which grows so slowly it is below 5 for any practical input.",
+      "- find with path compression can be written in a loop with path halving: parent[x] = parent[parent[x]] on the way up.\n- union by size or by rank: attach the smaller tree under the larger.\n- Together: amortized O(alpha(n)) per operation.",
+      "> A worked example: 8 items. union(0, 1), union(2, 3), union(0, 2) gives a tree of four items under 0. union(4, 5), union(6, 7), union(4, 6) gives a tree of four under 4. union(0, 4) joins them. Item 7 is at depth 3, with the path 7, 6, 4, 0. find(7) compresses the path so that 7 and 6 point directly at 0.",
+      "## Uses",
+      "Kruskal's minimum spanning tree algorithm uses it to skip edges that join two items already in the same tree. It also counts connected components as edges arrive, detects a cycle in an undirected graph, solves the number of provinces and accounts merge problems, and powers percolation and image labelling.",
+      "## Limits",
+      "Union-find cannot split groups apart, because it only supports merging. It also does not store the path between items, only whether they are connected. For deletions you need other structures.",
+      "## Common mistakes",
+      "Forgetting to find the roots before linking, so you link non-roots and break the trees. Not updating the size after a union. Comparing parent values instead of roots. Using recursion for find on a very deep tree, which can exceed the recursion limit.",
+      "## How to talk through it",
+      "Say that each group is a tree, with the root as its name. Describe union by size and path compression in one sentence each. Give the amortized bound, and name Kruskal and component counting as uses."
+    ],
+    "keyPoints": [
+      "Each group is a tree in a parent array. A root has parent[x] = x. find returns the root. union links one root under another.",
+      "Union by size: hang the smaller tree under the larger. Depth stays at most log2 n.",
+      "Path compression: after a find, point every item on the path at the root.",
+      "Both together: amortized inverse Ackermann time per operation, practically constant.",
+      "Used by Kruskal's algorithm, component counting and cycle detection. It cannot undo a union."
+    ],
+    "sql": [
+      {
+        "title": "Union-find with union by size and path compression",
+        "lang": "py",
+        "code": "class UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n        self.size = [1] * n\n        self.groups = n\n\n    def find(self, x, compress=True):\n        root = x\n        while self.parent[root] != root:\n            root = self.parent[root]\n        if compress:\n            while self.parent[x] != root:                 # point everything on the path at the root\n                self.parent[x], x = root, self.parent[x]\n        return root\n\n    def union(self, a, b):\n        ra, rb = self.find(a, compress=False), self.find(b, compress=False)\n        if ra == rb:\n            return False\n        if self.size[ra] < self.size[rb]:\n            ra, rb = rb, ra\n        self.parent[rb] = ra                              # the smaller tree goes under the larger\n        self.size[ra] += self.size[rb]\n        self.groups -= 1\n        return True\n\n    def connected(self, a, b):\n        return self.find(a) == self.find(b)\n\nuf = UnionFind(8)\nfor a, b in [(0, 1), (2, 3), (0, 2), (4, 5), (6, 7), (4, 6), (0, 4)]:\n    uf.union(a, b)\nassert uf.parent == [0, 0, 0, 2, 0, 4, 4, 6]              # 7 is at depth 3: 7, 6, 4, 0\nassert uf.groups == 1 and uf.size[0] == 8\nassert uf.find(7) == 0 and uf.parent[7] == 0 and uf.parent[6] == 0        # the path was compressed\nassert uf.connected(3, 5) and not UnionFind(3).connected(0, 1)\nassert uf.union(1, 7) is False                            # already in the same group"
+      },
+      {
+        "title": "Use it: provinces, a redundant edge and Kruskal's test",
+        "lang": "py",
+        "code": "class UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n    def find(self, x):\n        while self.parent[x] != x:\n            self.parent[x] = self.parent[self.parent[x]]    # path halving\n            x = self.parent[x]\n        return x\n    def union(self, a, b):\n        ra, rb = self.find(a), self.find(b)\n        if ra == rb:\n            return False\n        self.parent[ra] = rb\n        return True\n\ndef provinces(matrix):                                       # groups of directly or indirectly connected cities\n    n = len(matrix)\n    uf, count = UnionFind(n), n\n    for i in range(n):\n        for j in range(i + 1, n):\n            if matrix[i][j] and uf.union(i, j):\n                count -= 1\n    return count\n\nassert provinces([[1, 1, 0], [1, 1, 0], [0, 0, 1]]) == 2\nassert provinces([[1, 0], [0, 1]]) == 2\n\ndef redundant_edge(edges):                                    # the edge that closes the first cycle\n    uf = UnionFind(max((max(e) for e in edges), default=0) + 1)      # vertices are numbered from 1\n    for a, b in edges:\n        if not uf.union(a, b):\n            return (a, b)\n    return None\n\nassert redundant_edge([(1, 2), (1, 3), (2, 3)]) == (2, 3)\nassert redundant_edge([(1, 2), (2, 3)]) is None"
+      },
+      {
+        "title": "Why union by size matters",
+        "lang": "py",
+        "code": "import random\n\ndef depth_after(n, unions, by_size):\n    parent, size = list(range(n)), [1] * n\n    def find(x):\n        while parent[x] != x:\n            x = parent[x]\n        return x\n    for a, b in unions:\n        ra, rb = find(a), find(b)\n        if ra == rb:\n            continue\n        if by_size and size[ra] < size[rb]:\n            ra, rb = rb, ra\n        elif not by_size:\n            ra, rb = rb, ra                                   # always hang the first tree under the second\n        parent[rb] = ra\n        size[ra] += size[rb]\n    def depth(x):\n        d = 0\n        while parent[x] != x:\n            x, d = parent[x], d + 1\n        return d\n    return max(depth(x) for x in range(n))\n\nn = 1000\nchain = [(i, i + 1) for i in range(n - 1)]                    # the worst case for naive linking\nassert depth_after(n, chain, by_size=False) == n - 1          # a chain: finds cost O(n)\nassert depth_after(n, chain, by_size=True) <= 10              # at most log2 n\n\nrandom.seed(40)\npairs = [(random.randrange(n), random.randrange(n)) for _ in range(5000)]\nassert depth_after(n, pairs, by_size=True) <= 10"
+      }
+    ],
+    "django": {},
+    "exercise": "Write UnionFind with union by size and path compression, and check the parent array after the eight-item example. Use it for the number of provinces, the redundant connection and the accounts merge problems. Then count the steps of find with and without union by size on a chain of 1,000 unions, and explain what you see.",
+    "pitfalls": [
+      "Linking non-roots. Always call find on both items first and link the roots.",
+      "Forgetting to update the size after a union, so union by size stops working.",
+      "Not using union by size or path compression, so trees degrade into chains.",
+      "Recursive find on a very deep tree hitting the recursion limit. Use a loop.",
+      "Trying to remove an item or split a group. Union-find only merges."
+    ],
+    "interview": [
+      {
+        "q": "What is union-find and what are its operations?",
+        "a": "A structure for disjoint groups of items. find(x) returns the group's representative, the root of its tree, and union(a, b) merges the groups of a and b. Two items are in the same group when find gives the same root."
+      },
+      {
+        "q": "How do union by size and path compression speed it up?",
+        "a": "Union by size hangs the smaller tree under the larger, so depth is at most log2 n. Path compression points every item on a find path directly at the root. Together they give amortized inverse-Ackermann time per operation, almost constant."
+      },
+      {
+        "q": "Where is union-find used?",
+        "a": "Kruskal's minimum spanning tree algorithm to skip edges that would make a cycle, counting connected components, detecting cycles in undirected graphs, and problems about merging groups such as accounts merge."
+      },
+      {
+        "q": "What can't union-find do?",
+        "a": "It cannot split a group or delete an item, and it does not store the paths between items, only whether they are connected."
+      }
+    ],
+    "references": [
+      {
+        "title": "Union-find (Princeton, Algorithms 4th ed.)",
+        "url": "https://algs4.cs.princeton.edu/15uf/",
+        "kind": "Course notes"
+      },
+      {
+        "title": "Component (graph theory) (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Component_(graph_theory)",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: union-find is the structure behind Kruskal's algorithm and many connectivity questions. The quick-union, weighted quick-union with depth at most log2 n, and path compression ideas come from the Princeton page that I read in an earlier lesson, and the amortized inverse-Ackermann bound for incremental connectivity from the Wikipedia component article, which I read in part. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "princeton-union-find",
+      "wikipedia-component-graph-theory",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "unionfind",
+        "title": "Union-find, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "find or compare"
+          },
+          {
+            "kind": "write",
+            "label": "join or add"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "rejected: it would make a cycle"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Trees of parents",
+            "at": 1
+          },
+          {
+            "text": "Union by size",
+            "at": 2
+          },
+          {
+            "text": "One group",
+            "at": 7
+          },
+          {
+            "text": "Path compression",
+            "at": 8
+          },
+          {
+            "text": "Uses",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "u0",
+            "kind": "cube",
+            "x": -4.213,
+            "y": 1.212,
+            "label": "0",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u1",
+            "kind": "cube",
+            "x": -3.438,
+            "y": 0.438,
+            "label": "1",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u2",
+            "kind": "cube",
+            "x": -2.663,
+            "y": -0.337,
+            "label": "2",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u3",
+            "kind": "cube",
+            "x": -1.887,
+            "y": -1.113,
+            "label": "3",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u4",
+            "kind": "cube",
+            "x": -1.113,
+            "y": -1.887,
+            "label": "4",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u5",
+            "kind": "cube",
+            "x": -0.337,
+            "y": -2.663,
+            "label": "5",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u6",
+            "kind": "cube",
+            "x": 0.438,
+            "y": -3.438,
+            "label": "6",
+            "icon": "ball",
+            "tone": "green"
+          },
+          {
+            "id": "u7",
+            "kind": "cube",
+            "x": 1.212,
+            "y": -4.213,
+            "label": "7",
+            "icon": "ball",
+            "tone": "green"
+          }
+        ],
+        "links": [
+          {
+            "a": "u1",
+            "b": "u0",
+            "dir": "to",
+            "from": 2
+          },
+          {
+            "a": "u3",
+            "b": "u2",
+            "dir": "to",
+            "from": 3
+          },
+          {
+            "a": "u2",
+            "b": "u0",
+            "dir": "to",
+            "from": 4
+          },
+          {
+            "a": "u5",
+            "b": "u4",
+            "dir": "to",
+            "from": 5
+          },
+          {
+            "a": "u7",
+            "b": "u6",
+            "dir": "to",
+            "from": 5,
+            "until": 7
+          },
+          {
+            "a": "u6",
+            "b": "u4",
+            "dir": "to",
+            "from": 6,
+            "until": 7
+          },
+          {
+            "a": "u4",
+            "b": "u0",
+            "dir": "to",
+            "from": 7
+          },
+          {
+            "a": "u6",
+            "b": "u0",
+            "dir": "to",
+            "from": 8
+          },
+          {
+            "a": "u7",
+            "b": "u0",
+            "dir": "to",
+            "from": 8
+          }
+        ],
+        "steps": [
+          {
+            "title": "The question: are these two in the same group?",
+            "tag": "technique",
+            "body": [
+              "Imagine 8 items, each in its own group. We need two operations: union, to merge the groups of two items, and find, to tell which group an item belongs to. With find we can ask whether two items are in the same group.",
+              "A union-find structure, also called a disjoint-set structure, does both in almost constant time."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "find(x)",
+                "v": "which group is x in?"
+              },
+              {
+                "k": "union(a, b)",
+                "v": "merge the two groups"
+              },
+              {
+                "k": "Start",
+                "v": "8 groups of one"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -4.213,
+                "y": 1.212,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u1": {
+                "x": -3.438,
+                "y": 0.438,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -2.663,
+                "y": -0.337,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -1.887,
+                "y": -1.113,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -1.113,
+                "y": -1.887,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": -0.337,
+                "y": -2.663,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.438,
+                "y": -3.438,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 1.212,
+                "y": -4.213,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Each group is a tree, and the root names the group",
+            "tag": "technique",
+            "body": [
+              "We store each group as a tree. Every item points to its parent, and the root points to itself. The root is the group's name. Two items are in the same group if find reaches the same root. The arrows here go from a child to its parent.",
+              "Everything below is about keeping these trees short."
+            ],
+            "short": "Trees of parents",
+            "hud": [
+              {
+                "k": "Root",
+                "v": "its own parent"
+              },
+              {
+                "k": "Same group",
+                "v": "same root"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -4.213,
+                "y": 1.212,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u1": {
+                "x": -3.438,
+                "y": 0.438,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -2.663,
+                "y": -0.337,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -1.887,
+                "y": -1.113,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -1.113,
+                "y": -1.887,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": -0.337,
+                "y": -2.663,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.438,
+                "y": -3.438,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 1.212,
+                "y": -4.213,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "parent = list(range(n))   # each item is its own root",
+                "def find(x):",
+                "    while parent[x] != x: x = parent[x]",
+                "    return x"
+              ],
+              "hl": [
+                0,
+                2
+              ]
+            }
+          },
+          {
+            "title": "union(0, 1): link one root under the other",
+            "tag": "solution",
+            "body": [
+              "Find the root of each item and hang one tree under the other. Here 0 and 1 are both roots, so 1 goes under 0. The group of 0 now has size 2.",
+              "Union by size: always hang the smaller tree under the larger, so trees stay shallow."
+            ],
+            "short": "union(0, 1)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "7"
+              },
+              {
+                "k": "Largest tree",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -4.157,
+                "y": 1.157,
+                "tone": "green",
+                "pill": {
+                  "text": "size 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.957,
+                "y": 2.357,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -3.271,
+                "y": 0.271,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -2.386,
+                "y": -0.614,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -1.5,
+                "y": -1.5,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": -0.614,
+                "y": -2.386,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.271,
+                "y": -3.271,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 1.157,
+                "y": -4.157,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u1",
+                  "u0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "union(2, 3)",
+            "tag": "solution",
+            "body": [
+              "The same for 2 and 3. 3 goes under 2. Now there are two groups of two, and four groups of one.",
+              "Each union only changes one parent pointer."
+            ],
+            "short": "union(2, 3)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -4.083,
+                "y": 1.083,
+                "tone": "green",
+                "pill": {
+                  "text": "size 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.883,
+                "y": 2.283,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -3.05,
+                "y": 0.05,
+                "tone": "green",
+                "pill": {
+                  "text": "size 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u3": {
+                "x": -1.85,
+                "y": 1.25,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -2.017,
+                "y": -0.983,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": -0.983,
+                "y": -2.017,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.05,
+                "y": -3.05,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 1.083,
+                "y": -4.083,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u3",
+                  "u2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "union(0, 2): two trees of equal size",
+            "tag": "solution",
+            "body": [
+              "The roots are 0 and 2, both with size 2. For a tie, we hang the second under the first: 2 goes under 0. The tree of 0 now has 4 items and depth 2.",
+              "Union by size guarantees that the depth never exceeds log2 of the number of items. This is the result for weighted quick-union in the Princeton notes."
+            ],
+            "short": "union(0, 2)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "5"
+              },
+              {
+                "k": "Depth",
+                "v": "at most 2"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -3.567,
+                "y": 0.567,
+                "tone": "green",
+                "pill": {
+                  "text": "size 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.883,
+                "y": 2.283,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -1.85,
+                "y": 1.25,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -0.65,
+                "y": 2.45,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -2.017,
+                "y": -0.983,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": -0.983,
+                "y": -2.017,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.05,
+                "y": -3.05,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 1.083,
+                "y": -4.083,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u2",
+                  "u0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "union(4, 5) and union(6, 7)",
+            "tag": "solution",
+            "body": [
+              "Two more pairs: 5 under 4, and 7 under 6. We now have three groups: one of four items and two of two items.",
+              "Nothing has become deep yet."
+            ],
+            "short": "Two more unions",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -2.7,
+                "y": -0.3,
+                "tone": "green",
+                "pill": {
+                  "text": "size 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.1,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -0.9,
+                "y": 0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": 0.3,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.9,
+                "y": -2.1,
+                "tone": "green",
+                "pill": {
+                  "text": "size 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u5": {
+                "x": 0.3,
+                "y": -0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.3,
+                "y": -3.3,
+                "tone": "green",
+                "pill": {
+                  "text": "size 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u7": {
+                "x": 1.5,
+                "y": -2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u5",
+                  "u4"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "u7",
+                  "u6"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "union(4, 6): the 2-trees join",
+            "tag": "solution",
+            "body": [
+              "The roots are 4 and 6, both of size 2. 6 goes under 4, so 4's tree has size 4 and 7 is at depth 2.",
+              "Two groups remain: {0, 1, 2, 3} and {4, 5, 6, 7}."
+            ],
+            "short": "union(4, 6)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -2.7,
+                "y": -0.3,
+                "tone": "green",
+                "pill": {
+                  "text": "size 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.1,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -0.9,
+                "y": 0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": 0.3,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.3,
+                "y": -2.7,
+                "tone": "green",
+                "pill": {
+                  "text": "size 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u5": {
+                "x": 0.3,
+                "y": -0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 1.5,
+                "y": -2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 2.7,
+                "y": -0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u6",
+                  "u4"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "union(0, 4): everything is one group",
+            "tag": "solution",
+            "body": [
+              "The roots 0 and 4 both have size 4, so 4 goes under 0. All 8 items are in one tree. Item 7 is now at depth 3: its path to the root is 7, 6, 4, 0.",
+              "A find on 7 must walk 3 steps. We can make that cheaper."
+            ],
+            "short": "union(0, 4)",
+            "hud": [
+              {
+                "k": "Groups",
+                "v": "1"
+              },
+              {
+                "k": "Depth of 7",
+                "v": "3",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -1.9,
+                "y": -1.1,
+                "tone": "green",
+                "pill": {
+                  "text": "size 8",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.1,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -0.9,
+                "y": 0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": 0.3,
+                "y": 1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": 0.9,
+                "y": -1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": 1.5,
+                "y": 0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 2.7,
+                "y": -0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 3.9,
+                "y": 0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u4",
+                  "u0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "find(7) with path compression",
+            "tag": "technique",
+            "body": [
+              "While walking from 7 up to the root 0, remember the path 7, 6, 4, 0. When you reach the root, point every item on the path directly at it. Now 7 and 6 point straight at 0.",
+              "The next find on any of these items takes one step. The Princeton notes describe path compression as making the trees almost flat."
+            ],
+            "short": "Path compression",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "7 6 4 0"
+              },
+              {
+                "k": "After",
+                "v": "7 and 6 point at 0",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -1.5,
+                "y": -1.5,
+                "tone": "green",
+                "pill": {
+                  "text": "size 8",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.7,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -1.5,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -0.3,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.3,
+                "y": -0.3,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": 0.9,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.9,
+                "y": -1.5,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 2.1,
+                "y": -2.7,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "u7",
+                  "u6",
+                  "u4",
+                  "u0"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "After find(7) compresses the path, what is the parent of 7?",
+              "options": [
+                "6, as before",
+                "0, the root",
+                "4"
+              ],
+              "answer": 1,
+              "why": "Path compression points every item on the path straight at the root, so 7's parent becomes 0."
+            }
+          },
+          {
+            "title": "Almost constant time",
+            "tag": "insight",
+            "body": [
+              "Union by size alone gives find in O(log n). With path compression as well, the amortized cost per operation is the inverse Ackermann function of n, which is below 5 for any input you could ever store.",
+              "The Wikipedia article on components gives this amortized bound for union-find."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Union by size",
+                "v": "depth at most log2 n",
+                "tone": "good"
+              },
+              {
+                "k": "With compression",
+                "v": "amortized inverse Ackermann",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -1.5,
+                "y": -1.5,
+                "tone": "green",
+                "pill": {
+                  "text": "size 8",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.7,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -1.5,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -0.3,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.3,
+                "y": -0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": 0.9,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.9,
+                "y": -1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 2.1,
+                "y": -2.7,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "What it is used for",
+            "tag": "insight",
+            "body": [
+              "Kruskal's algorithm uses it to reject edges that would form a cycle. It counts connected components, detects cycles in an undirected graph, groups accounts or friends, and handles graphs where edges arrive one at a time.",
+              "Whenever the question is whether two things are connected, and things only join, think union-find."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "Kruskal",
+                "v": "reject cycle edges"
+              },
+              {
+                "k": "Components",
+                "v": "count the groups"
+              },
+              {
+                "k": "Dynamic connectivity",
+                "v": "edges only added"
+              }
+            ],
+            "set": {
+              "u0": {
+                "x": -1.5,
+                "y": -1.5,
+                "tone": "green",
+                "pill": {
+                  "text": "size 8",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.7,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -1.5,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -0.3,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.3,
+                "y": -0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": 0.9,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.9,
+                "y": -1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 2.1,
+                "y": -2.7,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Union-find keeps groups as trees of parents. find follows parents to the root, union links one root under the other. Use union by size and path compression, and both operations are almost constant time.",
+              "Check whether two items are connected by comparing their roots."
+            ],
+            "short": "Recap",
+            "set": {
+              "u0": {
+                "x": -1.5,
+                "y": -1.5,
+                "tone": "green",
+                "pill": {
+                  "text": "size 8",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "u1": {
+                "x": -2.7,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u2": {
+                "x": -1.5,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u3": {
+                "x": -0.3,
+                "y": 2.1,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u4": {
+                "x": -0.3,
+                "y": -0.3,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u5": {
+                "x": 0.9,
+                "y": 0.9,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u6": {
+                "x": 0.9,
+                "y": -1.5,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "u7": {
+                "x": 2.1,
+                "y": -2.7,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 parent[x] = x for a root",
+                "2 find: follow parents, compress the path",
+                "3 union: link the smaller root under the larger",
+                "4 same group = same root"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Union-find is like clubs where each club has a leader, and merging two clubs means one leader joins the other's club.",
+      "story": "At a school, every pupil starts in a club of one, and each club has a leader. To tell whether two pupils are in the same club, you ask each who their leader is, going up the chain if needed. To merge two clubs, one leader agrees to follow the other. You always make the smaller club follow the larger. And whenever you trace the chain up to the top leader, you tell everyone you passed to report straight to the top next time.",
+      "maps": [
+        [
+          "A club leader",
+          "The root of a tree"
+        ],
+        [
+          "Asking who your leader is",
+          "find"
+        ],
+        [
+          "Two clubs merging",
+          "union"
+        ],
+        [
+          "Everyone reporting straight to the top",
+          "Path compression"
+        ]
+      ],
+      "words": [
+        [
+          "union-find",
+          "A structure that tracks which items belong to the same group."
+        ],
+        [
+          "find",
+          "Return the root that names the group of an item."
+        ],
+        [
+          "union",
+          "Merge the groups of two items into one."
+        ],
+        [
+          "path compression",
+          "Pointing every item on a find path straight at the root."
+        ],
+        [
+          "root",
+          "The item at the top of a tree, which names the group."
+        ]
+      ]
+    }
   }
 ]
