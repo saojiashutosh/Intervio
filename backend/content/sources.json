@@ -2141,6 +2141,69 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Queue, LifoQueue and PriorityQueue; maxsize blocks put when full; get blocks when empty; Full and Empty exceptions; task_done and join; the classes are thread safe."
+    },
+    {
+      "key": "wikipedia-hash-table",
+      "title": "Hash table (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hash_table",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A hash function maps a key to a bucket index; load factor alpha = n/m; chaining versus open addressing; Theta(1) average and O(n) worst case for search, insert and delete; resizing by doubling and rehashing keeps amortized O(1); typical maximum load factors."
+    },
+    {
+      "key": "wikipedia-open-addressing",
+      "title": "Open addressing (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Open_addressing",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Probing finds another slot after a collision; linear, quadratic and double hashing with their clustering and cache trade-offs; load factors normally limited to about 80%; deleting needs a shift-back or a deleted marker."
+    },
+    {
+      "key": "wikipedia-hash-function",
+      "title": "Hash function (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hash_function",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A hash function maps data of arbitrary size to fixed-size values; it must be deterministic, fast and spread keys uniformly; universal hashing; perfect hashing for a known static set."
+    },
+    {
+      "key": "wikipedia-bloom-filter",
+      "title": "Bloom filter (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bloom_filter",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A bit array of m bits and k hash functions; false positives possible, false negatives not; false-positive probability about (1 - e^(-kn/m))^k; optimal k = (m/n) ln 2; about 9.6 bits per element for a 1% error; items cannot be removed."
+    },
+    {
+      "key": "py-stdtypes-dict-set",
+      "title": "Built-in types: dict, set and frozenset (Python docs)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "dict keys must be hashable and dictionaries keep insertion order; get, setdefault, pop, update and views; set is an unordered collection of distinct hashable objects with union, intersection, difference and symmetric difference; frozenset is hashable."
+    },
+    {
+      "key": "py-glossary-hashable",
+      "title": "Glossary: hashable (Python docs)",
+      "url": "https://docs.python.org/3/glossary.html#term-hashable",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "An object is hashable if its hash never changes and it can be compared for equality; equal hashable objects must have equal hashes; lists and dicts are not hashable; a tuple is hashable only if its items are."
+    },
+    {
+      "key": "py-counter-defaultdict",
+      "title": "collections: Counter and defaultdict (Python docs)",
+      "url": "https://docs.python.org/3/library/collections.html#collections.Counter",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Counter is a dict subclass for counting hashable objects, returns zero for missing items and has most_common; defaultdict calls default_factory for a missing key and is simpler and faster than setdefault for grouping."
     }
   ],
   "levels": [
