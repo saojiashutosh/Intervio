@@ -151768,5 +151768,1021 @@
         ]
       ]
     }
+  },
+  {
+    "id": "minimum-spanning-trees",
+    "n": 192,
+    "level": 14,
+    "week": "Core",
+    "title": "Minimum Spanning Trees: Kruskal's Algorithm",
+    "tagline": "Connect all vertices with the cheapest set of edges, by sorting the edges and taking each one that does not make a cycle.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "A spanning tree of a connected graph is a set of edges that connects all the vertices and has no cycles. Every spanning tree of a graph with n vertices has n - 1 edges. In a weighted graph, a minimum spanning tree, or MST, is a spanning tree with the smallest possible total weight. The Wikipedia article gives the definition: a subset of edges that connects all vertices, has no cycles, and has minimum total weight. It is used to lay cables, pipes and roads at least cost, and in clustering.",
+      "## Two properties that make greedy work",
+      "The cut property says that for any split of the vertices into two sets, if an edge crossing the split is strictly lighter than all the other crossing edges, it belongs to every MST. The cycle property says that if an edge is strictly heavier than every other edge on some cycle, it belongs to no MST. The article states both. They justify taking the cheapest safe edge repeatedly, which is why simple greedy algorithms find the optimum.",
+      "## Kruskal's algorithm",
+      "Start with each vertex as its own tree. Sort all edges by weight. Go through them from the lightest. For each edge, if its two ends are in different trees, add the edge and merge the trees. If they are in the same tree, skip it, since adding it would form a cycle. Stop when you have n - 1 edges. The Wikipedia article gives this procedure and says the cycle test is done with a disjoint-set structure: if find-set(u) is not find-set(v), add the edge and union the sets.",
+      "- Sorting costs O(E log E). The article writes the total as O(E log V), since E is less than V squared.\n- The union-find operations are about O(E) in total, because each is almost constant.\n- With edges already sorted, or small integer weights, the total drops to near O(E).",
+      "> A worked example: edges AB 1, CD 2, AC 3, BC 4, BD 5, DE 6, CE 7. Take AB. Take CD. Take AC, which joins {A, B} with {C, D}. BC: B and C are in the same tree, skip. BD: skip. Take DE. That is 4 edges for 5 vertices, so stop. The total weight is 1 + 2 + 3 + 6 = 12.",
+      "## Uniqueness and ties",
+      "If all edge weights are distinct, the minimum spanning tree is unique. With ties, there may be several, and they all have the same total weight and the same multiset of weights. If the graph is not connected, Kruskal's algorithm produces a minimum spanning forest, one tree for each component.",
+      "## Other algorithms",
+      "Prim's algorithm grows one tree from a start vertex, and is the subject of the next lesson. Boruvka's algorithm, the oldest, merges components in rounds. All three are greedy and run in O(E log V) or better. The article also mentions faster, more complex algorithms with near-linear time.",
+      "## Common mistakes",
+      "Forgetting the cycle test, so the result has cycles. Using a visited set of vertices instead of a union-find over components. Stopping too early or too late: you need exactly V - 1 edges for a connected graph. Assuming the tree is unique when weights tie.",
+      "## How to talk through it",
+      "Say what an MST is, and that it has V - 1 edges. Describe Kruskal in three lines with union-find, run the example, and give O(E log E). Mention the cut property as the reason greedy is correct."
+    ],
+    "keyPoints": [
+      "A spanning tree connects all V vertices with V - 1 edges and no cycle. An MST has the least total weight.",
+      "Kruskal: sort edges, take each edge whose ends are in different groups (union-find), stop at V - 1 edges.",
+      "Cut property: the cheapest edge across any split is safe. Cycle property: the heaviest cycle edge is not needed.",
+      "O(E log E) time, dominated by sorting. Unique if all weights differ.",
+      "For a disconnected graph you get a minimum spanning forest."
+    ],
+    "sql": [
+      {
+        "title": "Kruskal's algorithm",
+        "lang": "py",
+        "code": "class UnionFind:\n    def __init__(self, vertices):\n        self.parent = {v: v for v in vertices}\n    def find(self, x):\n        while self.parent[x] != x:\n            self.parent[x] = self.parent[self.parent[x]]\n            x = self.parent[x]\n        return x\n    def union(self, a, b):\n        ra, rb = self.find(a), self.find(b)\n        if ra == rb:\n            return False\n        self.parent[ra] = rb\n        return True\n\ndef kruskal(vertices, edges):\n    uf, tree, total = UnionFind(vertices), [], 0\n    for a, b, w in sorted(edges, key=lambda e: e[2]):\n        if uf.union(a, b):                                 # different groups: no cycle\n            tree.append((a, b, w))\n            total += w\n            if len(tree) == len(vertices) - 1:\n                break\n    return tree, total\n\nedges = [(\"A\", \"B\", 1), (\"B\", \"C\", 4), (\"A\", \"C\", 3), (\"C\", \"D\", 2), (\"B\", \"D\", 5), (\"D\", \"E\", 6), (\"C\", \"E\", 7)]\ntree, total = kruskal(\"ABCDE\", edges)\nassert tree == [(\"A\", \"B\", 1), (\"C\", \"D\", 2), (\"A\", \"C\", 3), (\"D\", \"E\", 6)] and total == 12\nassert kruskal(\"A\", [])  == ([], 0)\nforest, w = kruskal(\"ABCD\", [(\"A\", \"B\", 1), (\"C\", \"D\", 2)])\nassert len(forest) == 2 and w == 3                         # a disconnected graph gives a forest"
+      },
+      {
+        "title": "Check against brute force",
+        "lang": "py",
+        "code": "import itertools\nimport random\n\ndef find(parent, x):\n    while parent[x] != x:\n        x = parent[x]\n    return x\n\ndef kruskal_weight(n, edges):\n    parent, total, count = list(range(n)), 0, 0\n    for a, b, w in sorted(edges, key=lambda e: e[2]):\n        ra, rb = find(parent, a), find(parent, b)\n        if ra != rb:\n            parent[ra] = rb\n            total += w\n            count += 1\n    return total if count == n - 1 else None\n\ndef brute_weight(n, edges):\n    best = None\n    for combo in itertools.combinations(edges, n - 1):\n        parent, ok = list(range(n)), True\n        for a, b, w in combo:\n            ra, rb = find(parent, a), find(parent, b)\n            if ra == rb:\n                ok = False\n                break\n            parent[ra] = rb\n        if ok:                                             # n - 1 edges with no cycle: a spanning tree\n            weight = sum(w for _, _, w in combo)\n            best = weight if best is None else min(best, weight)\n    return best\n\nrandom.seed(42)\nfor _ in range(120):\n    n = random.randint(2, 6)\n    edges = [(i, random.randrange(i), random.randint(1, 9)) for i in range(1, n)]            # a random spanning tree\n    edges += [(a, b, random.randint(1, 9)) for a in range(n) for b in range(a) if random.random() < 0.4]\n    assert kruskal_weight(n, edges) == brute_weight(n, edges)"
+      },
+      {
+        "title": "Network cost and clustering with Kruskal",
+        "lang": "py",
+        "code": "class UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n    def find(self, x):\n        while self.parent[x] != x:\n            self.parent[x] = self.parent[self.parent[x]]\n            x = self.parent[x]\n        return x\n    def union(self, a, b):\n        ra, rb = self.find(a), self.find(b)\n        if ra == rb:\n            return False\n        self.parent[ra] = rb\n        return True\n\ndef min_cost_to_connect(points):\n    n = len(points)\n    edges = [(abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1]), i, j) for i in range(n) for j in range(i)]\n    uf, cost = UnionFind(n), 0\n    for w, i, j in sorted(edges):\n        if uf.union(i, j):\n            cost += w\n    return cost\n\nassert min_cost_to_connect([(0, 0), (2, 2), (3, 10), (5, 2), (7, 0)]) == 20\nassert min_cost_to_connect([(0, 0)]) == 0\n\ndef clusters(n, edges, k):\n    # stop Kruskal early: n - k merges leave k groups (single-linkage clustering)\n    uf, groups = UnionFind(n), n\n    for w, a, b in sorted((w, a, b) for a, b, w in edges):\n        if groups == k:\n            break\n        if uf.union(a, b):\n            groups -= 1\n    return len({uf.find(i) for i in range(n)})\n\nassert clusters(4, [(0, 1, 1), (2, 3, 1), (1, 2, 10)], 2) == 2"
+      }
+    ],
+    "django": {},
+    "exercise": "Write Kruskal's algorithm with union-find, and check the total weight against a brute-force search over all spanning trees of 100 small random graphs. Then write the minimum cost to connect points on a plane with Manhattan distances, and stop Kruskal early to get k clusters. Finally, explain why the result is unique when all weights are distinct.",
+    "pitfalls": [
+      "Skipping the cycle test, so the result may contain cycles.",
+      "Testing cycles with a visited set of vertices instead of union-find over groups.",
+      "Not stopping at V - 1 edges, or not checking that the graph is connected.",
+      "Assuming the MST is unique when weights tie.",
+      "Using it on a directed graph. Spanning trees are defined for undirected graphs."
+    ],
+    "interview": [
+      {
+        "q": "What is a minimum spanning tree?",
+        "a": "A set of edges of a connected, weighted, undirected graph that connects all vertices, contains no cycle, and has the smallest possible total weight. It has V - 1 edges."
+      },
+      {
+        "q": "How does Kruskal's algorithm work?",
+        "a": "Sort the edges by weight. Go through them in order, adding an edge if its two endpoints are in different trees, which you test with union-find, and merging the trees. Stop at V - 1 edges. It takes O(E log E) time."
+      },
+      {
+        "q": "Why is the greedy choice correct?",
+        "a": "By the cut property, the cheapest edge crossing any cut belongs to some minimum spanning tree. When Kruskal takes an edge, it is the cheapest edge leaving one of the two trees it joins."
+      },
+      {
+        "q": "When is the minimum spanning tree unique?",
+        "a": "When all edge weights are distinct. With ties there can be several, all with the same total weight."
+      }
+    ],
+    "references": [
+      {
+        "title": "Minimum spanning tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Minimum_spanning_tree",
+        "kind": "Reference"
+      },
+      {
+        "title": "Kruskal's algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Kruskal%27s_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: minimum spanning trees and Kruskal's algorithm are standard graph topics. The definition, the n - 1 edges, uniqueness with distinct weights, the cut and cycle properties and the list of algorithms come from the Wikipedia minimum spanning tree article, which I read in part. The sort-then-union-find procedure, its O(E log E) cost and the forest for disconnected graphs come from the Wikipedia Kruskal article, which I read in full. The worked example and the code are my own illustration and judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-minimum-spanning-tree",
+      "wikipedia-kruskals-algorithm",
+      "princeton-union-find",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "kruskal",
+        "title": "Kruskal's minimum spanning tree, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "find or compare"
+          },
+          {
+            "kind": "write",
+            "label": "join or add"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "rejected: it would make a cycle"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "The idea",
+            "at": 1
+          },
+          {
+            "text": "Take AB",
+            "at": 2
+          },
+          {
+            "text": "A cycle",
+            "at": 5
+          },
+          {
+            "text": "Why it works",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.6,
+            "y": -0.2,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.2,
+            "y": 2.6,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -0.8,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.6,
+            "y": -2.6,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none",
+            "label": "1",
+            "dash": true
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "none",
+            "label": "4",
+            "dash": true
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none",
+            "label": "3",
+            "dash": true
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none",
+            "label": "2",
+            "dash": true
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none",
+            "label": "5",
+            "dash": true
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none",
+            "label": "6",
+            "dash": true
+          },
+          {
+            "a": "gC",
+            "b": "gE",
+            "dir": "none",
+            "label": "7",
+            "dash": true
+          },
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none",
+            "from": 3
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none",
+            "from": 4
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none",
+            "from": 7
+          }
+        ],
+        "steps": [
+          {
+            "title": "The task: connect everything as cheaply as possible",
+            "tag": "technique",
+            "body": [
+              "A weighted graph has towns and possible cables between them, each with a price. We want to connect all 5 towns with the cheapest set of cables. The cheapest set will never contain a cycle, because dropping any edge of a cycle keeps everything connected and saves money.",
+              "So the answer is a tree on all the vertices, with V - 1 edges, of minimum total weight: a minimum spanning tree."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Vertices",
+                "v": "5"
+              },
+              {
+                "k": "Tree edges",
+                "v": "V - 1 = 4"
+              },
+              {
+                "k": "Goal",
+                "v": "smallest total weight"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Kruskal's idea: take the cheapest edges that do not make a cycle",
+            "tag": "technique",
+            "body": [
+              "Sort all edges by weight. Go through them from the cheapest. Take an edge if it joins two different groups. Skip it if both ends are already in the same group, since it would make a cycle.",
+              "To test this quickly we use union-find. The Wikipedia article gives exactly these steps."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Sorted edges",
+                "v": "1 AB, 2 CD, 3 AC, 4 BC, 5 BD, 6 DE, 7 CE"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for a, b, w in sorted(edges, key=weight):",
+                "    if find(a) != find(b):",
+                "        union(a, b); tree.append((a, b, w))"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Take AB, weight 1",
+            "tag": "solution",
+            "body": [
+              "The next cheapest edge is AB with weight 1. A and B are in different groups, so it is safe to take. Join the two groups.",
+              "The tree so far has 1 edge."
+            ],
+            "short": "AB",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "AB = 1"
+              },
+              {
+                "k": "Decision",
+                "v": "take",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Take CD, weight 2",
+            "tag": "solution",
+            "body": [
+              "The next cheapest edge is CD with weight 2. C and D are in different groups, so it is safe to take. Join the two groups.",
+              "The tree so far has 2 edges."
+            ],
+            "short": "CD",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "CD = 2"
+              },
+              {
+                "k": "Decision",
+                "v": "take",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Take AC, weight 3",
+            "tag": "solution",
+            "body": [
+              "The next cheapest edge is AC with weight 3. A and C are in different groups, so it is safe to take. Join the two groups.",
+              "The tree so far has 3 edges."
+            ],
+            "short": "AC",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "AC = 3"
+              },
+              {
+                "k": "Decision",
+                "v": "take",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Skip BC, weight 4: a cycle",
+            "tag": "problem",
+            "body": [
+              "The next cheapest edge is BC with weight 4. But B and C are already in the same group, connected through other edges. Taking it would make a cycle, so skip it.",
+              "The skipped edge costs nothing and changes nothing."
+            ],
+            "short": "BC",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "BC = 4"
+              },
+              {
+                "k": "Decision",
+                "v": "skip",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gC"
+                ],
+                "kind": "fail"
+              }
+            ],
+            "predict": {
+              "question": "A and C are joined through B, and B and C are joined. The edge BC has weight 4. Take it or skip it?",
+              "options": [
+                "Take it",
+                "Skip it: B and C are already connected",
+                "Take it only if it is the cheapest"
+              ],
+              "answer": 1,
+              "why": "B is connected to A, and A to C, so B and C are in the same group. Another edge between them would close a cycle."
+            }
+          },
+          {
+            "title": "Skip BD, weight 5: a cycle",
+            "tag": "problem",
+            "body": [
+              "The next cheapest edge is BD with weight 5. But B and D are already in the same group, connected through other edges. Taking it would make a cycle, so skip it.",
+              "The skipped edge costs nothing and changes nothing."
+            ],
+            "short": "BD",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "BD = 5"
+              },
+              {
+                "k": "Decision",
+                "v": "skip",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Take DE, weight 6",
+            "tag": "solution",
+            "body": [
+              "The next cheapest edge is DE with weight 6. D and E are in different groups, so it is safe to take. Join the two groups.",
+              "The tree so far has 4 edges."
+            ],
+            "short": "DE",
+            "hud": [
+              {
+                "k": "Edge",
+                "v": "DE = 6"
+              },
+              {
+                "k": "Decision",
+                "v": "take",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Done: 4 edges, total weight 12",
+            "tag": "insight",
+            "body": [
+              "We have 4 edges, which is V - 1, so every vertex is connected. We can stop. The remaining edge CE would be skipped. The total weight is 1 + 2 + 3 + 6 = 12.",
+              "Every vertex is in one group."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "AB, CD, AC, DE",
+                "tone": "good"
+              },
+              {
+                "k": "Total weight",
+                "v": "12",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why the greedy choice is safe",
+            "tag": "insight",
+            "body": [
+              "The cut property: for any way of splitting the vertices into two sets, the cheapest edge crossing the split belongs to some minimum spanning tree, and to every one if it is the only cheapest. When Kruskal takes an edge, it is the cheapest edge leaving one of its groups.",
+              "The cycle property: the heaviest edge on a cycle is in no minimum spanning tree if it is strictly heavier than the others. Both are in the Wikipedia article, and they justify all the greedy algorithms."
+            ],
+            "short": "Why it works",
+            "hud": [
+              {
+                "k": "Cut property",
+                "v": "cheapest crossing edge is safe",
+                "tone": "good"
+              },
+              {
+                "k": "Cycle property",
+                "v": "heaviest cycle edge is not needed",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost, and when the tree is unique",
+            "tag": "insight",
+            "body": [
+              "Sorting the edges costs O(E log E), which dominates. Each union-find operation is almost constant, so the loop adds about O(E). The Wikipedia article writes the total as O(E log V). If every weight is different, the minimum spanning tree is unique. If weights tie, several trees may have the same total.",
+              "For a disconnected graph, Kruskal's algorithm gives a minimum spanning forest, one tree per component."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(E log E)",
+                "tone": "good"
+              },
+              {
+                "k": "Distinct weights",
+                "v": "unique tree"
+              },
+              {
+                "k": "Disconnected graph",
+                "v": "a spanning forest"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A minimum spanning tree connects all vertices with V - 1 edges and the least total weight. Kruskal sorts the edges and takes each one that joins two different groups, tested with union-find. O(E log E).",
+              "Prim's algorithm, next, builds the same tree by growing from one vertex."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 sort edges by weight",
+                "2 take an edge if its ends are in different groups",
+                "3 union-find to test",
+                "4 stop at V - 1 edges"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A minimum spanning tree is the cheapest way to lay cables so every house is connected, without wasting a cable.",
+      "story": "A village wants to connect every house with cables, and each possible cable has a price. You sort the cables from cheapest to dearest. You take each cable in turn, unless its two ends are already connected through other cables, because that cable would be wasted. When every house is connected, you stop. You have used the cheapest cables that do the job.",
+      "maps": [
+        [
+          "The houses",
+          "The vertices"
+        ],
+        [
+          "A cable and its price",
+          "An edge and its weight"
+        ],
+        [
+          "A cable between houses already connected",
+          "An edge that would form a cycle"
+        ],
+        [
+          "The cheapest set that connects all",
+          "The minimum spanning tree"
+        ]
+      ],
+      "words": [
+        [
+          "spanning tree",
+          "A set of edges that connects all vertices and has no cycle."
+        ],
+        [
+          "minimum spanning tree",
+          "A spanning tree with the smallest total weight."
+        ],
+        [
+          "cut property",
+          "The cheapest edge across any split of the vertices is safe to take."
+        ],
+        [
+          "greedy",
+          "Choosing the best-looking option at each step and never undoing it."
+        ],
+        [
+          "cycle",
+          "A path that starts and ends at the same vertex."
+        ]
+      ]
+    }
   }
 ]
