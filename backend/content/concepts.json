@@ -178325,5 +178325,1374 @@
         ]
       ]
     }
+  },
+  {
+    "id": "tabulation",
+    "n": 210,
+    "level": 14,
+    "week": "Core",
+    "title": "Tabulation: Filling a Table Bottom-Up",
+    "tagline": "Solve a problem by filling a table from the smallest subproblems upwards, with a five-step recipe you can reuse for every dynamic programming question.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Tabulation is the bottom-up form of dynamic programming. Instead of recursing from the big problem down, you start from the smallest subproblems, store their answers in a table, and build up to the answer you want. The Wikipedia article on dynamic programming describes the two forms: top-down with memoization, and bottom-up with a table. Both solve each subproblem once.",
+      "## A worked problem: climbing stairs",
+      "A staircase has n steps. You can hop 1 or 2 steps at a time. How many different ways reach the top? Let ways(i) be the number of ways to reach step i. To stand on step i, the last hop came from step i - 1 or step i - 2, and those two groups of ways are different. So ways(i) = ways(i - 1) + ways(i - 2). This rule is called the recurrence. The base cases are ways(0) = 1 and ways(1) = 1.",
+      "> A worked example: n = 7. The table starts 1, 1. Then 2, 3, 5, 8, 13 and 21. There are 21 ways to climb 7 steps.",
+      "## The five-step recipe",
+      "- What does one cell of the table mean? Write it as a sentence.\n- What is the recurrence that gives a cell from earlier cells?\n- What are the base cases, the cells you can fill directly?\n- In which order must you fill the table, so each cell is filled after the cells it reads?\n- Which cell holds the answer?",
+      "Answering these in order is the way to approach any dynamic programming question. Most mistakes come from a vague meaning of a cell, or a wrong fill order.",
+      "## Top-down against bottom-up",
+      "Top-down, or memoization, keeps the recursive code and adds a cache. It computes only the subproblems that are actually needed, but it uses the call stack, which is limited. Bottom-up fills the whole table with loops. It has no recursion depth problem and often runs faster, because loops are cheaper than calls, but it may compute cells you never needed. For many problems the two have the same time complexity.",
+      "## Saving memory",
+      "Often a cell depends only on a few earlier cells. For stairs, only the last two. Then you can keep just those, so the memory is O(1) instead of O(n). In a two-dimensional table where each row depends only on the previous row, keep two rows. The price is that you lose the table, which you need if you must recover how the answer was built, for example which hops were taken.",
+      "## Another example: the house robber",
+      "A row of houses holds money a[i]. You cannot rob two neighbours. Let best(i) be the most you can take from the first i houses. For house i either skip it, giving best(i - 1), or rob it, giving a[i] plus best(i - 2). So best(i) is the larger of the two. Same five steps, different recurrence.",
+      "## How to talk through it",
+      "Say what a cell means, give the recurrence and the base cases, name the fill order, and say where the answer is. Then give the time as the number of cells times the work for a cell, and the memory, with the rolling trick."
+    ],
+    "keyPoints": [
+      "Tabulation is bottom-up: fill a table from the smallest subproblems to the answer.",
+      "Five steps: meaning of a cell, recurrence, base cases, fill order, answer cell.",
+      "Fill a cell only after the cells it reads. A wrong order reads empty cells.",
+      "Top-down computes only what is needed but uses the call stack. Bottom-up has no recursion limit.",
+      "Keep only the part of the table you still need to cut memory, for example two variables."
+    ],
+    "sql": [
+      {
+        "title": "Climbing stairs: table, rolling variables, memo",
+        "lang": "py",
+        "code": "from functools import cache\n\ndef stairs_table(n):\n    dp = [1, 1]                                          # ways(0), ways(1)\n    for i in range(2, n + 1):\n        dp.append(dp[i - 1] + dp[i - 2])\n    return dp[n]\n\ndef stairs_rolling(n):\n    a, b = 1, 1\n    for _ in range(n - 1):\n        a, b = b, a + b\n    return b if n >= 1 else 1\n\n@cache\ndef stairs_memo(n):\n    return 1 if n <= 1 else stairs_memo(n - 1) + stairs_memo(n - 2)\n\nassert [stairs_table(n) for n in range(8)] == [1, 1, 2, 3, 5, 8, 13, 21]\nassert all(stairs_table(n) == stairs_rolling(n) == stairs_memo(n) for n in range(30))\nassert stairs_table(100) == 573147844013817084101          # no recursion limit, big integers are fine"
+      },
+      {
+        "title": "House robber: the same five steps",
+        "lang": "py",
+        "code": "import itertools\n\ndef rob(money):\n    take, skip = 0, 0                                     # best total if we rob / do not rob the last house\n    for m in money:\n        take, skip = skip + m, max(take, skip)\n    return max(take, skip)\n\nassert rob([2, 7, 9, 3, 1]) == 12\nassert rob([]) == 0 and rob([5]) == 5 and rob([1, 2]) == 2\n\ndef rob_brute(money):\n    best = 0\n    for mask in range(1 << len(money)):\n        picked = [i for i in range(len(money)) if mask >> i & 1]\n        if all(b - a > 1 for a, b in zip(picked, picked[1:])):          # no two neighbours\n            best = max(best, sum(money[i] for i in picked))\n    return best\n\nimport random\nrandom.seed(74)\nfor _ in range(200):\n    data = [random.randint(0, 20) for _ in range(random.randint(0, 10))]\n    assert rob(data) == rob_brute(data)"
+      },
+      {
+        "title": "Keep the table to recover the choices",
+        "lang": "py",
+        "code": "def rob_with_choices(money):\n    n = len(money)\n    best = [0] * (n + 1)                                  # best[i]: the most from the first i houses\n    for i in range(1, n + 1):\n        take = money[i - 1] + (best[i - 2] if i >= 2 else 0)\n        best[i] = max(best[i - 1], take)\n    chosen, i = [], n\n    while i >= 1:                                         # walk back through the table\n        take = money[i - 1] + (best[i - 2] if i >= 2 else 0)\n        if take >= best[i - 1] and take == best[i]:\n            chosen.append(i - 1)\n            i -= 2\n        else:\n            i -= 1\n    return best[n], sorted(chosen)\n\ntotal, houses = rob_with_choices([2, 7, 9, 3, 1])\nassert total == 12 and houses == [0, 2, 4]               # 2 + 9 + 1\nassert sum([2, 7, 9, 3, 1][i] for i in houses) == total"
+      }
+    ],
+    "django": {},
+    "exercise": "Write stairs with a table, with two variables and with a cache, and check that all agree for n up to 30. Write the house robber with the recurrence, check it against brute force on 200 random lists, and then keep the full table to recover which houses were robbed. Describe, in one sentence, what each cell of your table means.",
+    "pitfalls": [
+      "A vague meaning for a cell, so the recurrence is wrong.",
+      "Filling cells in the wrong order, so a cell reads one that is still empty.",
+      "Forgetting the base cases, or getting an off-by-one at the edge.",
+      "Throwing away the table when you need to recover the choices.",
+      "Counting subproblems wrongly, so the complexity is wrong."
+    ],
+    "interview": [
+      {
+        "q": "What is tabulation?",
+        "a": "Bottom-up dynamic programming: define a table of subproblem answers, fill it from the smallest subproblems using a recurrence, and read the answer from the right cell."
+      },
+      {
+        "q": "What is the difference between tabulation and memoization?",
+        "a": "Memoization is top-down: recursion with a cache that computes only needed subproblems. Tabulation is bottom-up: a loop fills every cell in order. Tabulation avoids the recursion limit."
+      },
+      {
+        "q": "How do you reduce the memory of a dynamic programming table?",
+        "a": "If a cell depends only on a few earlier cells or the previous row, keep only those, such as two variables or two rows. The cost is that you cannot recover the choices from the table."
+      },
+      {
+        "q": "How many ways can you climb n stairs with 1 or 2 steps?",
+        "a": "ways(n) = ways(n - 1) + ways(n - 2) with ways(0) = ways(1) = 1, so it is a Fibonacci number. O(n) time and O(1) memory with two variables."
+      }
+    ],
+    "references": [
+      {
+        "title": "Dynamic programming (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+        "kind": "Reference"
+      },
+      {
+        "title": "Memoization (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Memoization",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: tabulation is the standard way to write dynamic programming without recursion, and the five-step recipe is how interviews are solved. The top-down and bottom-up forms and the Fibonacci-style example come from the Wikipedia dynamic programming article, which I read in part, and the link to memoization from the Wikipedia memoization article, which I read in part. The stairs and house robber problems, the five-step recipe and the code are my own illustration and judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-dynamic-programming",
+      "wikipedia-memoization",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "tabulation",
+        "title": "Tabulation, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "The recurrence",
+            "at": 1
+          },
+          {
+            "text": "Base cases",
+            "at": 2
+          },
+          {
+            "text": "Fill",
+            "at": 3
+          },
+          {
+            "text": "Fill order",
+            "at": 9
+          },
+          {
+            "text": "Rolling values",
+            "at": 11
+          }
+        ],
+        "nodes": [
+          {
+            "id": "d0",
+            "kind": "cube",
+            "x": -3.85,
+            "y": 3.85,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d1",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 2.75,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d2",
+            "kind": "cube",
+            "x": -1.65,
+            "y": 1.65,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d3",
+            "kind": "cube",
+            "x": -0.55,
+            "y": 0.55,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d4",
+            "kind": "cube",
+            "x": 0.55,
+            "y": -0.55,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d5",
+            "kind": "cube",
+            "x": 1.65,
+            "y": -1.65,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d6",
+            "kind": "cube",
+            "x": 2.75,
+            "y": -2.75,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "d7",
+            "kind": "cube",
+            "x": 3.85,
+            "y": -3.85,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Climbing stairs",
+            "tag": "technique",
+            "body": [
+              "A staircase has 7 steps. You can climb 1 or 2 steps at a time. In how many different ways can you reach the top? The order of the hops counts, so 1 then 2 differs from 2 then 1.",
+              "Let ways(i) be the number of ways to reach step i. We will fill a table of these values."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Steps",
+                "v": "7"
+              },
+              {
+                "k": "Hops",
+                "v": "1 or 2"
+              },
+              {
+                "k": "Want",
+                "v": "ways(7)"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence",
+            "tag": "technique",
+            "body": [
+              "To stand on step i, your last hop came from step i - 1 (a 1-hop) or from step i - 2 (a 2-hop). The two groups of ways do not overlap, so ways(i) = ways(i - 1) + ways(i - 2). This formula is the recurrence.",
+              "It has the same shape as the Fibonacci rule."
+            ],
+            "short": "Recurrence",
+            "set": {
+              "d0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "dp = [1, 1]   # base cases: steps 0 and 1",
+                "for i in range(2, n + 1):",
+                "    dp.append(dp[i - 1] + dp[i - 2])"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "The base cases",
+            "tag": "solution",
+            "body": [
+              "There is 1 way to be at step 0: do nothing. There is 1 way to reach step 1: one 1-hop. Every other value is built from these two.",
+              "The table is filled from the smallest subproblem upwards. That is why this is called bottom-up."
+            ],
+            "short": "Base cases",
+            "hud": [
+              {
+                "k": "ways(0)",
+                "v": "1"
+              },
+              {
+                "k": "ways(1)",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Fill step 2: 1 + 1 = 2",
+            "tag": "solution",
+            "body": [
+              "ways(2) = ways(1) + ways(0) = 1 + 1 = 2.",
+              "Both values to the left are already in the table, so no recursion is needed."
+            ],
+            "short": "Step 2",
+            "hud": [
+              {
+                "k": "ways(2)",
+                "v": "2",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d1",
+                  "d2"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d0",
+                  "d2"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Fill step 3: 2 + 1 = 3",
+            "tag": "solution",
+            "body": [
+              "ways(3) = ways(2) + ways(1) = 2 + 1 = 3.",
+              "Both values to the left are already in the table, so no recursion is needed."
+            ],
+            "short": "Step 3",
+            "hud": [
+              {
+                "k": "ways(3)",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d2",
+                  "d3"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d1",
+                  "d3"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "ways(3) uses ways(2) = 2 and ways(1) = 1. What is ways(3)?",
+              "options": [
+                "2",
+                "3",
+                "4"
+              ],
+              "answer": 1,
+              "why": "ways(3) = ways(2) + ways(1) = 2 + 1 = 3."
+            }
+          },
+          {
+            "title": "Fill step 4: 3 + 2 = 5",
+            "tag": "solution",
+            "body": [
+              "ways(4) = ways(3) + ways(2) = 3 + 2 = 5.",
+              "Both values to the left are already in the table, so no recursion is needed."
+            ],
+            "short": "Step 4",
+            "hud": [
+              {
+                "k": "ways(4)",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d3",
+                  "d4"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d2",
+                  "d4"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Fill step 5: 5 + 3 = 8",
+            "tag": "solution",
+            "body": [
+              "ways(5) = ways(4) + ways(3) = 5 + 3 = 8.",
+              "Both values to the left are already in the table, so no recursion is needed."
+            ],
+            "short": "Step 5",
+            "hud": [
+              {
+                "k": "ways(5)",
+                "v": "8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d4",
+                  "d5"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d3",
+                  "d5"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Fill step 6: 8 + 5 = 13",
+            "tag": "solution",
+            "body": [
+              "ways(6) = ways(5) + ways(4) = 8 + 5 = 13.",
+              "Both values to the left are already in the table, so no recursion is needed."
+            ],
+            "short": "Step 6",
+            "hud": [
+              {
+                "k": "ways(6)",
+                "v": "13",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d5",
+                  "d6"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d4",
+                  "d6"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Fill step 7: 13 + 8 = 21",
+            "tag": "solution",
+            "body": [
+              "ways(7) = ways(6) + ways(5) = 13 + 8 = 21.",
+              "The last cell holds the answer: there are 21 ways to climb 7 steps."
+            ],
+            "short": "Step 7",
+            "hud": [
+              {
+                "k": "ways(7)",
+                "v": "21",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "21",
+                "tone": "orange",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "d6",
+                  "d7"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "d5",
+                  "d7"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Order matters: fill before you read",
+            "tag": "insight",
+            "body": [
+              "A table cell must be filled only after the cells it needs. Here each cell needs the two on its left, so we fill from left to right. In a two-dimensional table you may fill by rows or by columns. Getting the order wrong reads empty cells.",
+              "Working out this order is the main thinking in tabulation."
+            ],
+            "short": "Fill order",
+            "hud": [
+              {
+                "k": "Rule",
+                "v": "fill a cell after the cells it reads"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "21",
+                "tone": "green",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Top-down or bottom-up",
+            "tag": "insight",
+            "body": [
+              "Top-down (memoization) is the recursion plus a cache. It computes only the subproblems that are needed, but it uses the call stack. Bottom-up (tabulation) is a loop that fills the table in order. It has no recursion limit and is usually a little faster, but it computes every cell.",
+              "Both have the same time here: O(n)."
+            ],
+            "short": "Compare",
+            "hud": [
+              {
+                "k": "Top-down",
+                "v": "recursion + cache, only what is needed"
+              },
+              {
+                "k": "Bottom-up",
+                "v": "loop + table, no recursion limit"
+              }
+            ],
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "21",
+                "tone": "green",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Save memory: keep only what you need",
+            "tag": "technique",
+            "body": [
+              "ways(i) needs only the two previous values, so keep two variables instead of the whole table. The memory falls from O(n) to O(1). You give up the table, which you would need to trace which hops were used.",
+              "This trick is called a rolling array when the table has rows."
+            ],
+            "short": "Rolling values",
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "21",
+                "tone": "green",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "a, b = 1, 1",
+                "for _ in range(n - 1):",
+                "    a, b = b, a + b",
+                "return b"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Tabulation: define the table, find the recurrence and the base cases, choose a fill order, fill, and read the answer. It is bottom-up dynamic programming. Keep only the needed part of the table to save memory.",
+              "Every dynamic programming problem follows these five steps."
+            ],
+            "short": "Recap",
+            "set": {
+              "d0": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "0 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "d1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d4": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d6": {
+                "label": "13",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d7": {
+                "label": "21",
+                "tone": "green",
+                "pill": {
+                  "text": "7 steps",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 what does a cell mean?",
+                "2 recurrence",
+                "3 base cases",
+                "4 fill order",
+                "5 where is the answer?"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Tabulation is like building a wall brick by brick, laying each row only after the row below is finished.",
+      "story": "To build a wall you start at the bottom. You lay the first row, then the second row on top of it, and each new brick sits on bricks that are already there. You never try to place a brick in mid air. Tabulation fills a table in the same way: each new number rests on numbers already written, and the last brick at the top is the answer.",
+      "maps": [
+        [
+          "The first row",
+          "The base cases"
+        ],
+        [
+          "Each brick resting on those below",
+          "A cell built from earlier cells"
+        ],
+        [
+          "Laying the rows in order",
+          "The fill order"
+        ],
+        [
+          "The top brick",
+          "The answer cell"
+        ]
+      ],
+      "words": [
+        [
+          "tabulation",
+          "Solving a problem by filling a table from the smallest subproblems up."
+        ],
+        [
+          "recurrence",
+          "A formula that gives one value from earlier ones."
+        ],
+        [
+          "bottom-up",
+          "Starting from the smallest cases and building towards the answer."
+        ],
+        [
+          "top-down",
+          "Starting from the big problem and recursing towards smaller ones."
+        ],
+        [
+          "rolling array",
+          "Keeping only the last few rows of a table to save memory."
+        ]
+      ]
+    }
   }
 ]
