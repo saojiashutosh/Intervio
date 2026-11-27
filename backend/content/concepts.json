@@ -144186,5 +144186,1114 @@
         ]
       ]
     }
+  },
+  {
+    "id": "topological-sort",
+    "n": 186,
+    "level": 14,
+    "week": "Core",
+    "title": "Topological Sort: Ordering Tasks with Dependencies",
+    "tagline": "Order the vertices of a directed acyclic graph so every edge points forward, using Kahn's algorithm or a DFS, and detect cycles on the way.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A topological ordering of a directed graph is a linear order of its vertices such that for every edge from u to v, u comes before v. The Wikipedia article says such an order exists if and only if the graph has no directed cycle. Whenever one task is a dependency of another, you are asking for a topological order: builds, course prerequisites, spreadsheet formulas, and the order to load database tables that reference each other.",
+      "## Kahn's algorithm",
+      "Count the in-degree of every vertex, the number of edges entering it. Put every vertex with in-degree 0 in a queue. Repeat: take a vertex from the queue and append it to the output. For each edge out of it, lower the in-degree of the target by one. If a target reaches 0, add it to the queue. When the queue is empty, if the output has all the vertices, it is a topological order. If vertices remain, they lie on a cycle or depend on one, so no order exists. The article describes the algorithm in terms of removing edges and keeping a set of vertices with no incoming edges. The time is O(V + E).",
+      "## The DFS method",
+      "Run a DFS over the graph and add each vertex to the front of a list when it finishes, that is, when all vertices reachable from it are done. The list is then a topological order. This is the reverse of the finish order. The article credits this version to Tarjan and others, and notes that it marks vertices temporary and permanent, so that reaching a temporary vertex signals a cycle. It also takes O(V + E).",
+      "> A worked example: wake up (A), then shower (B) and coffee (C), then leave (D), then arrive (E). In-degrees: A 0, B 1, C 1, D 2, E 1. Start with the queue A. Take A: B and C drop to 0 and join the queue. Take B: D drops to 1. Take C: D drops to 0 and joins. Take D: E joins. Take E. The order is A, B, C, D, E.",
+      "## Is the order unique",
+      "Usually not. B and C above can swap. The article says the order is unique if and only if every pair of consecutive vertices in the order is joined by an edge, that is, there is a directed path through all the vertices. Which valid order you get depends on how you choose the next vertex: a queue, a stack or a priority queue. For the lexicographically smallest order, use a min-heap.",
+      "## Cycle detection",
+      "Kahn's algorithm doubles as a cycle detector. If a graph has a cycle, no vertex on it ever reaches in-degree 0, because each is waiting for another on the cycle. The output then has fewer than V vertices. The course schedule problem, can you finish all courses given their prerequisites, is exactly this test.",
+      "## Uses",
+      "The article lists scheduling tasks with dependencies, instruction scheduling, spreadsheet recalculation, makefile and build order, linker symbol resolution, and the order of loading database tables with foreign keys. Shortest paths in a weighted directed acyclic graph can also be found in linear time by relaxing edges in topological order.",
+      "## Common mistakes",
+      "Applying it to an undirected graph. Forgetting vertices that appear only as targets of edges, so they are missing from the in-degree table. Not checking for leftover vertices. Using the wrong direction for the edges, so the order comes out reversed.",
+      "## How to talk through it",
+      "Say that a topological order requires no cycle, then describe Kahn's algorithm with in-degrees and a queue. Run it on a small example. Give O(V + E), and say how a leftover vertex shows a cycle."
+    ],
+    "keyPoints": [
+      "A topological order puts u before v for every edge u to v. It exists exactly when the graph has no directed cycle.",
+      "Kahn's algorithm: queue the in-degree 0 vertices, take one, lower its targets' in-degrees, queue those that reach 0. O(V + E).",
+      "DFS method: reverse of the finish order. A temporary vertex met again signals a cycle.",
+      "If fewer than V vertices are output, there is a cycle.",
+      "The order is usually not unique. A min-heap in place of the queue gives the smallest order."
+    ],
+    "sql": [
+      {
+        "title": "Kahn's algorithm",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef topological_order(graph):\n    indegree = {v: 0 for v in graph}\n    for v in graph:\n        for w in graph[v]:\n            indegree[w] = indegree.get(w, 0) + 1          # targets that are not keys still count\n    q = deque(v for v in indegree if indegree[v] == 0)\n    order = []\n    while q:\n        v = q.popleft()\n        order.append(v)\n        for w in graph.get(v, []):\n            indegree[w] -= 1\n            if indegree[w] == 0:\n                q.append(w)\n    return order if len(order) == len(indegree) else None   # None: there is a cycle\n\ndef is_valid(order, graph):\n    pos = {v: i for i, v in enumerate(order)}\n    return all(pos[v] < pos[w] for v in graph for w in graph[v])\n\ng = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": [\"E\"], \"E\": []}\norder = topological_order(g)\nassert order == [\"A\", \"B\", \"C\", \"D\", \"E\"] and is_valid(order, g)\nassert topological_order({\"A\": [\"B\"], \"B\": [\"A\"]}) is None\nassert topological_order({}) == []\nassert topological_order({\"X\": [\"Y\"]}) == [\"X\", \"Y\"]"
+      },
+      {
+        "title": "DFS version, and the lexicographically smallest order",
+        "lang": "py",
+        "code": "import heapq\n\ndef topological_dfs(graph):\n    state, out = {}, []                                   # state: 1 = on the path, 2 = done\n    def visit(v):\n        if state.get(v) == 2:\n            return True\n        if state.get(v) == 1:\n            return False                                  # a cycle\n        state[v] = 1\n        for w in graph.get(v, []):\n            if not visit(w):\n                return False\n        state[v] = 2\n        out.append(v)                                     # finished: after everything it points to\n        return True\n    for v in graph:\n        if not visit(v):\n            return None\n    return out[::-1]\n\ndef smallest_order(graph):\n    indegree = {v: 0 for v in graph}\n    for v in graph:\n        for w in graph[v]:\n            indegree[w] += 1\n    heap = [v for v in graph if indegree[v] == 0]\n    heapq.heapify(heap)\n    order = []\n    while heap:\n        v = heapq.heappop(heap)\n        order.append(v)\n        for w in graph[v]:\n            indegree[w] -= 1\n            if indegree[w] == 0:\n                heapq.heappush(heap, w)\n    return order if len(order) == len(graph) else None\n\ng = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": [\"E\"], \"E\": []}\ndfs_order = topological_dfs(g)\npos = {v: i for i, v in enumerate(dfs_order)}\nassert all(pos[v] < pos[w] for v in g for w in g[v])\nassert topological_dfs({\"A\": [\"B\"], \"B\": [\"A\"]}) is None\nassert smallest_order({\"B\": [], \"A\": [\"C\"], \"C\": [], \"D\": []}) == [\"A\", \"B\", \"C\", \"D\"]"
+      },
+      {
+        "title": "Course schedule, and a check on random graphs",
+        "lang": "py",
+        "code": "import itertools\nimport random\nfrom collections import deque\n\ndef can_finish(num_courses, prerequisites):\n    graph = {i: [] for i in range(num_courses)}\n    indegree = [0] * num_courses\n    for course, needs in prerequisites:\n        graph[needs].append(course)\n        indegree[course] += 1\n    q, done = deque(i for i in range(num_courses) if indegree[i] == 0), 0\n    while q:\n        v = q.popleft()\n        done += 1\n        for w in graph[v]:\n            indegree[w] -= 1\n            if indegree[w] == 0:\n                q.append(w)\n    return done == num_courses\n\nassert can_finish(2, [(1, 0)]) and not can_finish(2, [(1, 0), (0, 1)])\nassert can_finish(1, []) and not can_finish(1, [(0, 0)])\n\ndef has_order(n, edges):\n    return any(all(p.index(a) < p.index(b) for a, b in edges) for p in itertools.permutations(range(n)))\n\nrandom.seed(32)\nfor _ in range(200):\n    n = random.randint(1, 5)\n    edges = [(a, b) for a in range(n) for b in range(n) if a != b and random.random() < 0.25]\n    assert can_finish(n, [(b, a) for a, b in edges]) == has_order(n, edges)     # brute force over all orders"
+      }
+    ],
+    "django": {},
+    "exercise": "Write topological_order with Kahn's algorithm and is_valid. Write the DFS version and check both give valid orders on random DAGs. Then write the course schedule, return a valid course order, and find the smallest order with a heap. Finally, use the order to find the longest path in a DAG with dynamic programming.",
+    "pitfalls": [
+      "Running it on an undirected graph. Edges need a direction.",
+      "Leaving out vertices that only appear as edge targets, so the in-degree table is incomplete.",
+      "Not comparing the output length with V, so a cycle goes unnoticed.",
+      "Reversing the edge direction, which gives the reverse order.",
+      "Assuming the order is unique, and failing when the checker accepts only one answer."
+    ],
+    "interview": [
+      {
+        "q": "What is a topological sort and when does it exist?",
+        "a": "A linear order of the vertices of a directed graph in which every edge goes from an earlier to a later vertex. It exists if and only if the graph has no directed cycle."
+      },
+      {
+        "q": "How does Kahn's algorithm work?",
+        "a": "Compute every vertex's in-degree and queue those with 0. Repeatedly take a vertex, output it, and lower the in-degree of its targets, queuing any that reach 0. If all vertices are output, that is the order. If some are left, there is a cycle. It runs in O(V + E)."
+      },
+      {
+        "q": "How does the DFS approach work?",
+        "a": "Run a DFS and record vertices as they finish, so each finishes after everything it points to. The reverse of the finish order is a topological order. Meeting a vertex that is still on the current path means a cycle."
+      },
+      {
+        "q": "How do you solve the course schedule problem?",
+        "a": "Build the graph from the prerequisites, run Kahn's algorithm, and check that all courses are output. If not, the prerequisites contain a cycle, so you cannot finish all the courses."
+      }
+    ],
+    "references": [
+      {
+        "title": "Topological sorting (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Topological_sorting",
+        "kind": "Reference"
+      },
+      {
+        "title": "Depth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: topological sort and the course schedule problem are standard graph questions. The definition, the no-cycle condition, Kahn's algorithm, the DFS version with temporary and permanent marks, the O(V + E) cost, the uniqueness condition and the listed uses come from the Wikipedia topological sorting article, which I read in part, and reverse postorder from the Wikipedia depth-first search article. The worked example and the code are my own illustration and judgment, and the code is checked by running it, including a brute-force comparison. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-topological-sorting",
+      "wikipedia-depth-first-search",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "toposort",
+        "title": "Topological sort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or relax"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "In-degrees",
+            "at": 1
+          },
+          {
+            "text": "Take A",
+            "at": 2
+          },
+          {
+            "text": "Cycles",
+            "at": 7
+          },
+          {
+            "text": "DFS version",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.5,
+            "y": -0.1,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.1,
+            "y": 2.5,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 0.6,
+            "y": -0.6,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -2.3,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "to"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "to"
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "to"
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "to"
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "to"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Order tasks so that each comes after what it needs",
+            "tag": "technique",
+            "body": [
+              "Some tasks depend on others. You cannot arrive before you leave, and you cannot leave before you shower and make coffee. A topological order lists the tasks so that every task comes after all the tasks it depends on.",
+              "Each arrow points from a task to a task that needs it. Here A is waking up, B a shower, C making coffee, D leaving and E arriving."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Edge u to v",
+                "v": "u must come before v"
+              },
+              {
+                "k": "Possible only if",
+                "v": "no directed cycle",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 2",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Count what each task is waiting for: the in-degree",
+            "tag": "technique",
+            "body": [
+              "The in-degree of a vertex is the number of edges coming into it. A has 0, B has 1, C has 1, D has 2 and E has 1. A vertex with in-degree 0 is not waiting for anything, so it is ready to go first.",
+              "This is the idea behind Kahn's algorithm."
+            ],
+            "short": "In-degrees",
+            "hud": [
+              {
+                "k": "In-degrees",
+                "v": "A 0, B 1, C 1, D 2, E 1"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 2",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Take A: unlocks B, C",
+            "tag": "solution",
+            "body": [
+              "Take A from the queue and add it to the order. Remove its outgoing edges, so each target waits for one task less. B, C are now waiting for nothing, so they join the queue.",
+              "The order so far: A. The queue holds B C."
+            ],
+            "short": "Take A",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A"
+              },
+              {
+                "k": "Queue",
+                "v": "B C"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 2",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "A is taken. B and C each waited only for A. What happens to them?",
+              "options": [
+                "They join the queue: their in-degree is now 0",
+                "They are removed",
+                "They wait for D"
+              ],
+              "answer": 0,
+              "why": "Taking A removes its edges, so B and C wait for nothing and become ready."
+            }
+          },
+          {
+            "title": "Take B: unlocks nothing",
+            "tag": "solution",
+            "body": [
+              "Take B from the queue and add it to the order. Remove its outgoing edges, so each target waits for one task less. No task is unlocked by this.",
+              "The order so far: A B. The queue holds C."
+            ],
+            "short": "Take B",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B"
+              },
+              {
+                "k": "Queue",
+                "v": "C"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take C: unlocks D",
+            "tag": "solution",
+            "body": [
+              "Take C from the queue and add it to the order. Remove its outgoing edges, so each target waits for one task less. D is now waiting for nothing, so it joins the queue.",
+              "The order so far: A B C. The queue holds D."
+            ],
+            "short": "Take C",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B C"
+              },
+              {
+                "k": "Queue",
+                "v": "D"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "waiting for 1",
+                  "tone": "grey",
+                  "icon": "clock"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take D: unlocks E",
+            "tag": "solution",
+            "body": [
+              "Take D from the queue and add it to the order. Remove its outgoing edges, so each target waits for one task less. E is now waiting for nothing, so it joins the queue.",
+              "The order so far: A B C D. The queue holds E."
+            ],
+            "short": "Take D",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B C D"
+              },
+              {
+                "k": "Queue",
+                "v": "E"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take E: unlocks nothing",
+            "tag": "solution",
+            "body": [
+              "Take E from the queue and add it to the order. Remove its outgoing edges, so each target waits for one task less. No task is unlocked by this.",
+              "The order so far: A B C D E. The queue holds nothing."
+            ],
+            "short": "Take E",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B C D E"
+              },
+              {
+                "k": "Queue",
+                "v": "empty"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "ready",
+                  "tone": "purple",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A cycle blocks the order",
+            "tag": "problem",
+            "body": [
+              "If the graph had a cycle, such as D back to A, the vertices on the cycle would each wait for another one on it, and none would ever reach in-degree 0. Kahn's algorithm would stop with vertices left over.",
+              "So the algorithm also detects cycles. The Wikipedia article states that a topological order exists if and only if the graph has no directed cycle."
+            ],
+            "short": "Cycles",
+            "hud": [
+              {
+                "k": "Vertices left over",
+                "v": "means a cycle",
+                "tone": "bad"
+              },
+              {
+                "k": "All removed",
+                "v": "no cycle",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The other method: reverse postorder of a DFS",
+            "tag": "technique",
+            "body": [
+              "Run a DFS, and note the order in which vertices finish. A vertex finishes after everything reachable from it. So the reverse of the finish order puts each vertex before the vertices it points to.",
+              "The Wikipedia article gives both Kahn's algorithm and this depth-first version. Both take O(V + E)."
+            ],
+            "short": "DFS version",
+            "hud": [
+              {
+                "k": "DFS",
+                "v": "reverse finish order"
+              },
+              {
+                "k": "Kahn",
+                "v": "remove in-degree 0 repeatedly"
+              },
+              {
+                "k": "Both",
+                "v": "O(V + E)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Several orders may be valid",
+            "tag": "insight",
+            "body": [
+              "Here B and C could swap: A, C, B, D, E is also valid. The order is unique only if every consecutive pair of vertices is joined by an edge. A queue gives one valid order, and a priority queue gives the smallest, if you need that.",
+              "Topological order is used for build systems, task scheduling, course prerequisites, spreadsheet recalculation and the order to load database tables."
+            ],
+            "short": "Uniqueness and uses",
+            "hud": [
+              {
+                "k": "Unique only if",
+                "v": "a path covers all vertices"
+              },
+              {
+                "k": "Uses",
+                "v": "builds, schedules, prerequisites"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A topological order puts every vertex after the ones that must precede it, and exists only for graphs with no directed cycle. Kahn's algorithm removes vertices with in-degree 0, one at a time. The DFS method reverses the finish order. Both cost O(V + E).",
+              "If fewer than V vertices are output, there is a cycle."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "position 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 count in-degrees",
+                "2 queue the in-degree 0 vertices",
+                "3 take one, lower its targets' in-degrees",
+                "4 fewer than V output: a cycle"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A topological sort is like getting dressed: socks before shoes, and underwear before trousers.",
+      "story": "To get dressed, some things must go on before others. Socks go on before shoes, and trousers before a belt. You start with the things that need nothing else first. Once the socks are on, the shoes become possible. You keep choosing something that is now ready until everything is on. If two things each needed the other first, you could never start.",
+      "maps": [
+        [
+          "Things that must go on first",
+          "Vertices with in-degree 0"
+        ],
+        [
+          "Putting a thing on",
+          "Taking a vertex from the queue"
+        ],
+        [
+          "Shoes becoming possible",
+          "A target's in-degree reaching 0"
+        ],
+        [
+          "Each thing needing the other",
+          "A cycle"
+        ]
+      ],
+      "words": [
+        [
+          "topological order",
+          "A list of vertices where every edge points from earlier to later."
+        ],
+        [
+          "in-degree",
+          "The number of edges coming into a vertex."
+        ],
+        [
+          "Kahn's algorithm",
+          "Repeatedly remove vertices that have no incoming edges."
+        ],
+        [
+          "dependency",
+          "A task that must be done before another."
+        ],
+        [
+          "directed acyclic graph",
+          "A directed graph with no cycles."
+        ]
+      ]
+    }
   }
 ]
