@@ -127169,5 +127169,1053 @@
         ]
       ]
     }
+  },
+  {
+    "id": "binary-search-trees",
+    "n": 170,
+    "level": 14,
+    "week": "Core",
+    "title": "Binary Search Trees: Search, Insert and Order",
+    "tagline": "Keep keys in a tree where smaller keys go left and larger go right, and see how search, insert, minimum and successor each follow one path.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "A binary search tree, or BST, is a binary tree with an ordering rule. For every node, all keys in its left subtree are smaller, and all keys in its right subtree are larger. The Wikipedia article states the rule that way. The ordering makes search possible by comparison, like a binary search, but the structure can change as you insert and delete.",
+      "## Search",
+      "Start at the root. If the key equals the node, you found it. If it is smaller, go left. If it is larger, go right. If you fall off the tree, the key is absent. Each step discards a whole subtree. The cost is O(h), where h is the height. The article gives the infobox as Theta(log n) on average and O(n) in the worst case. The iterative version, a loop, is usually faster than the recursive one.",
+      "## Insert",
+      "Search for the key, and when you reach an empty spot, attach the new node there. The article describes it as walking from the root, going left or right by comparison, and attaching the node to the last parent visited. A new key always becomes a leaf, and existing nodes never move. Decide what to do with equal keys: ignore them, count them, or send them left.",
+      "## Minimum, maximum and successor",
+      "The minimum is found by going left until there is no left child. The maximum is found by going right. The successor of a node, the next larger key, is the minimum of its right subtree if it has one. Otherwise climb parents until you reach a node that is a left child of its parent, and that parent is the successor. The predecessor is the mirror image.",
+      "## In-order is sorted",
+      "Visiting left subtree, node, right subtree gives the keys in ascending order. This makes a BST a sorted collection that supports fast changes, which a sorted list does not, since inserting into a list shifts items.",
+      "> A worked example: insert 4, 2, 6, 1, 3, 5, 7 in that order. 4 becomes the root. 2 goes left, 6 goes right. 1 and 3 go under 2, and 5 and 7 go under 6. Searching for 5 compares with 4, then 6, then 5: three comparisons. The in-order walk gives 1, 2, 3, 4, 5, 6, 7.",
+      "## The balance problem",
+      "The shape depends on the insertion order. Insert 1, 2, 3, 4 in order and every key goes right, so the tree is a chain with height n - 1, and search costs O(n). The article notes that without rebalancing the height can reach n, so lookup degrades to linear search. Keeping the height O(log n) is the job of self-balancing trees, covered later.",
+      "## When to use a BST",
+      "Use a hash table when you need only exact lookups, since it is O(1) on average. Use a BST, or a balanced one, when you also need ordered operations: the smallest key, the next larger key, a range of keys, or sorted output. Python has no built-in BST. In real code, people use a sorted list with bisect, or a library.",
+      "## How to talk through it",
+      "State the ordering rule. Describe search and insert as one walk down from the root and give the cost as O(h). Mention in-order, and the sorted-input trap. Test an empty tree, one node and duplicates."
+    ],
+    "keyPoints": [
+      "BST rule: every key in the left subtree is smaller, every key in the right subtree is larger.",
+      "Search, insert and minimum each follow one root-to-leaf path: O(h). Average O(log n), worst case O(n).",
+      "A new key is always inserted as a leaf. Existing nodes do not move.",
+      "In-order traversal visits the keys in ascending order. Successor: leftmost node of the right subtree.",
+      "Sorted insertion gives a chain with height n - 1. Self-balancing trees keep height O(log n)."
+    ],
+    "sql": [
+      {
+        "title": "A binary search tree",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key):\n        self.key = key\n        self.left = self.right = None\n\nclass BST:\n    def __init__(self):\n        self.root = None\n\n    def insert(self, key):\n        if self.root is None:\n            self.root = Node(key)\n            return\n        node = self.root\n        while True:\n            if key == node.key:\n                return                                   # ignore duplicates\n            side = \"left\" if key < node.key else \"right\"\n            child = getattr(node, side)\n            if child is None:\n                setattr(node, side, Node(key))\n                return\n            node = child\n\n    def search(self, key):\n        node = self.root\n        while node and node.key != key:\n            node = node.left if key < node.key else node.right\n        return node is not None\n\n    def minimum(self):\n        node = self.root\n        while node.left:\n            node = node.left\n        return node.key\n\n    def maximum(self):\n        node = self.root\n        while node.right:\n            node = node.right\n        return node.key\n\n    def inorder(self):\n        out, stack, node = [], [], self.root\n        while stack or node:\n            while node:\n                stack.append(node); node = node.left\n            node = stack.pop(); out.append(node.key); node = node.right\n        return out\n\n    def height(self):\n        def h(n): return -1 if n is None else 1 + max(h(n.left), h(n.right))\n        return h(self.root)\n\nt = BST()\nfor k in (4, 2, 6, 1, 3, 5, 7):\n    t.insert(k)\nassert t.inorder() == [1, 2, 3, 4, 5, 6, 7] and t.height() == 2\nassert t.search(5) and not t.search(8)\nassert (t.minimum(), t.maximum()) == (1, 7)\nt.insert(8); t.insert(4)                                 # 4 is a duplicate\nassert t.inorder() == [1, 2, 3, 4, 5, 6, 7, 8] and t.height() == 3"
+      },
+      {
+        "title": "Successor and validating a BST",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key, left=None, right=None):\n        self.key, self.left, self.right = key, left, right\n\ndef successor(root, key):\n    # the smallest key larger than `key`, found by walking down from the root\n    best, node = None, root\n    while node:\n        if key < node.key:\n            best, node = node.key, node.left            # a candidate: maybe something smaller is still larger than key\n        else:\n            node = node.right\n    return best\n\ndef is_valid_bst(node, low=float(\"-inf\"), high=float(\"inf\")):\n    if node is None:\n        return True\n    if not low < node.key < high:\n        return False\n    return is_valid_bst(node.left, low, node.key) and is_valid_bst(node.right, node.key, high)\n\nt = Node(4, Node(2, Node(1), Node(3)), Node(6, Node(5), Node(7)))\nassert [successor(t, k) for k in (1, 2, 3, 4, 5, 6, 7)] == [2, 3, 4, 5, 6, 7, None]\nassert is_valid_bst(t) and is_valid_bst(None)\nbad = Node(4, Node(2, Node(1), Node(5)), Node(6))        # 5 is in 4's left subtree but is larger than 4\nassert not is_valid_bst(bad)"
+      },
+      {
+        "title": "Insertion order decides the shape",
+        "lang": "py",
+        "code": "import random\n\nclass Node:\n    def __init__(self, key):\n        self.key = key\n        self.left = self.right = None\n\ndef insert(root, key):\n    if root is None:\n        return Node(key)\n    node = root\n    while True:\n        side = \"left\" if key < node.key else \"right\"\n        child = getattr(node, side)\n        if child is None:\n            setattr(node, side, Node(key))\n            return root\n        node = child\n\ndef height(root):\n    best, stack = -1, [(root, 0)]\n    while stack:\n        node, d = stack.pop()\n        if node:\n            best = max(best, d)\n            stack.append((node.left, d + 1)); stack.append((node.right, d + 1))\n    return best\n\nn = 500\nsorted_tree = None\nfor k in range(n):\n    sorted_tree = insert(sorted_tree, k)\nassert height(sorted_tree) == n - 1                      # a chain\n\nrandom.seed(10)\nkeys = random.sample(range(10 ** 6), n)\nrandom_tree = None\nfor k in keys:\n    random_tree = insert(random_tree, k)\nassert height(random_tree) < 40                          # about 2 log2 n on random input"
+      }
+    ],
+    "django": {},
+    "exercise": "Write BST with insert, search, minimum, maximum, inorder and height. Add successor and predecessor, and is_valid_bst with low and high bounds. Then insert 500 sorted keys and 500 random keys and compare the heights. Finally, explain why checking only that each node's children are on the correct side is not enough to validate a BST.",
+    "pitfalls": [
+      "Validating a BST by comparing each node only with its children. A key deep in a subtree must satisfy bounds from all its ancestors.",
+      "Forgetting a rule for duplicate keys, so behaviour differs from what the caller expects.",
+      "Assuming O(log n). A BST built from sorted input has height n - 1 and O(n) operations.",
+      "Searching by comparing only equality and not going left or right.",
+      "Using recursion on a very deep, skewed tree. Use a loop."
+    ],
+    "interview": [
+      {
+        "q": "What is a binary search tree?",
+        "a": "A binary tree in which every key in a node's left subtree is smaller than the node and every key in its right subtree is larger. It supports search, insert and delete by walking one path from the root."
+      },
+      {
+        "q": "What is the time complexity of BST operations?",
+        "a": "O(h), where h is the height. That is O(log n) on average or when the tree is balanced, and O(n) in the worst case, when the tree is a chain."
+      },
+      {
+        "q": "How do you validate a binary search tree?",
+        "a": "Pass down an allowed range for each node: all keys in the left subtree must be below the node, and all in the right subtree above it. Check each node against its range, tightening the range as you go down. An in-order traversal should also be strictly increasing."
+      },
+      {
+        "q": "When would you pick a BST over a hash table?",
+        "a": "When you need ordered operations: the smallest or largest key, the successor, a range of keys or sorted output. A hash table is faster for exact lookups, but it keeps no order."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+        "kind": "Reference"
+      },
+      {
+        "title": "Tree traversal (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Tree_traversal",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: binary search trees are a core data structure in coding rounds. The ordering rule, the O(h) cost with its average and worst cases, insertion as a leaf, the successor rules, the in-order property and the degeneration into a list come from the Wikipedia binary search tree article, which I read in part, and the in-order property from the Wikipedia tree traversal article. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-search-tree",
+      "wikipedia-tree-traversal",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bst",
+        "title": "Binary search trees, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or search"
+          },
+          {
+            "kind": "write",
+            "label": "insert or change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The rule",
+            "at": 0
+          },
+          {
+            "text": "Insert",
+            "at": 1
+          },
+          {
+            "text": "Search",
+            "at": 3
+          },
+          {
+            "text": "Successor",
+            "at": 5
+          },
+          {
+            "text": "Degenerate",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 0
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "6",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "5",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "b6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "7",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "b14",
+            "kind": "cube",
+            "x": 4.644,
+            "y": -1.044,
+            "label": "8",
+            "icon": "ball",
+            "tone": "green",
+            "from": 4,
+            "until": 6
+          },
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -3.9,
+            "y": 0.9,
+            "label": "1",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 7
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -1.6,
+            "y": 0.8,
+            "label": "2",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 7
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": 0.7,
+            "y": 0.7,
+            "label": "3",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 7
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": 3.0,
+            "y": 0.6,
+            "label": "4",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 7
+          }
+        ],
+        "links": [
+          {
+            "a": "b0",
+            "b": "b1",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "b0",
+            "b": "b2",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "b1",
+            "b": "b3",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "b1",
+            "b": "b4",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "b2",
+            "b": "b5",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "b2",
+            "b": "b6",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "b6",
+            "b": "b14",
+            "dir": "none",
+            "from": 4,
+            "until": 6
+          },
+          {
+            "a": "c0",
+            "b": "c1",
+            "dir": "none",
+            "from": 7
+          },
+          {
+            "a": "c1",
+            "b": "c2",
+            "dir": "none",
+            "from": 7
+          },
+          {
+            "a": "c2",
+            "b": "c3",
+            "dir": "none",
+            "from": 7
+          }
+        ],
+        "steps": [
+          {
+            "title": "The rule: smaller on the left, larger on the right",
+            "tag": "technique",
+            "body": [
+              "A binary search tree, or BST, keeps its keys in order. For every node, all keys in its left subtree are smaller, and all keys in its right subtree are larger. Here 4 is the root.",
+              "That one rule lets you search by comparing, like a binary search."
+            ],
+            "short": "The rule",
+            "hud": [
+              {
+                "k": "Left subtree",
+                "v": "smaller keys"
+              },
+              {
+                "k": "Right subtree",
+                "v": "larger keys"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "root: 4",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "4"
+              }
+            }
+          },
+          {
+            "title": "Insert 2 and 6: they go left and right of 4",
+            "tag": "solution",
+            "body": [
+              "To insert, start at the root and compare. 2 is smaller than 4, so it goes left. 6 is larger, so it goes right. Each new key ends up as a leaf.",
+              "Insertion never moves existing nodes."
+            ],
+            "short": "Insert",
+            "hud": [
+              {
+                "k": "Insert",
+                "v": "walk down, attach a leaf"
+              },
+              {
+                "k": "Cost",
+                "v": "O(h)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "2 < 4 left, 6 > 4 right",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "b0",
+                  "b2"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Insert 1, 3, 5 and 7",
+            "tag": "solution",
+            "body": [
+              "Each key walks down from the root. 1 goes left of 4, then left of 2. 3 goes left of 4, then right of 2. 5 and 7 go right of 4, then left and right of 6.",
+              "Because they were inserted in this order, the tree came out balanced, with height 2."
+            ],
+            "short": "More inserts",
+            "hud": [
+              {
+                "k": "Nodes",
+                "v": "7"
+              },
+              {
+                "k": "Height",
+                "v": "2",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1",
+                  "b3"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "b0",
+                  "b2",
+                  "b6"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Search: compare and go left or right",
+            "tag": "solution",
+            "body": [
+              "To find 5: compare with 4, 5 is larger, go right. Compare with 6, 5 is smaller, go left. Found. It took 3 comparisons, not a look at all 7 keys.",
+              "Each comparison discards one whole subtree. On a balanced tree this is O(log n)."
+            ],
+            "short": "Search",
+            "hud": [
+              {
+                "k": "Comparisons",
+                "v": "3 of 7 keys",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "O(h)"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "5"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b2",
+                  "b5"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "You search for 3 in this tree. Which path do you follow from the root 4?",
+              "options": [
+                "Right to 6, then 5",
+                "Left to 2, then right to 3",
+                "Left to 2, then left to 1"
+              ],
+              "answer": 1,
+              "why": "3 < 4 so go left to 2. 3 > 2 so go right. That is 3."
+            }
+          },
+          {
+            "title": "Insert 8: a new leaf at the end of a path",
+            "tag": "solution",
+            "body": [
+              "8 is larger than 4, larger than 6, larger than 7. It becomes the right child of 7. The tree is now 4 levels deep on that branch.",
+              "Duplicates need a rule: the Wikipedia article's overview sends equal keys to the left. Say what you decide."
+            ],
+            "short": "Insert 8",
+            "hud": [
+              {
+                "k": "Height",
+                "v": "3"
+              },
+              {
+                "k": "New node",
+                "v": "always a leaf"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "8 goes right of 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b2",
+                  "b6",
+                  "b14"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Minimum, maximum and successor",
+            "tag": "technique",
+            "body": [
+              "The smallest key is found by going left until you cannot: 1. The largest is found by going right: 8. The successor of a node is the next larger key: the leftmost node of its right subtree, or, if there is no right subtree, the nearest ancestor of which it is in the left subtree.",
+              "The successor of 4 is 5. The successor of 3 is 4."
+            ],
+            "short": "Min, max, successor",
+            "hud": [
+              {
+                "k": "Minimum",
+                "v": "go left to the end"
+              },
+              {
+                "k": "Maximum",
+                "v": "go right to the end"
+              },
+              {
+                "k": "Each",
+                "v": "O(h)"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "max side",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "6"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "min",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "successor of 6 is 7",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b1",
+                  "b3"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "In-order gives the keys sorted",
+            "tag": "insight",
+            "body": [
+              "Visit left subtree, node, right subtree, and you get 1, 2, 3, 4, 5, 6, 7, 8 in order. A BST is a sorted collection that can also be changed.",
+              "This is why a BST is used when you need both fast updates and ordered output."
+            ],
+            "short": "Sorted order",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "1 2 3 4 5 6 7 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "6",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "6"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "5"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "7"
+              },
+              "b14": {
+                "tone": "green",
+                "pill": {
+                  "text": "8",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b3",
+                  "b1",
+                  "b4",
+                  "b0",
+                  "b5",
+                  "b2",
+                  "b6",
+                  "b14"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The danger: sorted input makes a chain",
+            "tag": "problem",
+            "body": [
+              "If you insert 1, 2, 3, 4 in sorted order, each key goes to the right of the last, and the tree becomes a chain of height 3. It is a linked list, and search costs O(n).",
+              "The Wikipedia article warns that an unbalanced BST can degenerate into a linked list. Balanced trees, next lessons, fix this."
+            ],
+            "short": "Degenerate",
+            "hud": [
+              {
+                "k": "Sorted inserts",
+                "v": "a chain: O(n) search",
+                "tone": "bad"
+              },
+              {
+                "k": "Balanced",
+                "v": "O(log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b14": {
+                "hidden": true
+              },
+              "c0": {
+                "pill": {
+                  "text": "sorted inserts: height n - 1",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c1",
+                  "c2",
+                  "c3"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A BST keeps smaller keys on the left and larger on the right. Search, insert and delete walk one path from the root, so they cost O(h): O(log n) on average and O(n) in the worst case. In-order gives the sorted keys.",
+              "Next: deleting a node, and keeping the tree balanced."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 left < node < right",
+                "2 search and insert: walk down",
+                "3 cost O(h)",
+                "4 in-order is sorted",
+                "5 sorted input degenerates"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A binary search tree is like a game of higher or lower, where every answer tells you which way to turn.",
+      "story": "Imagine looking for a name in a sorted phone book by opening it in the middle. If your name comes earlier, you look in the left half. If later, the right half. A binary search tree builds that choice into its shape. Each node asks the question, smaller goes left and larger goes right. But if you add names already in order, the tree leans one way, and every answer is the same.",
+      "maps": [
+        [
+          "A question at each node",
+          "Comparing with the node's key"
+        ],
+        [
+          "Smaller names to the left",
+          "The left subtree"
+        ],
+        [
+          "A new name placed at the end",
+          "Inserting a leaf"
+        ],
+        [
+          "Names added in order",
+          "A chain: the degenerate case"
+        ]
+      ],
+      "words": [
+        [
+          "binary search tree",
+          "A binary tree that keeps smaller keys on the left and larger keys on the right."
+        ],
+        [
+          "successor",
+          "The next larger key in the tree."
+        ],
+        [
+          "leaf",
+          "A node with no children."
+        ],
+        [
+          "in-order",
+          "Visiting left subtree, node, then right subtree."
+        ],
+        [
+          "degenerate",
+          "So unbalanced that the tree is a chain, like a list."
+        ]
+      ]
+    }
   }
 ]
