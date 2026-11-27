@@ -168242,5 +168242,2096 @@
         ]
       ]
     }
+  },
+  {
+    "id": "subsets-and-combinations",
+    "n": 205,
+    "level": 14,
+    "week": "Core",
+    "title": "Subsets and Combinations: The Choose-Explore-Undo Template",
+    "tagline": "List every subset or combination of a list with a decision tree, and learn the choose, explore and undo pattern behind all backtracking.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Backtracking builds an answer step by step and gives up on a partial answer as soon as it cannot work. The Wikipedia article describes it as building candidates incrementally and abandoning a candidate when it cannot be completed. The partial candidates are the nodes of a search tree, and the tree is explored depth first. Listing all the subsets of a list is the simplest example, and it teaches the template.",
+      "## Subsets and the power set",
+      "A subset is any group of the items, in any number, including none and all of them. The set of all subsets is called the power set. For n items it has 2 to the power n members, since each item is either in a subset or not. The Wikipedia article on the power set also notes that subsets correspond to n-bit binary numbers.",
+      "## The decision tree",
+      "Process the items one at a time. For each item, make two choices: skip it, or take it. Keep the group chosen so far. After the last item, the group is one subset, so save a copy of it. Then go back and take the other choice.",
+      "- Choose: add the item to the group.\n- Explore: call the function for the next item.\n- Undo: remove the item again, so the group is back as it was.",
+      "The undo step is why the same list can be reused for every branch. Forgetting it, or forgetting to save a copy, are the two usual bugs.",
+      "> A worked example: items a, b and c. Skip, skip, skip gives {}. Then take c, which gives {c}. Back up, take b and skip c, giving {b}. Take b and c, giving {b,c}. Then back to the top and take a: {a}, {a,c}, {a,b} and {a,b,c}. That is 8 subsets, which is 2 to the power 3.",
+      "## Pruning",
+      "The power of backtracking is in pruning. Suppose you want subsets of positive numbers that add up to a target. As soon as the running total is over the target, no further choices in that branch can help, so stop. The search tree has fewer nodes. If you sort the numbers, you can also stop when the remaining numbers cannot reach the target.",
+      "## Combinations",
+      "A combination is a subset of a fixed size k. Stop when the group has k items. Also stop early if the items left are fewer than the places left to fill. The number of combinations is n choose k. Python provides itertools.combinations, which yields them in sorted order.",
+      "## Duplicates",
+      "If the list has repeated values, the same group can appear twice. Sort the list first. At each level of the tree, skip an item that equals the item just tried at that level. Then each distinct group appears once.",
+      "## Cost",
+      "There are 2 to the power n subsets, and copying one takes up to O(n) time, so the cost is O(n times 2 to the power n). The depth of the recursion is n. Ten items give 1,024 subsets, and thirty give more than a billion, so this only suits small inputs unless pruning cuts the tree.",
+      "## How to talk through it",
+      "Draw the tree for three items and say skip or take. Name the three steps: choose, explore, undo. Give the count 2 to the power n. Then say how you would prune and how you would treat duplicates."
+    ],
+    "keyPoints": [
+      "A subset is a group of items. A list of n items has 2^n subsets (the power set).",
+      "Decide skip or take for each item, save the group at the bottom, undo the choice when you go back.",
+      "Choose, explore, undo is the template for all backtracking.",
+      "Prune a branch as soon as it cannot work. Sort the input and skip repeats to handle duplicates.",
+      "Time O(n x 2^n). Combinations of size k stop at k items."
+    ],
+    "sql": [
+      {
+        "title": "All subsets by skip or take",
+        "lang": "py",
+        "code": "def subsets(items):\n    result, chosen = [], []\n    def go(i):\n        if i == len(items):\n            result.append(list(chosen))               # save a copy, not the list itself\n            return\n        go(i + 1)                                      # skip item i\n        chosen.append(items[i])                        # choose\n        go(i + 1)                                      # explore\n        chosen.pop()                                   # undo\n    go(0)\n    return result\n\nassert subsets([\"a\", \"b\", \"c\"]) == [[], [\"c\"], [\"b\"], [\"b\", \"c\"], [\"a\"], [\"a\", \"c\"], [\"a\", \"b\"], [\"a\", \"b\", \"c\"]]\nassert subsets([]) == [[]]\nassert len(subsets(list(range(10)))) == 1024\n\ndef by_bits(items):                                    # the same subsets as binary numbers\n    return [[items[i] for i in range(len(items)) if mask >> i & 1] for mask in range(1 << len(items))]\n\nassert sorted(map(sorted, by_bits([1, 2, 3]))) == sorted(map(sorted, subsets([1, 2, 3])))"
+      },
+      {
+        "title": "Combinations and subset sum, with pruning",
+        "lang": "py",
+        "code": "import itertools\n\ndef combinations(items, k):\n    result, chosen = [], []\n    def go(start):\n        if len(chosen) == k:\n            result.append(list(chosen))\n            return\n        for i in range(start, len(items) - (k - len(chosen)) + 1):    # prune: enough items must remain\n            chosen.append(items[i])\n            go(i + 1)\n            chosen.pop()\n    go(0)\n    return result\n\nassert combinations([1, 2, 3, 4], 2) == [list(c) for c in itertools.combinations([1, 2, 3, 4], 2)]\nassert combinations([1, 2, 3], 0) == [[]] and combinations([1, 2], 3) == []\n\ndef subsets_with_sum(numbers, target):\n    numbers, result, chosen = sorted(numbers), [], []\n    def go(start, total):\n        if total == target:\n            result.append(list(chosen))\n        for i in range(start, len(numbers)):\n            if total + numbers[i] > target:            # prune: sorted, so all later numbers are too big\n                break\n            chosen.append(numbers[i])\n            go(i + 1, total + numbers[i])\n            chosen.pop()\n    go(0, 0)\n    return result\n\nassert subsets_with_sum([2, 3, 5, 7], 7) == [[2, 5], [7]]\nassert subsets_with_sum([1, 2, 3], 10) == []"
+      },
+      {
+        "title": "Subsets of a list with duplicates",
+        "lang": "py",
+        "code": "def unique_subsets(items):\n    items, result, chosen = sorted(items), [], []\n    def go(start):\n        result.append(list(chosen))\n        for i in range(start, len(items)):\n            if i > start and items[i] == items[i - 1]:    # skip a repeat at the same level\n                continue\n            chosen.append(items[i])\n            go(i + 1)\n            chosen.pop()\n    go(0)\n    return result\n\ngot = unique_subsets([1, 2, 2])\nassert sorted(got) == [[], [1], [1, 2], [1, 2, 2], [2], [2, 2]]\nassert len(got) == 6                                        # not 8: repeated groups removed\nassert unique_subsets([]) == [[]]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write subsets with the choose, explore, undo pattern and check that the count is 2^n for n up to 10. Write combinations and compare with itertools.combinations. Write subsets_with_sum with pruning, and count how many nodes it visits with and without the pruning check. Then handle duplicates and check that [1, 2, 2] gives 6 subsets.",
+    "pitfalls": [
+      "Saving the list itself instead of a copy, so every result changes later.",
+      "Forgetting the undo step, so choices pile up.",
+      "Pruning without sorting, so a break skips numbers that could still fit.",
+      "Not skipping repeated items when the input has duplicates.",
+      "Using this for large n. 2^n grows fast."
+    ],
+    "interview": [
+      {
+        "q": "How do you generate all subsets of a list?",
+        "a": "Decide skip or take for each item in turn with recursion. Keep the chosen items, save a copy at the end, and undo the choice when you return. There are 2^n subsets."
+      },
+      {
+        "q": "What does backtracking mean?",
+        "a": "Build a candidate step by step and abandon it as soon as it cannot be completed, then go back to the last choice and try another. It is a depth-first search of a tree of partial candidates."
+      },
+      {
+        "q": "How do you avoid duplicate subsets when the input has repeats?",
+        "a": "Sort the list first, and at each level of the recursion skip an item that equals the previous item tried at that level."
+      },
+      {
+        "q": "What is the time complexity of listing all subsets?",
+        "a": "O(n x 2^n): there are 2^n subsets and copying each takes up to O(n) time."
+      }
+    ],
+    "references": [
+      {
+        "title": "Backtracking (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Backtracking",
+        "kind": "Reference"
+      },
+      {
+        "title": "Power set (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Power_set",
+        "kind": "Reference"
+      },
+      {
+        "title": "itertools (Python docs)",
+        "url": "https://docs.python.org/3/library/itertools.html#itertools.permutations",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: listing subsets is the simplest backtracking problem and the base of many interview questions. The idea of building candidates step by step and abandoning them when they cannot be completed, with the search tree explored depth first, comes from the Wikipedia backtracking article, which I read in part. That there are 2^n subsets, and that subsets correspond to n-bit binary numbers, comes from the Wikipedia power set article, which I read in part. The itertools.combinations order and counts are from the Python itertools documentation, which I read in part. The worked example, the pruning ideas and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-backtracking",
+      "wikipedia-power-set",
+      "py-itertools",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "subsets",
+        "title": "Subsets, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "try or look"
+          },
+          {
+            "kind": "write",
+            "label": "choose"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "dead end"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The goal",
+            "at": 0
+          },
+          {
+            "text": "Choice tree",
+            "at": 1
+          },
+          {
+            "text": "Subsets",
+            "at": 2
+          },
+          {
+            "text": "Counting",
+            "at": 10
+          },
+          {
+            "text": "Pruning",
+            "at": 11
+          },
+          {
+            "text": "Duplicates",
+            "at": 13
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "{}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "{}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "{a}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "{}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "{b}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "{a}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "{a,b}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s7",
+            "kind": "cube",
+            "x": -1.044,
+            "y": 4.644,
+            "label": "{}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s8",
+            "kind": "cube",
+            "x": -0.231,
+            "y": 3.831,
+            "label": "{c}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s9",
+            "kind": "cube",
+            "x": 0.581,
+            "y": 3.019,
+            "label": "{b}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s10",
+            "kind": "cube",
+            "x": 1.394,
+            "y": 2.206,
+            "label": "{b,c}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s11",
+            "kind": "cube",
+            "x": 2.206,
+            "y": 1.394,
+            "label": "{a}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s12",
+            "kind": "cube",
+            "x": 3.019,
+            "y": 0.581,
+            "label": "{a,c}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s13",
+            "kind": "cube",
+            "x": 3.831,
+            "y": -0.231,
+            "label": "{a,b}",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s14",
+            "kind": "cube",
+            "x": 4.644,
+            "y": -1.044,
+            "label": "{a,b,c}",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "s0",
+            "b": "s1",
+            "dir": "none",
+            "label": "skip"
+          },
+          {
+            "a": "s0",
+            "b": "s2",
+            "dir": "none",
+            "label": "take"
+          },
+          {
+            "a": "s1",
+            "b": "s3",
+            "dir": "none",
+            "label": "skip"
+          },
+          {
+            "a": "s1",
+            "b": "s4",
+            "dir": "none",
+            "label": "take"
+          },
+          {
+            "a": "s2",
+            "b": "s5",
+            "dir": "none",
+            "label": "skip"
+          },
+          {
+            "a": "s2",
+            "b": "s6",
+            "dir": "none",
+            "label": "take"
+          },
+          {
+            "a": "s3",
+            "b": "s7",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s3",
+            "b": "s8",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s4",
+            "b": "s9",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s4",
+            "b": "s10",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s5",
+            "b": "s11",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s5",
+            "b": "s12",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s6",
+            "b": "s13",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "s6",
+            "b": "s14",
+            "dir": "none",
+            "label": null
+          }
+        ],
+        "steps": [
+          {
+            "title": "All the groups you can pick",
+            "tag": "technique",
+            "body": [
+              "A subset is a group of items taken from a list, in any number, even none. For the three items a, b and c there are 8 subsets: {}, {a}, {b}, {c}, {a,b}, {a,c}, {b,c} and {a,b,c}. How do we list them all without missing one?",
+              "We will decide about each item in turn: take it or skip it."
+            ],
+            "short": "The goal",
+            "hud": [
+              {
+                "k": "Items",
+                "v": "a, b, c"
+              },
+              {
+                "k": "Subsets",
+                "v": "8 = 2^3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": true
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": true
+              },
+              "s4": {
+                "hidden": true
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": true
+              },
+              "s8": {
+                "hidden": true
+              },
+              "s9": {
+                "hidden": true
+              },
+              "s10": {
+                "hidden": true
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "A choice tree",
+            "tag": "technique",
+            "body": [
+              "Start with an empty group. For item a there are two choices: skip it (left branch) or take it (right branch). Then do the same for b, and then for c. After the last item, the group you hold is one subset.",
+              "Every path from the top to a bottom node is one subset. The tree has 2 times 2 times 2 = 8 paths."
+            ],
+            "short": "Choice tree",
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": true
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": true
+              },
+              "s4": {
+                "hidden": true
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": true
+              },
+              "s8": {
+                "hidden": true
+              },
+              "s9": {
+                "hidden": true
+              },
+              "s10": {
+                "hidden": true
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def go(i):",
+                "    if i == len(items): save(chosen); return",
+                "    go(i + 1)                 # skip",
+                "    chosen.append(items[i]); go(i + 1); chosen.pop()   # take, then undo"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Subset 1 is {}",
+            "tag": "solution",
+            "body": [
+              "Always skip: skip a, skip b, skip c. The group is empty, so the first subset is {}.",
+              "We have reached the bottom, so we save the group and go back up."
+            ],
+            "short": "Subset 1",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{}"
+              },
+              {
+                "k": "Saved",
+                "v": "1 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": true
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": true
+              },
+              "s9": {
+                "hidden": true
+              },
+              "s10": {
+                "hidden": true
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 2 is {c}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to take c. The group is now {c}.",
+              "We save it. That is subset number 2 of 8."
+            ],
+            "short": "Subset 2",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{c}"
+              },
+              {
+                "k": "Saved",
+                "v": "2 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": true
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": true
+              },
+              "s10": {
+                "hidden": true
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            },
+            "predict": {
+              "question": "We have saved {} and {c}. What is the next subset found?",
+              "options": [
+                "{b}",
+                "{b,c}",
+                "{a}"
+              ],
+              "answer": 0,
+              "why": "After {c} we back up to the choice for b and take b, with c skipped. That gives {b}."
+            }
+          },
+          {
+            "title": "Subset 3 is {b}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to skip c. The group is now {b}.",
+              "We save it. That is subset number 3 of 8."
+            ],
+            "short": "Subset 3",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{b}"
+              },
+              {
+                "k": "Saved",
+                "v": "3 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": true
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 4 is {b,c}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to take c. The group is now {b,c}.",
+              "We save it. That is subset number 4 of 8."
+            ],
+            "short": "Subset 4",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{b,c}"
+              },
+              {
+                "k": "Saved",
+                "v": "4 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": true
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": true
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": true
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 5 is {a}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to skip c. The group is now {a}.",
+              "We save it. That is subset number 5 of 8."
+            ],
+            "short": "Subset 5",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{a}"
+              },
+              {
+                "k": "Saved",
+                "v": "5 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": true
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 6 is {a,c}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to take c. The group is now {a,c}.",
+              "We save it. That is subset number 6 of 8."
+            ],
+            "short": "Subset 6",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{a,c}"
+              },
+              {
+                "k": "Saved",
+                "v": "6 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": true
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": true
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 7 is {a,b}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to skip c. The group is now {a,b}.",
+              "We save it. That is subset number 7 of 8."
+            ],
+            "short": "Subset 7",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{a,b}"
+              },
+              {
+                "k": "Saved",
+                "v": "7 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Subset 8 is {a,b,c}",
+            "tag": "solution",
+            "body": [
+              "Go back up the tree to the last place with a choice left, then take the other branch. The last choice was to take c. The group is now {a,b,c}.",
+              "We save it. That is subset number 8 of 8."
+            ],
+            "short": "Subset 8",
+            "hud": [
+              {
+                "k": "Group",
+                "v": "{a,b,c}"
+              },
+              {
+                "k": "Saved",
+                "v": "8 of 8",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            }
+          },
+          {
+            "title": "Why 2 to the power n",
+            "tag": "insight",
+            "body": [
+              "Each of the n items has two choices, so there are 2 times 2 ... times 2 = 2 to the power n subsets. The Wikipedia article on the power set states the same. Subsets also match n-bit binary numbers, with bit i meaning that item i is taken.",
+              "Ten items give 1,024 subsets and 30 items give over a billion, so this can only be used for small n."
+            ],
+            "short": "Counting",
+            "hud": [
+              {
+                "k": "3 items",
+                "v": "8 subsets"
+              },
+              {
+                "k": "10 items",
+                "v": "1,024"
+              },
+              {
+                "k": "30 items",
+                "v": "over a billion",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            }
+          },
+          {
+            "title": "Pruning: stop early when a branch cannot work",
+            "tag": "technique",
+            "body": [
+              "Backtracking means that you give up on a partial choice as soon as it cannot lead to a good result. For example, to find subsets of positive numbers with sum 7, stop going down a branch as soon as the sum is above 7, since adding more cannot reduce it.",
+              "Pruning keeps the idea of the tree but cuts off whole branches."
+            ],
+            "short": "Pruning",
+            "hud": [
+              {
+                "k": "Idea",
+                "v": "abandon a branch that cannot work",
+                "tone": "good"
+              },
+              {
+                "k": "Example",
+                "v": "sum already above the target"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            }
+          },
+          {
+            "title": "Subsets of a fixed size",
+            "tag": "technique",
+            "body": [
+              "To list only groups of exactly k items, stop when the group has k items, and do not go on when too few items remain. For three items and k = 2, you get {a,b}, {a,c} and {b,c}: the combinations.",
+              "The number of such groups is n choose k."
+            ],
+            "short": "Combinations",
+            "hud": [
+              {
+                "k": "k = 2",
+                "v": "3 groups"
+              },
+              {
+                "k": "Count",
+                "v": "n choose k"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            }
+          },
+          {
+            "title": "Duplicates",
+            "tag": "problem",
+            "body": [
+              "If the list has repeated items, for example 1, 2, 2, you would list the group {1,2} twice. To avoid this, sort the list, and at each level skip an item that equals the one just tried at the same level.",
+              "The sorted order makes equal items sit next to each other, so the check is cheap."
+            ],
+            "short": "Duplicates",
+            "hud": [
+              {
+                "k": "Sort first",
+                "v": "so equal items are neighbours"
+              },
+              {
+                "k": "Skip",
+                "v": "an item equal to the previous try",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "To list all subsets, decide skip or take for each item in turn, save the group at the bottom, and undo the choice when you go back up. The cost is O(2 to the power n) subsets. Prune to cut branches, sort to handle duplicates.",
+              "Choose, explore, undo: the template of all backtracking."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s7": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{}"
+              },
+              "s8": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{c}"
+              },
+              "s9": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b}"
+              },
+              "s10": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{b,c}"
+              },
+              "s11": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a}"
+              },
+              "s12": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,c}"
+              },
+              "s13": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b}"
+              },
+              "s14": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "{a,b,c}"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 choose (take or skip)",
+                "2 explore (recurse)",
+                "3 undo the choice",
+                "4 prune dead branches"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Listing subsets is like deciding what to pack: for every item you say yes or no, and walk through every combination of answers.",
+      "story": "You are packing a small bag from three things: a torch, a book and a hat. For the torch you say yes or no. Then for the book, yes or no. Then for the hat, yes or no. Every pattern of answers is one bag. If you write down each bag, take out the last thing you added, and try the other answer, you will list all eight bags without missing one or listing one twice.",
+      "maps": [
+        [
+          "Yes or no for each item",
+          "Take or skip"
+        ],
+        [
+          "A pattern of answers",
+          "One subset"
+        ],
+        [
+          "Taking the last item out",
+          "The undo step"
+        ],
+        [
+          "Every pattern of answers",
+          "The power set"
+        ]
+      ],
+      "words": [
+        [
+          "subset",
+          "A group chosen from a set of items, possibly none or all."
+        ],
+        [
+          "power set",
+          "The set of all subsets of a set."
+        ],
+        [
+          "backtracking",
+          "Building an answer step by step and undoing a step when it cannot work."
+        ],
+        [
+          "pruning",
+          "Cutting off a branch of the search that cannot succeed."
+        ],
+        [
+          "combination",
+          "A subset of a fixed size, where order does not matter."
+        ]
+      ]
+    }
   }
 ]
