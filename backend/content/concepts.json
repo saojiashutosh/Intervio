@@ -124681,5 +124681,1301 @@
         ]
       ]
     }
+  },
+  {
+    "id": "tree-traversals",
+    "n": 168,
+    "level": 14,
+    "week": "Core",
+    "title": "Tree Traversals: Pre-order, In-order, Post-order and Level-order",
+    "tagline": "Visit every node of a tree in four standard orders, in recursive and iterative form, and know which job each order suits.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A traversal visits every node of a tree exactly once. There are four orders you need to know. Three are depth-first and differ in when the node is visited relative to its two subtrees. The fourth is breadth-first. All four take O(n) time, since each node is handled once.",
+      "## The three depth-first orders",
+      "- Pre-order, also written NLR: visit the node, then the left subtree, then the right subtree.\n- In-order, LNR: left subtree, node, right subtree.\n- Post-order, LRN: left subtree, right subtree, node.",
+      "For the tree with A at the root, B and C as its children, and D, E, F, G as the leaves, pre-order gives A B D E C F G. In-order gives D B E A F C G. Post-order gives D E B F G C A.",
+      "## Level-order",
+      "Level-order, or breadth-first, visits the tree one level at a time, left to right. It uses a queue: take a node from the front, visit it, and add its children to the back. The Wikipedia article notes that the queue's space is proportional to the widest level, which can be half of all the nodes. For this tree the order is A B C D E F G.",
+      "## What each order is for",
+      "Pre-order visits a parent before its children, so it is a topological order. It is used to copy a tree and gives prefix notation. Post-order visits children first, so it is used to delete a tree, and to compute values that need both children, like height or a subtree sum. It gives postfix notation. In-order on a binary search tree visits the keys in ascending order, and reverse in-order gives descending order.",
+      "## Recursive and iterative code",
+      "The recursive forms are short, and their extra space is O(h), the height, for the call stack. For a skewed tree the height is n, which can hit Python's recursion limit. The iterative forms use an explicit stack with the same O(h) space. For in-order, push nodes while going left, then pop, visit, and go right. For pre-order, push the right child before the left child. Another method, Morris traversal, threads null pointers and uses no stack at all.",
+      "> A worked example: in-order, iterative, on the tree 4 with children 2 and 6. Go left from 4 to 2, pushing both. Pop 2 and visit it. 2 has no right child, so pop 4 and visit it. Move right to 6, push it, pop it and visit it. The order is 2, 4, 6.",
+      "## Rebuilding a tree",
+      "A single traversal does not identify a tree. The article says pre-order and post-order together do not uniquely determine a tree, but pre-order with in-order does, and so does post-order with in-order. The first value of the pre-order list is the root. Find it in the in-order list: everything to its left is the left subtree, and everything to its right is the right subtree. Recurse.",
+      "## How to talk through it",
+      "Name the order, say what is visited when, and give the cost: O(n) time and O(h) space. Trace one small tree by hand, and say how you would avoid deep recursion."
+    ],
+    "keyPoints": [
+      "Pre-order: node, left, right. In-order: left, node, right. Post-order: left, right, node. All O(n).",
+      "Level-order uses a queue and visits one level at a time.",
+      "In-order on a binary search tree gives the keys in ascending order.",
+      "Depth-first space is O(h). A skewed tree can hit the recursion limit, so use an explicit stack.",
+      "Pre-order with in-order (or post-order with in-order) rebuilds a tree uniquely."
+    ],
+    "sql": [
+      {
+        "title": "The four traversals",
+        "lang": "py",
+        "code": "from collections import deque\n\nclass Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\n#        1\n#      /   \\\n#     2     3\n#    / \\   / \\\n#   4   5 6   7\ntree = Node(1, Node(2, Node(4), Node(5)), Node(3, Node(6), Node(7)))\n\ndef preorder(n):  return [] if not n else [n.val] + preorder(n.left) + preorder(n.right)\ndef inorder(n):   return [] if not n else inorder(n.left) + [n.val] + inorder(n.right)\ndef postorder(n): return [] if not n else postorder(n.left) + postorder(n.right) + [n.val]\n\ndef level_order(root):\n    out, q = [], deque([root] if root else [])\n    while q:\n        n = q.popleft()\n        out.append(n.val)\n        for child in (n.left, n.right):\n            if child:\n                q.append(child)\n    return out\n\nassert preorder(tree) == [1, 2, 4, 5, 3, 6, 7]\nassert inorder(tree) == [4, 2, 5, 1, 6, 3, 7]\nassert postorder(tree) == [4, 5, 2, 6, 7, 3, 1]\nassert level_order(tree) == [1, 2, 3, 4, 5, 6, 7]\nassert level_order(None) == []"
+      },
+      {
+        "title": "Iterative versions with a stack",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ntree = Node(1, Node(2, Node(4), Node(5)), Node(3, Node(6), Node(7)))\n\ndef inorder_iter(root):\n    out, stack, node = [], [], root\n    while stack or node:\n        while node:                       # go left as far as possible\n            stack.append(node)\n            node = node.left\n        node = stack.pop()\n        out.append(node.val)\n        node = node.right\n    return out\n\ndef preorder_iter(root):\n    out, stack = [], [root] if root else []\n    while stack:\n        node = stack.pop()\n        out.append(node.val)\n        if node.right:                    # right first, so left is popped first\n            stack.append(node.right)\n        if node.left:\n            stack.append(node.left)\n    return out\n\nassert inorder_iter(tree) == [4, 2, 5, 1, 6, 3, 7]\nassert preorder_iter(tree) == [1, 2, 4, 5, 3, 6, 7]\ndeep = None\nfor v in range(5000):                      # a very deep tree: no recursion needed\n    deep = Node(v, deep, None)\nassert len(inorder_iter(deep)) == 5000"
+      },
+      {
+        "title": "Rebuild a tree from pre-order and in-order",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef build_tree(preorder, inorder):\n    where = {v: i for i, v in enumerate(inorder)}\n    it = iter(preorder)\n    def build(lo, hi):                     # builds from the in-order slice [lo, hi)\n        if lo >= hi:\n            return None\n        root = Node(next(it))              # the next pre-order value is this subtree's root\n        mid = where[root.val]\n        root.left = build(lo, mid)\n        root.right = build(mid + 1, hi)\n        return root\n    return build(0, len(inorder))\n\ndef post(n): return [] if not n else post(n.left) + post(n.right) + [n.val]\n\nt = build_tree([1, 2, 4, 5, 3, 6, 7], [4, 2, 5, 1, 6, 3, 7])\nassert post(t) == [4, 5, 2, 6, 7, 3, 1]\nassert build_tree([], []) is None\nsingle = build_tree([9], [9])\nassert single.val == 9 and single.left is None and single.right is None"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the four traversals and the iterative in-order and pre-order. Then write post-order iteratively with two stacks, and level-order that returns a list of lists, one per level. Finally, write build_tree from pre-order and in-order, and explain why pre-order alone cannot rebuild the tree.",
+    "pitfalls": [
+      "Confusing the three depth-first orders. The name says where the node goes: pre is before, in is between, post is after.",
+      "Using recursion on a very deep tree and hitting the recursion limit.",
+      "Pushing the left child before the right in iterative pre-order, which visits right first.",
+      "Using a list as a queue with pop(0) in level-order. Use collections.deque.",
+      "Forgetting that a traversal of an empty tree must return an empty result."
+    ],
+    "interview": [
+      {
+        "q": "What are the tree traversal orders?",
+        "a": "Pre-order visits node, left, right. In-order visits left, node, right. Post-order visits left, right, node. Level-order visits one level at a time with a queue. All take O(n) time."
+      },
+      {
+        "q": "What does in-order traversal of a binary search tree give?",
+        "a": "The keys in ascending order. Reverse in-order gives them in descending order."
+      },
+      {
+        "q": "How do you traverse a tree without recursion?",
+        "a": "Use an explicit stack. For in-order, push nodes while going left, then pop, visit and go right. For pre-order, push the right child then the left child. For level-order, use a queue."
+      },
+      {
+        "q": "Can you rebuild a tree from its traversals?",
+        "a": "Not from pre-order alone, nor from pre-order and post-order together. Pre-order with in-order does it: the first pre-order value is the root, and its position in the in-order list splits the left and right subtrees."
+      }
+    ],
+    "references": [
+      {
+        "title": "Tree traversal (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Tree_traversal",
+        "kind": "Reference"
+      },
+      {
+        "title": "Binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: traversals are the base of nearly every tree question. The four orders, the in-order property of search trees, the uses of each order, the O(h) stack space, the Morris traversal note and the uniqueness of pre-order with in-order come from the Wikipedia tree traversal article, which I read in part. The worked example and code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-tree-traversal",
+      "wikipedia-binary-search-tree",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "traverse",
+        "title": "Tree traversals, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or search"
+          },
+          {
+            "kind": "write",
+            "label": "insert or change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Four orders",
+            "at": 0
+          },
+          {
+            "text": "Pre-order",
+            "at": 1
+          },
+          {
+            "text": "In-order",
+            "at": 2
+          },
+          {
+            "text": "Level-order",
+            "at": 4
+          },
+          {
+            "text": "Iterative",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "t0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "G",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "t0",
+            "b": "t1",
+            "dir": "none"
+          },
+          {
+            "a": "t0",
+            "b": "t2",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t3",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t4",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t5",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t6",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "A traversal visits every node once",
+            "tag": "technique",
+            "body": [
+              "To use a tree you often need to visit every node. There are four standard orders. Three are depth-first and differ only in when the node itself is visited: before its children, between them, or after them. The fourth goes level by level.",
+              "Every traversal visits each node exactly once, so each costs O(n) time."
+            ],
+            "short": "Four orders",
+            "hud": [
+              {
+                "k": "Pre-order",
+                "v": "node, left, right"
+              },
+              {
+                "k": "In-order",
+                "v": "left, node, right"
+              },
+              {
+                "k": "Post-order",
+                "v": "left, right, node"
+              },
+              {
+                "k": "Level-order",
+                "v": "level by level"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "Pre-order: node, left, right",
+            "tag": "technique",
+            "body": [
+              "Visit the node first, then its whole left subtree, then its whole right subtree. For this tree the order is A, B, D, E, C, F, G.",
+              "Pre-order visits a parent before its children. It is used to copy a tree, and it gives prefix notation for an expression."
+            ],
+            "short": "Pre-order",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B D E C F G"
+              },
+              {
+                "k": "Use",
+                "v": "copy or serialise a tree"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1",
+                  "t3",
+                  "t4",
+                  "t2",
+                  "t5",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "In-order: left, node, right",
+            "tag": "technique",
+            "body": [
+              "Visit the left subtree, then the node, then the right subtree. The order is D, B, E, A, F, C, G.",
+              "For a binary search tree, in-order visits the keys in ascending order. That is the most important property of this traversal."
+            ],
+            "short": "In-order",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "D B E A F C G"
+              },
+              {
+                "k": "On a BST",
+                "v": "sorted keys",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1",
+                  "t4",
+                  "t0",
+                  "t5",
+                  "t2",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "In-order visits A after which node?",
+              "options": [
+                "B only",
+                "D, B and E: the whole left subtree",
+                "C"
+              ],
+              "answer": 1,
+              "why": "In-order finishes the entire left subtree, D, B and E, before the node A itself."
+            }
+          },
+          {
+            "title": "Post-order: left, right, node",
+            "tag": "technique",
+            "body": [
+              "Visit both subtrees first, then the node. The order is D, E, B, F, G, C, A.",
+              "Post-order visits children before their parent. It is used to delete a tree, and to compute a value that depends on both children, such as a height or a sum."
+            ],
+            "short": "Post-order",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "D E B F G C A"
+              },
+              {
+                "k": "Use",
+                "v": "delete a tree, compute from children"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t4",
+                  "t1",
+                  "t5",
+                  "t6",
+                  "t2",
+                  "t0"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Level-order: breadth first with a queue",
+            "tag": "technique",
+            "body": [
+              "Visit the tree one level at a time, from left to right: A, then B and C, then D, E, F and G. It uses a queue: take a node, visit it, and add its children to the back.",
+              "The queue can hold up to half of the nodes at once, which is the widest level."
+            ],
+            "short": "Level-order",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "A B C D E F G"
+              },
+              {
+                "k": "Uses a",
+                "v": "queue"
+              },
+              {
+                "k": "Space",
+                "v": "widest level",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1",
+                  "t2",
+                  "t3",
+                  "t4",
+                  "t5",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The recursive code is three lines",
+            "tag": "solution",
+            "body": [
+              "Depth-first traversals are naturally recursive. The only difference between the three is where the visit happens. The recursion follows the call stack, so the extra space is O(h), the height of the tree.",
+              "For a skewed tree the height is n, so a very deep tree can reach Python's recursion limit."
+            ],
+            "short": "Recursion",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(h)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def inorder(n):",
+                "    if n:",
+                "        inorder(n.left)",
+                "        visit(n)",
+                "        inorder(n.right)"
+              ],
+              "hl": [
+                2,
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "An explicit stack replaces recursion",
+            "tag": "technique",
+            "body": [
+              "For in-order, go left as far as you can, pushing each node on a stack. Then pop a node, visit it, and move to its right child. Repeat. For pre-order, push the right child before the left child so that left is popped first.",
+              "This version has the same O(h) stack space, but no recursion limit."
+            ],
+            "short": "Iterative",
+            "hud": [
+              {
+                "k": "Stack space",
+                "v": "O(h)"
+              },
+              {
+                "k": "Recursion limit",
+                "v": "not an issue",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1",
+                  "t3"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "stack, node = [], root",
+                "while stack or node:",
+                "    while node: stack.append(node); node = node.left",
+                "    node = stack.pop(); visit(node); node = node.right"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "On a search tree, in-order is sorted",
+            "tag": "insight",
+            "body": [
+              "Put the values 4, 2, 6, 1, 3, 5, 7 into a binary search tree, where every left value is smaller and every right value is bigger. In-order visits them as 1, 2, 3, 4, 5, 6, 7.",
+              "Reading a BST in order is a free way to get its keys sorted."
+            ],
+            "short": "BST sorted",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "1 2 3 4 5 6 7",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 6",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "6"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "5"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "visit 7",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1",
+                  "t4",
+                  "t0",
+                  "t5",
+                  "t2",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Which order for which job",
+            "tag": "insight",
+            "body": [
+              "Copy or save a tree: pre-order. Get sorted keys from a BST: in-order. Delete a tree or compute heights and sums from the bottom up: post-order. Shortest path in an unweighted tree, or print by levels: level-order.",
+              "One traversal alone does not rebuild a tree. Pre-order together with in-order does, and so does post-order together with in-order."
+            ],
+            "short": "Which one",
+            "hud": [
+              {
+                "k": "Pre-order",
+                "v": "copy, serialise"
+              },
+              {
+                "k": "In-order",
+                "v": "sorted output"
+              },
+              {
+                "k": "Post-order",
+                "v": "delete, bottom-up"
+              },
+              {
+                "k": "Level-order",
+                "v": "by level"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Four traversals: pre-order, in-order and post-order are depth-first, and level-order uses a queue. All are O(n) time. Depth-first costs O(h) space.",
+              "Know the order of a small tree by heart, and know that in-order on a BST is sorted."
+            ],
+            "short": "Recap",
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 pre: node, left, right",
+                "2 in: left, node, right",
+                "3 post: left, right, node",
+                "4 level: queue"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A tree traversal is like walking round a building and deciding when to write down each room's name.",
+      "story": "Imagine a building with rooms that open onto smaller rooms. You can note a room's name when you first enter it, after you have looked at its left room, or after you have looked at all its rooms. Those are the three depth-first orders. Or you can record all the rooms on one floor before moving to the next floor, which is the level order.",
+      "maps": [
+        [
+          "A room",
+          "A node"
+        ],
+        [
+          "Noting a room when you enter",
+          "Pre-order"
+        ],
+        [
+          "Noting it after looking inside",
+          "Post-order"
+        ],
+        [
+          "One floor at a time",
+          "Level-order"
+        ]
+      ],
+      "words": [
+        [
+          "traversal",
+          "A way of visiting every node of a tree exactly once."
+        ],
+        [
+          "pre-order",
+          "Visit the node, then its left subtree, then its right subtree."
+        ],
+        [
+          "in-order",
+          "Visit the left subtree, then the node, then the right subtree."
+        ],
+        [
+          "post-order",
+          "Visit both subtrees, then the node."
+        ],
+        [
+          "level-order",
+          "Visit the tree one level at a time, from top to bottom."
+        ]
+      ]
+    }
   }
 ]
