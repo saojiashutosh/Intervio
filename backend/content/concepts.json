@@ -143364,5 +143364,827 @@
         ]
       ]
     }
+  },
+  {
+    "id": "cycle-detection",
+    "n": 185,
+    "level": 14,
+    "week": "Core",
+    "title": "Cycle Detection: Undirected and Directed Graphs",
+    "tagline": "Decide whether a graph has a cycle, using the parent rule for undirected graphs and the three-colour DFS for directed ones.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A cycle is a path that starts and ends at the same vertex. Detecting cycles is a core graph task. A directed graph without cycles, called a directed acyclic graph, can be topologically sorted, a build or a course plan with a cycle can never finish, and an undirected graph without cycles is a forest. The method differs for undirected and directed graphs.",
+      "## Undirected graphs",
+      "Run a DFS and keep track of each vertex's parent, the vertex it was reached from. If a vertex has a neighbour that is already visited and is not its parent, there is a second path between the two, so the graph has a cycle. The edge back to the parent is the very edge you just used, so it must be skipped. Be careful with multiple edges between the same two vertices: they form a cycle, but the simple parent rule misses them, so track the edge, not only the parent vertex.",
+      "## Directed graphs",
+      "In a directed graph, reaching a visited vertex is not always a cycle. The vertex may be in another branch and already finished. The standard fix is three colours. White means not visited. Gray means visited and still on the current DFS path, since its descendants are not all finished. Black means finished. A directed cycle exists exactly when DFS finds an edge to a gray vertex, which is a back edge in the edge classification of the Wikipedia depth-first search article.",
+      "- Edge to a white vertex: a tree edge. Go deeper.\n- Edge to a gray vertex: a back edge. There is a cycle.\n- Edge to a black vertex: a forward or cross edge. No cycle from this edge.",
+      "> A worked example: edges A to B, B to C, C to D, D to B, and A to E. DFS from A colours A, B, C and D gray in turn. D has an edge to B, which is gray, so there is a cycle: B, C, D, B. To print it, follow the parents from D back to B.",
+      "## Other methods",
+      "For an undirected graph, union-find reads the edges one by one. If an edge joins two vertices already in the same set, it closes a cycle. For a directed graph, Kahn's algorithm repeatedly removes vertices that have no incoming edges. If any vertices remain when no more can be removed, there is a cycle. The Wikipedia article on topological sorting states that a topological ordering exists if and only if the graph has no directed cycles.",
+      "## A tree test",
+      "An undirected graph is a tree if it is connected and has no cycle, which for n vertices means it is connected and has exactly n - 1 edges. That is often the quickest check in an interview.",
+      "## Cost",
+      "The DFS methods take O(V + E) time and O(V) space. Union-find takes about O(E) with near-constant operations. Kahn's algorithm takes O(V + E).",
+      "## Common mistakes",
+      "Using the undirected rule on a directed graph, which reports a cycle in a harmless diamond shape. Forgetting to skip the parent in an undirected graph. Using only a visited set in a directed graph. Not starting a search from every vertex, which misses cycles in other components.",
+      "## How to talk through it",
+      "Ask whether the graph is directed. State the rule for that case, with the three colours for directed graphs. Give O(V + E), and mention union-find or Kahn as alternatives."
+    ],
+    "keyPoints": [
+      "Undirected: DFS with a parent. A visited neighbour that is not the parent means a cycle.",
+      "Directed: three colours. White unvisited, gray on the current path, black finished. An edge to a gray vertex is a cycle.",
+      "Start a search from every unvisited vertex, to cover all components.",
+      "Alternatives: union-find for undirected edge lists, Kahn's algorithm for directed graphs.",
+      "A graph is a tree if it is connected with n - 1 edges. All methods are O(V + E)."
+    ],
+    "sql": [
+      {
+        "title": "Directed cycle detection with three colours, and the cycle itself",
+        "lang": "py",
+        "code": "WHITE, GRAY, BLACK = 0, 1, 2\n\ndef find_cycle(graph):\n    color = {v: WHITE for v in graph}\n    parent = {}\n    def visit(v):\n        color[v] = GRAY\n        for w in graph[v]:\n            if color[w] == WHITE:\n                parent[w] = v\n                found = visit(w)\n                if found:\n                    return found\n            elif color[w] == GRAY:                      # a back edge: the path from w to v plus v -> w\n                cycle, x = [v], v\n                while x != w:\n                    x = parent[x]\n                    cycle.append(x)\n                return cycle[::-1]\n        color[v] = BLACK\n        return None\n    for v in graph:\n        if color[v] == WHITE:\n            found = visit(v)\n            if found:\n                return found\n    return None\n\ng = {\"A\": [\"B\", \"E\"], \"B\": [\"C\"], \"C\": [\"D\"], \"D\": [\"B\"], \"E\": []}\ncycle = find_cycle(g)\nassert cycle is not None and set(cycle) == {\"B\", \"C\", \"D\"}\ndiamond = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": []}\nassert find_cycle(diamond) is None                      # D is reached twice, but no cycle\nassert find_cycle({\"A\": [\"A\"]}) == [\"A\"]                # a self-loop\nassert find_cycle({}) is None"
+      },
+      {
+        "title": "Undirected cycles: DFS with a parent, and union-find on edges",
+        "lang": "py",
+        "code": "def has_cycle_dfs(graph):\n    seen = set()\n    def visit(v, parent):\n        seen.add(v)\n        for w in graph[v]:\n            if w not in seen:\n                if visit(w, v):\n                    return True\n            elif w != parent:\n                return True\n        return False\n    return any(visit(v, None) for v in graph if v not in seen)\n\ndef has_cycle_edges(n, edges):\n    parent = list(range(n))\n    def find(x):\n        while parent[x] != x:\n            parent[x] = parent[parent[x]]\n            x = parent[x]\n        return x\n    for a, b in edges:\n        ra, rb = find(a), find(b)\n        if ra == rb:\n            return True                                # already connected: this edge closes a cycle\n        parent[ra] = rb\n    return False\n\ntriangle = {0: [1, 2], 1: [0, 2], 2: [0, 1]}\npath = {0: [1], 1: [0, 2], 2: [1]}\nassert has_cycle_dfs(triangle) and not has_cycle_dfs(path)\nassert has_cycle_edges(3, [(0, 1), (1, 2), (2, 0)]) and not has_cycle_edges(3, [(0, 1), (1, 2)])\n\ndef is_tree(n, edges):\n    return len(edges) == n - 1 and not has_cycle_edges(n, edges)     # n - 1 edges and no cycle\n\nassert is_tree(4, [(0, 1), (1, 2), (1, 3)]) and not is_tree(4, [(0, 1), (2, 3)])"
+      },
+      {
+        "title": "Kahn's algorithm finds directed cycles too",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef has_cycle_kahn(graph):\n    indegree = {v: 0 for v in graph}\n    for v in graph:\n        for w in graph[v]:\n            indegree[w] += 1\n    q = deque(v for v in graph if indegree[v] == 0)\n    removed = 0\n    while q:\n        v = q.popleft()\n        removed += 1\n        for w in graph[v]:\n            indegree[w] -= 1\n            if indegree[w] == 0:\n                q.append(w)\n    return removed != len(graph)                       # leftover vertices lie on or behind a cycle\n\nassert has_cycle_kahn({\"A\": [\"B\", \"E\"], \"B\": [\"C\"], \"C\": [\"D\"], \"D\": [\"B\"], \"E\": []})\nassert not has_cycle_kahn({\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": []})\nassert has_cycle_kahn({\"A\": [\"A\"]}) and not has_cycle_kahn({})\n\nimport random\nrandom.seed(30)\ndef dfs_has_cycle(graph):\n    color = {v: 0 for v in graph}\n    def visit(v):\n        color[v] = 1\n        for w in graph[v]:\n            if color[w] == 1 or (color[w] == 0 and visit(w)):\n                return True\n        color[v] = 2\n        return False\n    return any(color[v] == 0 and visit(v) for v in graph)\n\nfor _ in range(300):\n    n = random.randint(1, 7)\n    g = {v: [w for w in range(n) if random.random() < 0.2] for v in range(n)}\n    assert has_cycle_kahn(g) == dfs_has_cycle(g)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write find_cycle for directed graphs with three colours and return the cycle. Write has_cycle for undirected graphs by DFS and by union-find, and is_tree. Then check Kahn's algorithm against the DFS version on 300 random directed graphs. Finally, explain why the undirected rule reports a false cycle on a directed diamond.",
+    "pitfalls": [
+      "Using the undirected parent rule on a directed graph. A directed diamond is not a cycle.",
+      "Using one visited set in a directed graph. A black vertex reached twice is not a cycle.",
+      "Not skipping the parent in an undirected graph, so every edge looks like a cycle.",
+      "Searching only from one start vertex and missing a cycle in another component.",
+      "Forgetting self-loops, which are one-edge cycles in a directed graph."
+    ],
+    "interview": [
+      {
+        "q": "How do you detect a cycle in an undirected graph?",
+        "a": "Run a DFS that remembers each vertex's parent. If a vertex has a visited neighbour that is not its parent, there is a cycle. Alternatively, union the endpoints of each edge, and if both endpoints are already in the same set, that edge closes a cycle."
+      },
+      {
+        "q": "How do you detect a cycle in a directed graph?",
+        "a": "Use DFS with three colours: white, gray for on the current path, and black for finished. An edge to a gray vertex is a back edge and means a cycle. Kahn's algorithm also works: if some vertices cannot be removed, there is a cycle."
+      },
+      {
+        "q": "Why isn't a visited set enough for directed graphs?",
+        "a": "A vertex can be reached twice by different paths without any cycle, as in a diamond. You must distinguish vertices on the current path (gray) from finished ones (black)."
+      },
+      {
+        "q": "How do you check whether an undirected graph is a tree?",
+        "a": "It must be connected and have exactly n - 1 edges, or equivalently be connected and have no cycle."
+      }
+    ],
+    "references": [
+      {
+        "title": "Depth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+        "kind": "Reference"
+      },
+      {
+        "title": "Topological sorting (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Topological_sorting",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: cycle detection is a frequent graph question and the base of the course-schedule problem. The edge classification into forward, back and cross edges comes from the Wikipedia depth-first search article, which I read in part, and the fact that a topological order exists exactly when there is no directed cycle, with Kahn's algorithm, from the Wikipedia topological sorting article, which I read in part. The undirected parent rule, the three-colour method and the union-find test are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-depth-first-search",
+      "wikipedia-topological-sorting",
+      "princeton-union-find",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "cycles",
+        "title": "Cycle detection, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or explore"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "back edge or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The question",
+            "at": 0
+          },
+          {
+            "text": "Undirected",
+            "at": 1
+          },
+          {
+            "text": "Three colours",
+            "at": 2
+          },
+          {
+            "text": "A cycle",
+            "at": 6
+          },
+          {
+            "text": "Alternatives",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.9,
+            "y": 2.7,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": -1.1,
+            "y": 4.5,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.3,
+            "y": -0.3,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": -0.1,
+            "y": -2.5,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 1.3,
+            "y": 1.1,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "to"
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "to"
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "to"
+          },
+          {
+            "a": "gD",
+            "b": "gB",
+            "dir": "to"
+          },
+          {
+            "a": "gA",
+            "b": "gE",
+            "dir": "to"
+          }
+        ],
+        "steps": [
+          {
+            "title": "The question: does the graph contain a cycle?",
+            "tag": "technique",
+            "body": [
+              "A cycle is a path that returns to where it started. Cycle detection is a common question. It decides whether tasks with dependencies can be ordered, whether a build can finish, and whether a graph is a tree.",
+              "The method differs for undirected and directed graphs."
+            ],
+            "short": "The question",
+            "hud": [
+              {
+                "k": "Undirected",
+                "v": "an edge to a non-parent seen vertex"
+              },
+              {
+                "k": "Directed",
+                "v": "an edge to a vertex still on the path"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Undirected graphs: a visited vertex that is not the parent",
+            "tag": "technique",
+            "body": [
+              "In an undirected graph, run a DFS and remember the vertex you came from, the parent. If a vertex has a neighbour that is already visited and is not its parent, then there is a second route between them, so there is a cycle.",
+              "Skipping the parent matters: the edge back to it is the same edge you just used."
+            ],
+            "short": "Undirected rule",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for w in graph[v]:",
+                "    if w not in seen: ... visit(w, parent=v)",
+                "    elif w != parent: return True   # a cycle"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Directed graphs need three colours",
+            "tag": "technique",
+            "body": [
+              "In a directed graph, an edge to an already visited vertex is not always a cycle: it might lead to a finished vertex in another branch. We colour vertices white for unvisited, gray for on the current path, and black for finished.",
+              "A cycle exists exactly when DFS meets an edge to a gray vertex."
+            ],
+            "short": "Three colours",
+            "hud": [
+              {
+                "k": "White",
+                "v": "not visited yet"
+              },
+              {
+                "k": "Gray",
+                "v": "on the current path"
+              },
+              {
+                "k": "Black",
+                "v": "finished"
+              },
+              {
+                "k": "Cycle",
+                "v": "edge to a gray vertex",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Visit A: A turns gray",
+            "tag": "solution",
+            "body": [
+              "DFS starts at A. A is on the current path, so it is gray. Its edges lead to B and E. We take B first.",
+              "Gray vertices form the path from the start to where DFS is now."
+            ],
+            "short": "A is gray",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "A"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Visit B, then C: both gray",
+            "tag": "solution",
+            "body": [
+              "B is gray, then its edge leads to C, which is gray. The path is now A, B, C.",
+              "Every vertex on the path is waiting for its neighbours to finish."
+            ],
+            "short": "B and C",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "A B C"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB",
+                  "gC"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Visit D: the path is A, B, C, D",
+            "tag": "solution",
+            "body": [
+              "C's edge leads to D, which turns gray. D has an edge back to B. Is B white, gray or black?",
+              "B is on the current path. The next step will say what that means."
+            ],
+            "short": "D is gray",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "A B C D"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "D's edge leads to B, which is gray: still on the path. What does this mean?",
+              "options": [
+                "Nothing: B is already visited",
+                "A cycle: B, C, D and back to B",
+                "B must be recoloured white"
+              ],
+              "answer": 1,
+              "why": "An edge to a gray vertex goes back to the current path. That closes a loop."
+            }
+          },
+          {
+            "title": "D to B: an edge to a gray vertex is a cycle",
+            "tag": "problem",
+            "body": [
+              "D's edge to B reaches a gray vertex. The path from B to D, B, C, D, together with the edge D to B, makes a cycle: B, C, D, B.",
+              "We can stop and report a cycle. To print it, follow the stored parents from D back to B."
+            ],
+            "short": "Cycle found",
+            "hud": [
+              {
+                "k": "Cycle",
+                "v": "B, C, D, B",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "gray: on the path",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "edge back to B",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gB"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "If there is no cycle, vertices finish black",
+            "tag": "insight",
+            "body": [
+              "When a vertex has no more edges to follow, it turns black. A black vertex is never on the current path, so an edge to it is safe: a forward or cross edge, not a cycle.",
+              "Without the D to B edge, A, B, C, D and E would all finish black, and the answer would be: no cycle."
+            ],
+            "short": "Black vertices",
+            "hud": [
+              {
+                "k": "Black",
+                "v": "finished: safe to reach"
+              },
+              {
+                "k": "Gray",
+                "v": "on the path: danger"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Other ways to detect cycles",
+            "tag": "technique",
+            "body": [
+              "For undirected graphs, union-find works too: if an edge joins two vertices that are already in the same set, it closes a cycle. For directed graphs, Kahn's topological sort removes vertices with no incoming edges. If some vertices are left over at the end, they lie on or after a cycle.",
+              "The Wikipedia article on topological sorting says a topological order exists exactly when there is no directed cycle."
+            ],
+            "short": "Alternatives",
+            "hud": [
+              {
+                "k": "Undirected",
+                "v": "union-find on edges"
+              },
+              {
+                "k": "Directed",
+                "v": "Kahn leaves vertices behind"
+              },
+              {
+                "k": "Tree test",
+                "v": "connected and E = V - 1"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Undirected: DFS with a parent, and a visited non-parent neighbour means a cycle. Directed: three colours, and an edge to a gray vertex means a cycle. Both cost O(V + E).",
+              "Union-find or Kahn's algorithm are good alternatives."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 undirected: visited, not the parent",
+                "2 directed: edge to a gray vertex",
+                "3 white, gray, black",
+                "4 O(V + E)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Detecting a cycle is like noticing that the path you are following leads back to a spot you are still standing on.",
+      "story": "You are following a trail through the woods, leaving a ribbon on each tree you pass. If you reach a tree with a ribbon from earlier on the same walk, you have gone in a circle. But if the ribbon is from a trail you finished long ago, that is fine. So you use two kinds of ribbon, one for the trail you are on now, and one for finished trails.",
+      "maps": [
+        [
+          "The trail you are on",
+          "The current DFS path: gray vertices"
+        ],
+        [
+          "A finished trail",
+          "Black vertices"
+        ],
+        [
+          "Meeting a tree on your current trail",
+          "An edge to a gray vertex"
+        ],
+        [
+          "Going in a circle",
+          "A cycle"
+        ]
+      ],
+      "words": [
+        [
+          "cycle",
+          "A path that starts and ends at the same vertex."
+        ],
+        [
+          "back edge",
+          "An edge to a vertex that is still on the current path."
+        ],
+        [
+          "directed acyclic graph",
+          "A directed graph with no cycles."
+        ],
+        [
+          "parent",
+          "The vertex from which a vertex was reached."
+        ],
+        [
+          "union-find",
+          "A structure that tracks which items belong to the same group."
+        ]
+      ]
+    }
   }
 ]
