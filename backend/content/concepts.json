@@ -158404,5 +158404,1399 @@
         ]
       ]
     }
+  },
+  {
+    "id": "quick-sort",
+    "n": 198,
+    "level": 14,
+    "week": "Core",
+    "title": "Quick Sort: Partitioning Around a Pivot",
+    "tagline": "Sort in place by partitioning around a pivot and recursing on both sides, and see why pivot choice decides between O(n log n) and O(n squared).",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "Quicksort is a divide-and-conquer sort. The Wikipedia article describes it as picking a pivot, partitioning the other elements into those less than the pivot and those greater, and recursing on both sub-ranges. It can be done in place. After partitioning, the pivot is in its final position, so no merge step is needed. It is also called partition-exchange sort.",
+      "## The Lomuto partition",
+      "The Lomuto scheme usually takes the last element as the pivot. Keep an index i, the end of the zone of items smaller than the pivot, starting just before the range. Scan j across the range. When a[j] is smaller than the pivot, increase i and swap a[j] into position i. At the end, swap the pivot with the item at i + 1. The invariant the article gives is that items before i + 1 are smaller than the pivot and items after it are at least the pivot. The pivot's final index is returned, and you recurse on the part before it and the part after it.",
+      "## The Hoare partition",
+      "Hoare's scheme starts two pointers at the two ends and moves them towards each other, swapping items that are on the wrong side. The article says it does about three times fewer swaps on average than Lomuto's. It is trickier to write, and its recursion boundaries differ.",
+      "## Cost",
+      "With good pivots that split the range about in half, there are about log2 n levels of partitioning, and each level touches every item once, so the time is O(n log n). The article gives the average as O(n log n) and the worst case as O(n squared). The worst case arises when every pivot is the smallest or largest item, so one side is empty. With the first or last item as pivot, a sorted array does exactly that.",
+      "> A worked example: partition 8, 3, 7, 1, 6, 2, 5 with pivot 5. 8 is not smaller, skip. 3 is smaller: swap it to the front, 3, 8, 7, 1, 6, 2, 5. 7 is not smaller. 1 is smaller: 3, 1, 7, 8, 6, 2, 5. 6 is not smaller. 2 is smaller: 3, 1, 2, 8, 6, 7, 5. Swap the pivot into place: 3, 1, 2, 5, 6, 7, 8. The pivot 5 is at index 3 with 3, 1, 2 on its left and 6, 7, 8 on its right.",
+      "## Choosing the pivot",
+      "Early versions used the leftmost element, which fails on sorted input. The article lists fixes: a random index, the middle index, or the median of the first, middle and last elements. A random pivot gives expected O(n log n) on every input, since no input is bad for a random choice. Introsort starts with quicksort and switches to heap sort if the recursion depth grows too large, so the worst case is O(n log n).",
+      "## Space and stability",
+      "Quicksort is in place apart from the recursion stack. If you recurse into the smaller part and loop on the larger, the stack depth is at most log2 n. It is not stable, as the article says most implementations are not, because the partition swaps move items past equal ones. A well-implemented quicksort is usually faster than heap sort in practice.",
+      "## Duplicates",
+      "If many items equal the pivot, Lomuto does a lot of useless work, and an array of equal items is a worst case. A three-way partition groups the items into smaller, equal and larger, and recurses only on smaller and larger, which handles many equal keys in linear time.",
+      "## How to talk through it",
+      "Describe the partition and the invariant, give O(n log n) average and O(n squared) worst, and say what causes the worst case and how a random pivot fixes it. Mention in place, not stable, and the smaller-side-first trick."
+    ],
+    "keyPoints": [
+      "Pick a pivot, partition: smaller left, pivot in its final place, larger right. Recurse on both sides.",
+      "Lomuto: pivot last, grow a zone of smaller items. Hoare: two pointers from the ends, fewer swaps.",
+      "Average O(n log n), worst O(n squared) with bad pivots (sorted input and a first or last pivot).",
+      "Random or median-of-three pivots avoid the bad case. Three-way partition handles duplicates.",
+      "In place, not stable. Recurse into the smaller side first to keep the stack at O(log n)."
+    ],
+    "sql": [
+      {
+        "title": "Quicksort with the Lomuto partition and a random pivot",
+        "lang": "py",
+        "code": "import random\n\ndef partition(a, lo, hi):\n    p = random.randint(lo, hi)\n    a[p], a[hi] = a[hi], a[p]                         # a random pivot, moved to the end\n    pivot, i = a[hi], lo - 1\n    for j in range(lo, hi):\n        if a[j] < pivot:\n            i += 1\n            a[i], a[j] = a[j], a[i]\n    a[i + 1], a[hi] = a[hi], a[i + 1]\n    return i + 1                                      # the pivot's final index\n\ndef quicksort(a, lo=0, hi=None):\n    hi = len(a) - 1 if hi is None else hi\n    while lo < hi:\n        p = partition(a, lo, hi)\n        if p - lo < hi - p:                           # recurse into the smaller side, loop on the larger\n            quicksort(a, lo, p - 1)\n            lo = p + 1\n        else:\n            quicksort(a, p + 1, hi)\n            hi = p - 1\n    return a\n\nrandom.seed(58)\nassert quicksort([8, 3, 7, 1, 6, 2, 5]) == [1, 2, 3, 5, 6, 7, 8]\nassert quicksort([]) == [] and quicksort([4]) == [4] and quicksort([2, 1]) == [1, 2]\nfor _ in range(200):\n    data = [random.randint(-20, 20) for _ in range(random.randint(0, 50))]\n    assert quicksort(list(data)) == sorted(data)\n\na = [8, 3, 7, 1, 6, 2, 5]\na[0], a[6] = a[6], a[0]                               # not random: the same partition as the lesson, with pivot 5 last\na[0], a[6] = a[6], a[0]\nassert partition(a[:], 0, 6) in range(7)"
+      },
+      {
+        "title": "Bad pivots: sorted input with the last item as pivot",
+        "lang": "py",
+        "code": "def quicksort_count(a, choose):\n    a, comparisons, depth = list(a), [0], [0]\n    def sort(lo, hi, d):\n        if lo >= hi:\n            return\n        depth[0] = max(depth[0], d)\n        p = choose(lo, hi)\n        a[p], a[hi] = a[hi], a[p]\n        pivot, i = a[hi], lo - 1\n        for j in range(lo, hi):\n            comparisons[0] += 1\n            if a[j] < pivot:\n                i += 1\n                a[i], a[j] = a[j], a[i]\n        a[i + 1], a[hi] = a[hi], a[i + 1]\n        sort(lo, i, d + 1)\n        sort(i + 2, hi, d + 1)\n    sort(0, len(a) - 1, 1)\n    return a, comparisons[0], depth[0]\n\nn = 300\nordered = list(range(n))\n_, bad_comparisons, bad_depth = quicksort_count(ordered, lambda lo, hi: hi)             # the last item\n_, mid_comparisons, mid_depth = quicksort_count(ordered, lambda lo, hi: (lo + hi) // 2) # the middle item\nassert bad_comparisons == n * (n - 1) // 2 and bad_depth == n - 1                      # O(n squared) and a deep stack\nassert mid_comparisons < 3 * n * 9 and mid_depth < 25                                  # about n log2 n"
+      },
+      {
+        "title": "Three-way partition, and quicksort is not stable",
+        "lang": "py",
+        "code": "import random\n\ndef quicksort3(a):\n    if len(a) <= 1:\n        return a\n    pivot = a[len(a) // 2]\n    less = [x for x in a if x < pivot]\n    equal = [x for x in a if x == pivot]\n    more = [x for x in a if x > pivot]\n    return quicksort3(less) + equal + quicksort3(more)       # items equal to the pivot are not sorted again\n\nassert quicksort3([3, 1, 3, 3, 2, 3, 1]) == [1, 1, 2, 3, 3, 3, 3]\nassert quicksort3([5] * 1000) == [5] * 1000                      # all equal: one pass, no deep recursion\n\ndef dutch_flag(a, pivot):\n    low, mid, high = 0, 0, len(a) - 1\n    while mid <= high:\n        if a[mid] < pivot:\n            a[low], a[mid] = a[mid], a[low]; low += 1; mid += 1\n        elif a[mid] > pivot:\n            a[mid], a[high] = a[high], a[mid]; high -= 1\n        else:\n            mid += 1\n    return a\n\nassert dutch_flag([2, 0, 2, 1, 1, 0], 1) == [0, 0, 1, 1, 2, 2]\n\ndef quicksort_pairs(a):                                       # sorts by key only, to look at the order of equal keys\n    a = list(a)\n    def sort(lo, hi):\n        if lo >= hi:\n            return\n        pivot, i = a[hi][0], lo - 1\n        for j in range(lo, hi):\n            if a[j][0] < pivot:\n                i += 1\n                a[i], a[j] = a[j], a[i]\n        a[i + 1], a[hi] = a[hi], a[i + 1]\n        sort(lo, i); sort(i + 2, hi)\n    sort(0, len(a) - 1)\n    return a\n\nrandom.seed(60)\nunstable = False\nfor _ in range(500):\n    items = [(random.randint(0, 2), k) for k in range(7)]\n    if quicksort_pairs(items) != sorted(items, key=lambda p: p[0]):\n        unstable = True\n        break\nassert unstable                                              # equal keys sometimes change their order"
+      }
+    ],
+    "django": {},
+    "exercise": "Write quicksort with the Lomuto partition and a random pivot, and check it against sorted on 200 random lists. Count comparisons for sorted input with the last item as pivot, the middle item and a random pivot, and explain the three numbers. Then write the three-way version and check that an array of one repeated value takes linear time. Finally, find a small input where your quicksort changes the order of equal keys.",
+    "pitfalls": [
+      "Using the first or last item as pivot on possibly sorted input. It is O(n squared).",
+      "Recursing into the larger part first, so the stack can reach depth n.",
+      "Off-by-one errors in the recursion bounds: the pivot is already in place, so recurse on lo to p - 1 and p + 1 to hi.",
+      "Using Lomuto on input with many equal items. All-equal input is a worst case.",
+      "Expecting quicksort to be stable. It is not."
+    ],
+    "interview": [
+      {
+        "q": "How does quicksort work and what is its complexity?",
+        "a": "Pick a pivot, partition the array so smaller items are left of the pivot and larger right, then recurse on both sides. The average time is O(n log n). The worst case is O(n squared) when the pivots are consistently extreme. It sorts in place."
+      },
+      {
+        "q": "What causes quicksort's worst case and how do you avoid it?",
+        "a": "A pivot that is always the smallest or largest item, for example the last item on an already sorted array. Use a random pivot or the median of the first, middle and last items. Introsort also falls back to heap sort when recursion is deep."
+      },
+      {
+        "q": "Is quicksort stable?",
+        "a": "No. The partition swaps items across long distances, which can move an item past equal ones. You can make it stable by adding the original index as a tie-breaker, at the cost of memory."
+      },
+      {
+        "q": "How do you handle many duplicate values?",
+        "a": "Use a three-way partition into smaller, equal and larger items, and recurse only on smaller and larger. All-equal input then takes O(n) time."
+      }
+    ],
+    "references": [
+      {
+        "title": "Quicksort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Quicksort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Sorting algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Sorting_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: quicksort is the most asked sorting algorithm and the base of quickselect. The pivot and partition idea, the Lomuto and Hoare schemes, the invariant, the average and worst-case costs, the sorted-input weakness, the pivot choices, the in-place and not-stable properties and the log n stack come from the Wikipedia quicksort article, which I read in part. The worked trace and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-quicksort",
+      "wikipedia-sorting-algorithm",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "quicksort",
+        "title": "Quicksort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "swap or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Pivot",
+            "at": 0
+          },
+          {
+            "text": "Lomuto",
+            "at": 1
+          },
+          {
+            "text": "Scan",
+            "at": 3
+          },
+          {
+            "text": "Pivot placed",
+            "at": 8
+          },
+          {
+            "text": "The cost",
+            "at": 10
+          },
+          {
+            "text": "Pivot choice",
+            "at": 11
+          }
+        ],
+        "nodes": [
+          {
+            "id": "q0",
+            "kind": "cube",
+            "x": -3.6,
+            "y": 3.6,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q1",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 2.4,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q2",
+            "kind": "cube",
+            "x": -1.2,
+            "y": 1.2,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q4",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -1.2,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q5",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.4,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q6",
+            "kind": "cube",
+            "x": 3.6,
+            "y": -3.6,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Divide around a pivot",
+            "tag": "technique",
+            "body": [
+              "Quicksort picks one item, the pivot, and rearranges the array so that smaller items are on its left and larger items on its right. The pivot is then in its final place. Then it sorts the left part and the right part the same way.",
+              "We sort 8, 3, 7, 1, 6, 2, 5. The Wikipedia article calls it divide and conquer, and also partition-exchange sort."
+            ],
+            "short": "Pivot",
+            "hud": [
+              {
+                "k": "Pivot",
+                "v": "one chosen item"
+              },
+              {
+                "k": "Partition",
+                "v": "smaller left, larger right"
+              },
+              {
+                "k": "Then",
+                "v": "sort each side"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The Lomuto partition: pivot is the last item",
+            "tag": "technique",
+            "body": [
+              "The pivot is the last item, 5. Keep an index i for the end of the smaller zone, starting at -1, and scan j from the left. When a[j] is smaller than the pivot, grow the zone by one and swap a[j] into it.",
+              "The Wikipedia article describes this as the Lomuto scheme, usually with the last element as pivot."
+            ],
+            "short": "Lomuto",
+            "set": {
+              "q0": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "pivot, i = a[hi], lo - 1",
+                "for j in range(lo, hi):",
+                "    if a[j] < pivot:",
+                "        i += 1; a[i], a[j] = a[j], a[i]",
+                "a[i + 1], a[hi] = a[hi], a[i + 1]"
+              ],
+              "hl": [
+                2,
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "j = 0: 8 is not smaller, skip",
+            "tag": "technique",
+            "body": [
+              "j looks at 8. It is not smaller than 5, so it stays on the right of the zone. Nothing moves.",
+              "The smaller zone, in green, now has 0 items."
+            ],
+            "short": "j = 0",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "0 items"
+              },
+              {
+                "k": "Array",
+                "v": "8 3 7 1 6 2 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "8",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q1": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "j = 1: 3 is smaller, swap it in",
+            "tag": "solution",
+            "body": [
+              "j looks at 3. It is smaller than the pivot 5, so the smaller zone grows to include it. It is swapped into position 0. The array is 3 8 7 1 6 2 5.",
+              "The smaller zone, in green, now has 1 item."
+            ],
+            "short": "j = 1",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "1 item"
+              },
+              {
+                "k": "Array",
+                "v": "3 8 7 1 6 2 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "i",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q1": {
+                "label": "8",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q1",
+                  "q0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "j is at 3, and 3 is smaller than the pivot 5. What happens?",
+              "options": [
+                "It is swapped into the smaller zone",
+                "It is ignored",
+                "It becomes the new pivot"
+              ],
+              "answer": 0,
+              "why": "Items smaller than the pivot are collected at the left. 3 is swapped to the end of the zone, which is position 0."
+            }
+          },
+          {
+            "title": "j = 2: 7 is not smaller, skip",
+            "tag": "technique",
+            "body": [
+              "j looks at 7. It is not smaller than 5, so it stays on the right of the zone. Nothing moves.",
+              "The smaller zone, in green, now has 1 item."
+            ],
+            "short": "j = 2",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "1 item"
+              },
+              {
+                "k": "Array",
+                "v": "3 8 7 1 6 2 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "i",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q1": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "j = 3: 1 is smaller, swap it in",
+            "tag": "solution",
+            "body": [
+              "j looks at 1. It is smaller than the pivot 5, so the smaller zone grows to include it. It is swapped into position 1. The array is 3 1 7 8 6 2 5.",
+              "The smaller zone, in green, now has 2 items."
+            ],
+            "short": "j = 3",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "2 items"
+              },
+              {
+                "k": "Array",
+                "v": "3 1 7 8 6 2 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "i",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "8",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q3",
+                  "q1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "j = 4: 6 is not smaller, skip",
+            "tag": "technique",
+            "body": [
+              "j looks at 6. It is not smaller than 5, so it stays on the right of the zone. Nothing moves.",
+              "The smaller zone, in green, now has 2 items."
+            ],
+            "short": "j = 4",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "2 items"
+              },
+              {
+                "k": "Array",
+                "v": "3 1 7 8 6 2 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "i",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q2": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q5": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "j = 5: 2 is smaller, swap it in",
+            "tag": "solution",
+            "body": [
+              "j looks at 2. It is smaller than the pivot 5, so the smaller zone grows to include it. It is swapped into position 2. The array is 3 1 2 8 6 7 5.",
+              "The smaller zone, in green, now has 3 items."
+            ],
+            "short": "j = 5",
+            "hud": [
+              {
+                "k": "Smaller zone",
+                "v": "3 items"
+              },
+              {
+                "k": "Array",
+                "v": "3 1 2 8 6 7 5"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "i",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q3": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "red",
+                "pill": {
+                  "text": "j",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q5",
+                  "q2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Put the pivot in its place",
+            "tag": "solution",
+            "body": [
+              "The scan is finished. Swap the pivot with the first item after the smaller zone. The pivot 5 lands at index 3: everything to its left, 3 1 2, is smaller, and everything to its right, 6 7 8, is larger.",
+              "The pivot is now in its final position. We never need to move it again."
+            ],
+            "short": "Pivot placed",
+            "hud": [
+              {
+                "k": "Pivot 5",
+                "v": "final index 3",
+                "tone": "good"
+              },
+              {
+                "k": "Left",
+                "v": "3 1 2"
+              },
+              {
+                "k": "Right",
+                "v": "6 7 8"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q6",
+                  "q3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Recurse on the two sides",
+            "tag": "technique",
+            "body": [
+              "Sort the left part 3, 1, 2 and the right part 6, 7, 8 by the same method. Each has its own pivot. The pieces get smaller until they have 0 or 1 items, which are already sorted.",
+              "No merge step is needed: after the sides are sorted, the whole array is sorted."
+            ],
+            "short": "Recursion",
+            "hud": [
+              {
+                "k": "Left part",
+                "v": "3 1 2"
+              },
+              {
+                "k": "Right part",
+                "v": "6 7 8"
+              },
+              {
+                "k": "Base case",
+                "v": "0 or 1 items"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The cost: good pivots, bad pivots",
+            "tag": "insight",
+            "body": [
+              "If each pivot splits the array about in half, there are log2 n levels of partitions, each costing O(n), so the total is O(n log n). The article gives O(n log n) average. In the worst case the pivot is always the smallest or largest, so one side is empty, and the cost is O(n squared).",
+              "This happens when the last item is the pivot and the input is already sorted."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Average",
+                "v": "O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Worst case",
+                "v": "O(n squared)",
+                "tone": "bad"
+              },
+              {
+                "k": "Bad case",
+                "v": "sorted input, last item as pivot",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Choosing a better pivot",
+            "tag": "solution",
+            "body": [
+              "Pick the pivot at random, or take the median of the first, middle and last items. A random pivot gives expected O(n log n) on every input. The article lists these fixes for the sorted-input problem, and the middle item as pivot.",
+              "Another fix is to switch to heap sort if the recursion gets too deep, which is how introsort works."
+            ],
+            "short": "Pivot choice",
+            "hud": [
+              {
+                "k": "Random pivot",
+                "v": "expected O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Median of three",
+                "v": "good on sorted data"
+              },
+              {
+                "k": "Introsort",
+                "v": "falls back to heap sort"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In place, not stable, small stack",
+            "tag": "insight",
+            "body": [
+              "Quicksort works inside the array, so extra space is only the recursion stack. If you always recurse into the smaller side first, and loop on the larger, the depth is at most log2 n. The article says it is not stable, since the partition swaps move items past equal ones.",
+              "A well-implemented quicksort is usually faster than heap sort and merge sort in practice, because it reads memory in order."
+            ],
+            "short": "Space and stability",
+            "hud": [
+              {
+                "k": "Extra space",
+                "v": "O(log n) stack"
+              },
+              {
+                "k": "Stable",
+                "v": "no",
+                "tone": "warn"
+              },
+              {
+                "k": "In practice",
+                "v": "very fast",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Many equal items: three-way partition",
+            "tag": "technique",
+            "body": [
+              "If many items equal the pivot, a two-way partition does wasted work, and all-equal input is a worst case for Lomuto. A three-way partition splits into smaller, equal and larger, and recurses only on smaller and larger. It makes quicksort O(n) on input with few distinct values.",
+              "It is the Dutch national flag idea from the array lesson."
+            ],
+            "short": "Three-way",
+            "hud": [
+              {
+                "k": "Three zones",
+                "v": "smaller, equal, larger"
+              },
+              {
+                "k": "All equal",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Quicksort partitions around a pivot, then sorts each side. Average O(n log n), worst case O(n squared) from bad pivots, in place, not stable. Use a random pivot, recurse into the smaller side first, and use three-way partition for duplicates.",
+              "In practice, use the built-in sort."
+            ],
+            "short": "Recap",
+            "set": {
+              "q0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "q4": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "q6": {
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 pick a pivot (random)",
+                "2 partition: smaller, pivot, larger",
+                "3 recurse on both sides",
+                "4 average O(n log n), worst O(n squared)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Quicksort is like splitting a crowd by height around one person: shorter to the left, taller to the right.",
+      "story": "You pick one person from a crowd and ask everyone to stand to the left of them if they are shorter, and to the right if they are taller. That person is now in exactly the right place in the final line. Then each side of the crowd does the same thing on its own, with its own chosen person. When the groups are down to one person, the whole line is sorted, and nobody had to merge anything.",
+      "maps": [
+        [
+          "The chosen person",
+          "The pivot"
+        ],
+        [
+          "Shorter people to the left",
+          "The smaller part"
+        ],
+        [
+          "Each side repeats the process",
+          "Recursion"
+        ],
+        [
+          "A bad choice: the tallest person every time",
+          "The worst case"
+        ]
+      ],
+      "words": [
+        [
+          "quicksort",
+          "A sort that partitions around a pivot and sorts each side."
+        ],
+        [
+          "pivot",
+          "The item the others are compared with when partitioning."
+        ],
+        [
+          "partition",
+          "Rearrange items so smaller ones come before the pivot and larger ones after."
+        ],
+        [
+          "in place",
+          "Sorting inside the array, with no second array."
+        ],
+        [
+          "introsort",
+          "Quicksort that switches to heap sort when recursion gets too deep."
+        ]
+      ]
+    }
   }
 ]
