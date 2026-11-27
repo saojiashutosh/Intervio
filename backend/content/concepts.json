@@ -125977,5 +125977,1197 @@
         ]
       ]
     }
+  },
+  {
+    "id": "lowest-common-ancestor",
+    "n": 169,
+    "level": 14,
+    "week": "Core",
+    "title": "Lowest Common Ancestor",
+    "tagline": "Find the deepest node above two nodes in a binary tree and in a binary search tree, and use it to measure the distance between nodes.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "The lowest common ancestor, or LCA, of two nodes v and w in a tree is the deepest node that has both v and w as descendants. The Wikipedia article adds that a node counts as a descendant of itself, so if v is a direct child of w, the LCA is w. LCA questions are a favourite in interviews and appear in problems about distances, paths and relationships in trees.",
+      "## Method 1: root paths",
+      "If each node knows its parent, climb from v and from w to the root. The first node common to both paths is the LCA. A clean way is to put the ancestors of v in a set, then climb from w until you find one. Another is to lift the deeper node up until both are at the same depth, and then climb both together. The cost is O(h), where h is the height. The article gives this simple method, with parent pointers.",
+      "## Method 2: one recursive pass",
+      "Without parent pointers, search from the root. If the current node is empty or equals one of the targets, return it. Otherwise search the left and the right subtrees. If both searches return a node, then one target is on each side, and the current node is the LCA. If only one search found something, return that. It takes O(n) time, because it may visit every node, and O(h) space for the recursion.",
+      "## Method 3: a binary search tree",
+      "A binary search tree has an ordering, so there is no need to search both sides. Start at the root. If both values are smaller than the node, go left. If both are larger, go right. Otherwise the paths split here, or this node equals one of the values, and it is the LCA. This takes O(h) time and O(1) space with a loop.",
+      "> A worked example: the tree with 4 at the root, 2 and 6 below it, and 1, 3, 5, 7 as leaves. For the values 1 and 3, start at 4: both are smaller, so go left to 2. 1 is smaller than 2 and 3 is larger, so they split at 2. The LCA is 2. For 1 and 5, they split at 4, so the LCA is 4.",
+      "## Distance between two nodes",
+      "The article gives a useful identity: the distance between v and w equals depth(v) plus depth(w) minus twice the depth of their LCA. In the example tree, D and F each have depth 2, and their LCA is the root at depth 0, so the distance is 4 edges.",
+      "## Answering many queries",
+      "If you must answer a great many LCA queries on one tree, preprocess it. Tarjan's offline algorithm, which uses union-find, answers a whole batch of known pairs. The Euler tour method reduces each query to a range minimum query over the depths in tour order. Harel and Tarjan, and Bender and Farach-Colton, gave structures with linear preprocessing and constant query time. These are hard to implement, so interviews rarely require them.",
+      "## Edge cases",
+      "One node is an ancestor of the other. Both nodes are the same node. One of the nodes is not in the tree. For a binary search tree, duplicate values. State your assumptions, and ask whether both nodes are guaranteed to be in the tree.",
+      "## How to talk through it",
+      "Start with the definition and the case where a node is its own ancestor. Pick the method that fits: parent pointers, the recursion, or the BST walk. Give the cost, and test with siblings, cousins and a node above another."
+    ],
+    "keyPoints": [
+      "LCA(v, w) is the deepest node with both v and w as descendants. A node is a descendant of itself.",
+      "With parent pointers: climb to the root, find the first shared node. O(h).",
+      "Without them: recurse, and the node where left and right both find a target is the LCA. O(n) time, O(h) space.",
+      "In a BST: walk down. Both smaller go left, both larger go right, else stop. O(h).",
+      "dist(v, w) = depth(v) + depth(w) - 2 x depth(LCA). Many queries: Tarjan offline, or Euler tour plus range minimum."
+    ],
+    "sql": [
+      {
+        "title": "LCA by recursion and in a binary search tree",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\n#        1\n#      /   \\\n#     2     3\n#    / \\   / \\\n#   4   5 6   7\nt = Node(1, Node(2, Node(4), Node(5)), Node(3, Node(6), Node(7)))\n\ndef lca(root, p, q):\n    if root is None or root is p or root is q:\n        return root\n    left, right = lca(root.left, p, q), lca(root.right, p, q)\n    return root if left and right else (left or right)\n\nn4, n5, n6, n2 = t.left.left, t.left.right, t.right.left, t.left\nassert lca(t, n4, n5) is n2                  # siblings\nassert lca(t, n4, n6) is t                   # different subtrees\nassert lca(t, n2, n4) is n2                  # a node above the other\nassert lca(t, n4, n4) is n4                  # the same node\n\ndef lca_bst(root, p, q):\n    node = root\n    while node:\n        if p < node.val and q < node.val:\n            node = node.left\n        elif p > node.val and q > node.val:\n            node = node.right\n        else:\n            return node\n    return None\n\nbst = Node(4, Node(2, Node(1), Node(3)), Node(6, Node(5), Node(7)))\nassert lca_bst(bst, 1, 3).val == 2\nassert lca_bst(bst, 1, 5).val == 4\nassert lca_bst(bst, 2, 3).val == 2"
+      },
+      {
+        "title": "LCA with parent pointers, and the distance between nodes",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, val, parent=None):\n        self.val, self.parent = val, parent\n        self.left = self.right = None\n\ndef add(parent, side, val):\n    node = Node(val, parent)\n    setattr(parent, side, node)\n    return node\n\nroot = Node(1)\nn2, n3 = add(root, \"left\", 2), add(root, \"right\", 3)\nn4, n5, n6, n7 = add(n2, \"left\", 4), add(n2, \"right\", 5), add(n3, \"left\", 6), add(n3, \"right\", 7)\n\ndef depth(n):\n    d = 0\n    while n.parent:\n        n, d = n.parent, d + 1\n    return d\n\ndef lca(p, q):\n    seen = set()\n    while p:\n        seen.add(p)\n        p = p.parent\n    while q not in seen:                    # climb until we reach one of p's ancestors\n        q = q.parent\n    return q\n\ndef distance(p, q):\n    return depth(p) + depth(q) - 2 * depth(lca(p, q))\n\nassert lca(n4, n5) is n2 and lca(n4, n6) is root and lca(n2, n4) is n2\nassert distance(n4, n6) == 4 and distance(n4, n5) == 2 and distance(n2, n2) == 0\nassert distance(root, n7) == 2"
+      },
+      {
+        "title": "Check the recursive version against the path method",
+        "lang": "py",
+        "code": "import random\n\nclass Node:\n    def __init__(self, val):\n        self.val, self.left, self.right, self.parent = val, None, None, None\n\ndef random_tree(n, rng):\n    nodes = [Node(0)]\n    for v in range(1, n):\n        while True:\n            p = rng.choice(nodes)\n            side = rng.choice([\"left\", \"right\"])\n            if getattr(p, side) is None:\n                child = Node(v); child.parent = p\n                setattr(p, side, child); nodes.append(child)\n                break\n    return nodes\n\ndef lca_rec(root, p, q):\n    if root is None or root is p or root is q:\n        return root\n    left, right = lca_rec(root.left, p, q), lca_rec(root.right, p, q)\n    return root if left and right else (left or right)\n\ndef lca_paths(p, q):\n    seen = set()\n    while p:\n        seen.add(p); p = p.parent\n    while q not in seen:\n        q = q.parent\n    return q\n\nrng = random.Random(6)\nfor _ in range(200):\n    nodes = random_tree(rng.randint(2, 15), rng)\n    p, q = rng.choice(nodes), rng.choice(nodes)\n    assert lca_rec(nodes[0], p, q) is lca_paths(p, q)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write lca by recursion, lca_bst with a loop, and lca with parent pointers. Test siblings, cousins, a node above the other and the same node twice. Then write distance(p, q) and path(p, q), which returns the list of values from p to q through their LCA. Finally, say what lca(root, p, q) returns if q is not in the tree, and how you would detect it.",
+    "pitfalls": [
+      "Forgetting that a node is its own ancestor, so the case where one node is above the other fails.",
+      "Assuming both nodes are in the tree. If one is missing, the simple recursion can return the other node.",
+      "Using the BST method on a plain binary tree. It relies on the ordering.",
+      "Comparing values instead of nodes when the tree has duplicate values.",
+      "Searching the whole tree for each of many queries. Preprocess when there are many."
+    ],
+    "interview": [
+      {
+        "q": "What is the lowest common ancestor?",
+        "a": "The deepest node that has both given nodes as descendants, where a node counts as its own descendant. For siblings it is their parent, and if one node is above the other, it is that node."
+      },
+      {
+        "q": "How do you find the LCA in a binary tree?",
+        "a": "Recurse from the root. Return the node if it is empty or is one of the targets. If both the left and right searches find a target, the current node is the LCA. Otherwise return whichever side found something. It is O(n) time and O(h) space."
+      },
+      {
+        "q": "How is the LCA easier in a binary search tree?",
+        "a": "Walk down from the root. If both values are smaller go left, if both are larger go right, and otherwise this node is where the paths split, so it is the LCA. It costs O(h) with O(1) space."
+      },
+      {
+        "q": "How do you find the distance between two nodes?",
+        "a": "depth(v) + depth(w) - 2 x depth(LCA(v, w)). Find the LCA, then use the depths."
+      }
+    ],
+    "references": [
+      {
+        "title": "Lowest common ancestor (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Lowest_common_ancestor",
+        "kind": "Reference"
+      },
+      {
+        "title": "Binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: lowest common ancestor is one of the most frequent tree questions. The definition with a node as its own descendant, the root-path method and its O(h) cost, Tarjan's offline method, the Euler tour reduction and the distance identity come from the Wikipedia article on the lowest common ancestor, which I read in full. The recursive method and the walk in a binary search tree are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-lowest-common-ancestor",
+      "wikipedia-binary-search-tree",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "lca",
+        "title": "Lowest common ancestor, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or search"
+          },
+          {
+            "kind": "write",
+            "label": "insert or change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The question",
+            "at": 0
+          },
+          {
+            "text": "Examples",
+            "at": 1
+          },
+          {
+            "text": "Node above node",
+            "at": 3
+          },
+          {
+            "text": "Methods",
+            "at": 4
+          },
+          {
+            "text": "In a BST",
+            "at": 6
+          },
+          {
+            "text": "Distance",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "t0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "G",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "t0",
+            "b": "t1",
+            "dir": "none"
+          },
+          {
+            "a": "t0",
+            "b": "t2",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t3",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t4",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t5",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t6",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "The question: where do two paths to the root meet?",
+            "tag": "technique",
+            "body": [
+              "Every node has a path up to the root. The lowest common ancestor of two nodes is the deepest node that is an ancestor of both. In a family tree it is the closest shared great-grandparent.",
+              "A node counts as its own ancestor here, as the Wikipedia article defines it."
+            ],
+            "short": "The question",
+            "hud": [
+              {
+                "k": "LCA(v, w)",
+                "v": "deepest node above both"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "LCA of D and E is B",
+            "tag": "solution",
+            "body": [
+              "D and E are siblings. Walk up from each: D goes to B, E goes to B. They meet at B, and B is the deepest node above both. The answer is B.",
+              "The root A is also a common ancestor, but it is higher up."
+            ],
+            "short": "D and E",
+            "hud": [
+              {
+                "k": "LCA(D, E)",
+                "v": "B",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "LCA",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "E",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "t4",
+                  "t1"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "LCA of D and F is A",
+            "tag": "solution",
+            "body": [
+              "D is under B, and F is under C. Their paths to the root join only at A. So the answer is A, the root.",
+              "When the two nodes are in different subtrees of a node, that node is the LCA."
+            ],
+            "short": "D and F",
+            "hud": [
+              {
+                "k": "LCA(D, F)",
+                "v": "A",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "LCA",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "F",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1",
+                  "t0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "t5",
+                  "t2",
+                  "t0"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "What is the LCA of B and D, where D is B's child?",
+              "options": [
+                "A",
+                "B itself",
+                "D"
+              ],
+              "answer": 1,
+              "why": "A node is its own ancestor. B is an ancestor of D and of itself, and it is the deepest such node."
+            }
+          },
+          {
+            "title": "When one node is above the other",
+            "tag": "technique",
+            "body": [
+              "For B and D, B is an ancestor of D. B is also an ancestor of itself. So the LCA is B. The article states this: if v is a descendant of w, the LCA is w.",
+              "Code must allow for this case. It is where most mistakes happen."
+            ],
+            "short": "Node above node",
+            "hud": [
+              {
+                "k": "LCA(B, D)",
+                "v": "B",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "B and the LCA",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Method 1: compare the two paths to the root",
+            "tag": "technique",
+            "body": [
+              "Store a parent pointer in each node. Collect the ancestors of one node in a set, then walk up from the other node until you meet one of them. Or lift the deeper node up until both have the same depth, then climb together.",
+              "The cost is O(h), the height of the tree. The Wikipedia article gives this method with parent pointers."
+            ],
+            "short": "Root paths",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(h)"
+              },
+              {
+                "k": "Needs",
+                "v": "parent pointers"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(h) or O(1)"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "G",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1",
+                  "t0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "t6",
+                  "t2",
+                  "t0"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Method 2: one recursive pass with no parent pointers",
+            "tag": "solution",
+            "body": [
+              "Search both subtrees. If a node is one of the targets, return it. If one search found a target on the left and the other on the right, the current node is the LCA. If only one side found something, pass that result up.",
+              "It visits each node once, so it takes O(n) time, and O(h) space for the recursion."
+            ],
+            "short": "Recursion",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)"
+              },
+              {
+                "k": "Space",
+                "v": "O(h)"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "left and right both found: LCA",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1",
+                  "t3"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "t0",
+                  "t2",
+                  "t5"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if not root or root is p or root is q: return root",
+                "left = lca(root.left, p, q)",
+                "right = lca(root.right, p, q)",
+                "return root if left and right else left or right"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "On a search tree it is a walk down",
+            "tag": "solution",
+            "body": [
+              "In a binary search tree, start at the root. If both values are smaller than the node, go left. If both are bigger, go right. The first node where they split, or equal one of the values, is the LCA.",
+              "No search of subtrees is needed, so it takes O(h). Here the values are 4, 2, 6, 1, 3, 5, 7, and the LCA of 1 and 3 is 2."
+            ],
+            "short": "In a BST",
+            "hud": [
+              {
+                "k": "Both smaller",
+                "v": "go left"
+              },
+              {
+                "k": "Split point",
+                "v": "that is the LCA",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "O(h)"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "LCA = 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "1",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "3",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "7"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Distance between two nodes",
+            "tag": "insight",
+            "body": [
+              "The distance between v and w is depth(v) + depth(w) minus twice the depth of their LCA. For D and F: depth 2 plus depth 2 minus 2 times 0 is 4 edges. The path goes D, B, A, C, F.",
+              "Many problems, such as the distance or the path between two nodes, reduce to finding the LCA."
+            ],
+            "short": "Distance",
+            "hud": [
+              {
+                "k": "dist(D, F)",
+                "v": "2 + 2 - 2 x 0 = 4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "LCA depth 0",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "depth 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "depth 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t3",
+                  "t1",
+                  "t0",
+                  "t2",
+                  "t5"
+                ],
+                "kind": "request"
+              }
+            ],
+            "card": {
+              "title": "Formula",
+              "lines": [
+                "dist(v, w) =",
+                "  depth(v) + depth(w) - 2 * depth(lca)"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Many queries: preprocess",
+            "tag": "insight",
+            "body": [
+              "If you must answer many LCA questions on one tree, preprocess it. Tarjan's offline algorithm uses union-find and answers a batch of queries together. Another approach records an Euler tour and turns each query into a range-minimum question over depths.",
+              "The Wikipedia article says the best structures reach linear preprocessing and constant time per query, but they are complex. For interviews, the first three methods are enough."
+            ],
+            "short": "Many queries",
+            "hud": [
+              {
+                "k": "Offline",
+                "v": "Tarjan, with union-find"
+              },
+              {
+                "k": "Euler tour",
+                "v": "reduce to range minimum"
+              },
+              {
+                "k": "Interview level",
+                "v": "methods 1 and 2"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "The LCA is the deepest node above two given nodes, and a node may be its own ancestor. Use parent pointers for O(h), or a recursive pass for O(n) without them, or the ordering of a BST for an O(h) walk.",
+              "Test the cases where one node is the ancestor of the other, and where a node is missing."
+            ],
+            "short": "Recap",
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 a node is its own ancestor",
+                "2 split point of the two paths",
+                "3 BST: go left, right or stop",
+                "4 dist = depth(v) + depth(w) - 2 * depth(lca)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "The lowest common ancestor is the closest relative that two cousins have in common.",
+      "story": "Two cousins want to find the nearest ancestor they share, like a grandparent. Each walks up their own side of the family tree. They keep going until their paths join. The first person both paths reach is the nearest shared ancestor. If one of them is the other's parent, then that parent is the answer, because a person counts as their own ancestor here.",
+      "maps": [
+        [
+          "Two cousins",
+          "Two nodes"
+        ],
+        [
+          "Walking up the family tree",
+          "Climbing to the root"
+        ],
+        [
+          "The shared grandparent",
+          "The lowest common ancestor"
+        ],
+        [
+          "Steps between the cousins",
+          "The distance"
+        ]
+      ],
+      "words": [
+        [
+          "ancestor",
+          "A node on the path from a given node up to the root."
+        ],
+        [
+          "lowest common ancestor",
+          "The deepest node that is an ancestor of both given nodes."
+        ],
+        [
+          "parent pointer",
+          "A link from a node to its parent."
+        ],
+        [
+          "depth",
+          "The number of edges from the root to a node."
+        ],
+        [
+          "descendant",
+          "A node below a given node, including the node itself in this definition."
+        ]
+      ]
+    }
   }
 ]
