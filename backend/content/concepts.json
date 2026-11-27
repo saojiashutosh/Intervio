@@ -183714,5 +183714,1335 @@
         ]
       ]
     }
+  },
+  {
+    "id": "coin-change",
+    "n": 213,
+    "level": 14,
+    "week": "Core",
+    "title": "Coin Change: Fewest Coins and Number of Ways",
+    "tagline": "Find the fewest coins for an amount with any coin values, rebuild which coins were used, and count the ways to make the amount.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "In coin change you are given coin values, with as many coins of each value as you like, and an amount. The Wikipedia article states the problem as finding the fewest coins that sum to the amount, and says dynamic programming solves it in O(nW) time for n coin values and amount W. Greedy works only for some coin systems, called canonical, and fails for others. For coins 25, 10 and 1 and the amount 40, greedy uses 7 coins and the best is 4.",
+      "## The table",
+      "Let fewest(a) be the least number of coins that make the amount a. The table is one row of cells, from 0 up to the amount. fewest(0) = 0. For a larger amount, the last coin you add is one of the coin values c with c at most a, and before it you made a - c in the best way. So fewest(a) = 1 + the smallest fewest(a - c) over all coins that fit. If no coin fits, or every choice is impossible, the amount cannot be made. Use infinity for that, and return -1 at the end if the answer is infinity.",
+      "> A worked example: coins 1, 3 and 4, amount 6. fewest is 0, 1, 2, 1, 1, 2, 2 for amounts 0 to 6. For 6 the choices are: coin 1 then fewest(5) = 2, so 3 coins; coin 3 then fewest(3) = 1, so 2 coins; coin 4 then fewest(2) = 2, so 3 coins. The best is 2: the coins 3 and 3. Greedy would take 4 first and use 3 coins.",
+      "## Recovering the coins",
+      "Store the last coin used for each amount. To list the coins, start at the amount, record its last coin, subtract it, and repeat until you reach 0. For 6 the last coin is 3, then 3 again.",
+      "## Cost",
+      "There are W + 1 cells and each tries up to n coins, so the time is O(nW), and the memory is O(W). As with the knapsack, W is a number, so the time grows with its value. For a huge amount with few coins other ideas are needed.",
+      "## Counting the ways",
+      "A different question is how many ways make the amount. If the order of the coins does not matter, put the coin loop on the outside: for each coin, for each amount from that coin upwards, add ways[a - coin] to ways[a]. Start with ways[0] = 1. For coins 1, 2 and 5 and amount 5 there are 4 ways. If you swap the loops, so the amount loop is on the outside, you count ordered sequences, and 1 then 2 counts separately from 2 then 1. Then amount 5 has 9 sequences.",
+      "## Why greedy sometimes works",
+      "For ordinary coin systems such as 1, 5, 10, 25 and 100 the biggest-first rule is right. The Wikipedia article calls these canonical systems. There is no quick test that works for all systems, so with arbitrary coins use the table. You can also use the table to test a coin system for greedy failures.",
+      "## How to talk through it",
+      "Say what a cell means, give the recurrence over the last coin, set fewest(0) = 0 and infinity for impossible, and give O(amount times coins). Mention why greedy fails, and the loop order for counting ways."
+    ],
+    "keyPoints": [
+      "fewest(a) = 1 + min over coins c <= a of fewest(a - c). fewest(0) = 0, unreachable = infinity.",
+      "Works for any coin values. Greedy fails for some systems, such as 1, 3, 4 with amount 6.",
+      "O(amount x coins) time, O(amount) memory. Store the last coin to rebuild the list.",
+      "Count combinations: coins in the outer loop. Count sequences: amounts in the outer loop.",
+      "Return -1 when the amount cannot be made."
+    ],
+    "sql": [
+      {
+        "title": "Fewest coins, and which coins",
+        "lang": "py",
+        "code": "def min_coins(coins, amount):\n    INF = float(\"inf\")\n    fewest = [0] + [INF] * amount\n    last = [None] * (amount + 1)\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a and fewest[a - c] + 1 < fewest[a]:\n                fewest[a] = fewest[a - c] + 1\n                last[a] = c\n    if fewest[amount] == INF:\n        return -1, []\n    used, a = [], amount\n    while a > 0:\n        used.append(last[a])\n        a -= last[a]\n    return fewest[amount], sorted(used)\n\nassert min_coins([1, 3, 4], 6) == (2, [3, 3])\nassert min_coins([2], 3) == (-1, [])\nassert min_coins([1], 0) == (0, [])\nassert min_coins([186, 419, 83, 408], 6249)[0] == 20\nassert min_coins([25, 10, 1], 40) == (4, [10, 10, 10, 10])"
+      },
+      {
+        "title": "Count the ways: combinations and sequences",
+        "lang": "py",
+        "code": "def ways_combinations(coins, amount):\n    ways = [1] + [0] * amount\n    for c in coins:                                       # coins outside: the order of coins does not count\n        for a in range(c, amount + 1):\n            ways[a] += ways[a - c]\n    return ways[amount]\n\ndef ways_sequences(coins, amount):\n    ways = [1] + [0] * amount\n    for a in range(1, amount + 1):                        # amounts outside: the order counts\n        for c in coins:\n            if c <= a:\n                ways[a] += ways[a - c]\n    return ways[amount]\n\nassert ways_combinations([1, 2, 5], 5) == 4\nassert ways_sequences([1, 2, 5], 5) == 9\nassert ways_combinations([2], 3) == 0 and ways_combinations([1], 0) == 1"
+      },
+      {
+        "title": "Check against brute force, and test a coin system for greedy",
+        "lang": "py",
+        "code": "import itertools\n\ndef min_coins(coins, amount):\n    INF = float(\"inf\")\n    fewest = [0] + [INF] * amount\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a:\n                fewest[a] = min(fewest[a], fewest[a - c] + 1)\n    return fewest[amount]\n\ndef brute(coins, amount):\n    best = float(\"inf\")\n    def go(left, used):\n        nonlocal best\n        if left == 0:\n            best = min(best, used)\n            return\n        for c in coins:\n            if c <= left and used + 1 < best:\n                go(left - c, used + 1)\n    go(amount, 0)\n    return best\n\nfor coins in ([1, 3, 4], [2, 5], [1, 5, 10, 25], [3, 7]):\n    for amount in range(0, 25):\n        assert min_coins(coins, amount) == brute(coins, amount)\n\ndef greedy(coins, amount):\n    count = 0\n    for c in sorted(coins, reverse=True):\n        count += amount // c\n        amount %= c\n    return count\n\ndef greedy_is_safe(coins, limit=60):\n    return all(greedy(coins, a) == min_coins(coins, a) for a in range(limit))\n\nassert greedy_is_safe([1, 5, 10, 25]) and not greedy_is_safe([1, 3, 4])"
+      }
+    ],
+    "django": {},
+    "exercise": "Write min_coins with the last coin stored, and rebuild the list of coins. Check it against a brute-force search for several coin sets and amounts up to 24. Write both counting versions and explain the two loop orders. Then write a function that tests whether greedy is safe for a coin system, using the table.",
+    "pitfalls": [
+      "Using greedy for arbitrary coins.",
+      "Forgetting infinity for amounts that cannot be made, so a wrong number is returned.",
+      "Initialising fewest[0] to infinity instead of 0.",
+      "Swapping the two loops when counting combinations, which counts sequences.",
+      "Returning the table value without checking for infinity."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the fewest coins that make an amount?",
+        "a": "Let fewest(a) be the least coins for amount a. fewest(0) = 0, and fewest(a) = 1 + the smallest fewest(a - c) over coins c that are at most a. The answer is fewest(amount), or -1 if infinite. It takes O(amount x coins)."
+      },
+      {
+        "q": "Why does greedy fail?",
+        "a": "Taking the biggest coin first can leave an amount that needs many small coins. With coins 1, 3, 4 and amount 6, greedy takes 4, 1 and 1 (3 coins), but 3 and 3 is 2 coins."
+      },
+      {
+        "q": "How do you count the number of ways to make an amount?",
+        "a": "Start with ways[0] = 1. For each coin in turn, for each amount from the coin up, add ways[a - coin] to ways[a]. The coin loop on the outside makes the order of coins not matter."
+      },
+      {
+        "q": "How do you find which coins were used?",
+        "a": "Record the last coin that gave the best value for each amount. Then start at the amount and subtract recorded coins until you reach 0."
+      }
+    ],
+    "references": [
+      {
+        "title": "Change-making problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Change-making_problem",
+        "kind": "Reference"
+      },
+      {
+        "title": "Dynamic programming (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: coin change is one of the most asked dynamic programming problems, and it shows where greedy stops working. The problem statement, the dynamic programming solution in O(nW), the canonical-system remark and the example of coins 25, 10, 1 and amount 40 giving 7 coins greedily against 4 come from the Wikipedia change-making problem article, which I read in part. The worked table, the counting variants and the code are my own illustration and judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-change-making",
+      "wikipedia-dynamic-programming",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "coinchange",
+        "title": "Coin change, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "A cell",
+            "at": 1
+          },
+          {
+            "text": "Recurrence",
+            "at": 2
+          },
+          {
+            "text": "Amounts",
+            "at": 3
+          },
+          {
+            "text": "The coins",
+            "at": 9
+          },
+          {
+            "text": "Counting ways",
+            "at": 11
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -3.45,
+            "y": 3.45,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -2.3,
+            "y": 2.3,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -1.15,
+            "y": 1.15,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": 1.15,
+            "y": -1.15,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -2.3,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 3.45,
+            "y": -3.45,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Fewest coins for an amount",
+            "tag": "technique",
+            "body": [
+              "You have coins of value 1, 3 and 4, as many of each as you like. What is the fewest number of coins that add up to 6? Greedy takes 4 first, then 1 and 1: three coins. But 3 and 3 is only two coins.",
+              "Dynamic programming finds the best answer for any coins."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Coins",
+                "v": "1, 3, 4"
+              },
+              {
+                "k": "Amount",
+                "v": "6"
+              },
+              {
+                "k": "Greedy",
+                "v": "3 coins",
+                "tone": "bad"
+              },
+              {
+                "k": "Best",
+                "v": "2 coins",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "What a cell means",
+            "tag": "technique",
+            "body": [
+              "Let fewest(a) be the fewest coins that make the amount a. We fill a row from amount 0 up to 6. The answer is fewest(6).",
+              "fewest(0) = 0: no coins are needed to make nothing."
+            ],
+            "short": "A cell",
+            "hud": [
+              {
+                "k": "fewest(a)",
+                "v": "least coins for amount a"
+              },
+              {
+                "k": "fewest(0)",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence: try each coin as the last one",
+            "tag": "technique",
+            "body": [
+              "The last coin used is one of the coins c that is at most a. Before it, you made a - c with the fewest coins. So fewest(a) is 1 plus the smallest fewest(a - c) over the coins that fit.",
+              "If no coin fits, or no answer exists, the amount is impossible: use infinity."
+            ],
+            "short": "Recurrence",
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for a in range(1, amount + 1):",
+                "    for c in coins:",
+                "        if c <= a:",
+                "            fewest[a] = min(fewest[a], fewest[a - c] + 1)"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Amount 1: 1 coin",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(0) + 1 = 1. The smallest is 1, using the coin 1 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 1",
+            "hud": [
+              {
+                "k": "fewest(1)",
+                "v": "1",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "teal",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "a1"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Amount 2: 2 coins",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(1) + 1 = 2. The smallest is 2, using the coin 1 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 2",
+            "hud": [
+              {
+                "k": "fewest(2)",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a1",
+                  "a2"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Amount 3: 1 coin",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(2) + 1 = 3, coin 3: fewest(0) + 1 = 1. The smallest is 1, using the coin 3 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 3",
+            "hud": [
+              {
+                "k": "fewest(3)",
+                "v": "1",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "teal",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a2",
+                  "a3"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "a0",
+                  "a3"
+                ],
+                "kind": "request",
+                "delay": 0.25
+              }
+            ]
+          },
+          {
+            "title": "Amount 4: 1 coin",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(3) + 1 = 2, coin 3: fewest(1) + 1 = 2, coin 4: fewest(0) + 1 = 1. The smallest is 1, using the coin 4 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 4",
+            "hud": [
+              {
+                "k": "fewest(4)",
+                "v": "1",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "teal",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a3",
+                  "a4"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "a1",
+                  "a4"
+                ],
+                "kind": "request",
+                "delay": 0.25
+              },
+              {
+                "path": [
+                  "a0",
+                  "a4"
+                ],
+                "kind": "request",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Amount 5: 2 coins",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(4) + 1 = 2, coin 3: fewest(2) + 1 = 3, coin 4: fewest(1) + 1 = 2. The smallest is 2, using the coin 1 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 5",
+            "hud": [
+              {
+                "k": "fewest(5)",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a4",
+                  "a5"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "a2",
+                  "a5"
+                ],
+                "kind": "request",
+                "delay": 0.25
+              },
+              {
+                "path": [
+                  "a1",
+                  "a5"
+                ],
+                "kind": "request",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Amount 6: 2 coins",
+            "tag": "solution",
+            "body": [
+              "Try each coin that fits. coin 1: fewest(5) + 1 = 3, coin 3: fewest(3) + 1 = 2, coin 4: fewest(2) + 1 = 3. The smallest is 2, using the coin 3 last.",
+              "All the cells we read are already filled."
+            ],
+            "short": "Amount 6",
+            "hud": [
+              {
+                "k": "fewest(6)",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "Last coin",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "2",
+                "tone": "orange",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a5",
+                  "a6"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "a3",
+                  "a6"
+                ],
+                "kind": "request",
+                "delay": 0.25
+              },
+              {
+                "path": [
+                  "a2",
+                  "a6"
+                ],
+                "kind": "request",
+                "delay": 0.5
+              }
+            ],
+            "predict": {
+              "question": "To make 6 you try the coin 3. What is the cost of that choice?",
+              "options": [
+                "fewest(3) + 1 = 2",
+                "fewest(6) + 1",
+                "3"
+              ],
+              "answer": 0,
+              "why": "After a coin of 3, you still need 3. fewest(3) is 1, so the choice uses 1 + 1 = 2 coins."
+            }
+          },
+          {
+            "title": "Which coins? Follow the last coin back",
+            "tag": "technique",
+            "body": [
+              "Store which coin gave the best value at each amount. For 6 the last coin is 3, leaving 3. For 3 the last coin is 3, leaving 0. So the coins are 3 and 3.",
+              "Greedy would have chosen 4 at amount 6, and ended with three coins."
+            ],
+            "short": "The coins",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "6, then 3, then 0"
+              },
+              {
+                "k": "Coins",
+                "v": "3 and 3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "purple",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "2",
+                "tone": "purple",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost",
+            "tag": "insight",
+            "body": [
+              "There are amount cells, and each tries every coin, so the time is O(amount times number of coins), and the memory is O(amount). The Wikipedia article gives the same bound.",
+              "As with the knapsack, the time depends on the number amount, not on its digits."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(amount x coins)"
+              },
+              {
+                "k": "Memory",
+                "v": "O(amount)"
+              }
+            ],
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A different question: how many ways",
+            "tag": "technique",
+            "body": [
+              "To count the ways to make an amount, with the order of coins not counted, put the coins in the outer loop. For each coin, for each amount from the coin upward, add ways[a - coin] to ways[a]. For coins 1, 2 and 5 and amount 5, there are 4 ways.",
+              "Put the amounts in the outer loop instead and you count sequences, where 1 then 2 is different from 2 then 1."
+            ],
+            "short": "Counting ways",
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "ways = [1] + [0] * amount",
+                "for c in coins:",
+                "    for a in range(c, amount + 1):",
+                "        ways[a] += ways[a - c]"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Coin change: fewest(a) = 1 + the least fewest(a - c) over the coins. It works for any coins, where greedy fails. O(amount times coins). Loop order decides whether you count combinations or sequences.",
+              "Always say what a cell means before you write the loop."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "a1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "amount 6",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 cell = fewest coins for amount a",
+                "2 try each coin as the last one",
+                "3 fewest(0) = 0, unreachable = infinity",
+                "4 store the coin to rebuild the answer"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Coin change is like paying a bill with the fewest notes and coins from a till that holds any amount of each.",
+      "story": "You owe a bill and you want to hand over as few coins as you can. For each amount from small to large you write down the fewest coins needed. To work out a new amount, you imagine giving one coin of each kind, and look up how few coins the leftover amount needed. You pick the coin that leaves the cheapest leftover. When you reach the full bill, the number you wrote is the answer, and the coins you picked on the way are the coins to hand over.",
+      "maps": [
+        [
+          "A leftover amount",
+          "A smaller subproblem"
+        ],
+        [
+          "The numbers you wrote down",
+          "The table"
+        ],
+        [
+          "Imagining each coin as the last",
+          "The recurrence over the last coin"
+        ],
+        [
+          "The coins you picked",
+          "Rebuilding the answer"
+        ]
+      ],
+      "words": [
+        [
+          "coin change",
+          "Making an amount from coins, usually with the fewest coins."
+        ],
+        [
+          "canonical",
+          "A coin system where biggest-first is always right."
+        ],
+        [
+          "recurrence",
+          "A formula that gives one value from earlier ones."
+        ],
+        [
+          "infinity",
+          "A value larger than any real answer, used for impossible amounts."
+        ],
+        [
+          "combination",
+          "A group of items where the order does not matter."
+        ]
+      ]
+    }
   }
 ]
