@@ -137954,5 +137954,1039 @@
         ]
       ]
     }
+  },
+  {
+    "id": "heap-sort",
+    "n": 180,
+    "level": 14,
+    "week": "Core",
+    "title": "Heap Sort: Sorting in Place with a Heap",
+    "tagline": "Sort an array by building a max-heap and repeatedly moving the largest item to the end, with guaranteed O(n log n) time and no extra memory.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Heap sort uses a heap to sort an array in place. It works in two phases, as the Wikipedia article describes. First, build a max-heap from the array with the O(n) bottom-up method. Second, repeatedly swap the root, which is the largest item, with the last item of the heap, shrink the heap by one, and sift the new root down to restore the heap. Each swap puts one item into its final place, and the sorted part grows from the right end of the array.",
+      "## A trace",
+      "Take 5, 2, 8, 1, 9, 3, 7. Building a max-heap gives 9, 5, 8, 1, 2, 3, 7. Swap the 9 with the last item and sift down, and the array is 8, 5, 7, 1, 2, 3, 9, with 9 in place. Repeat: the largest of the remaining heap, 8, goes to index 5, and so on. After six rounds, the array reads 1, 2, 3, 5, 7, 8, 9.",
+      "## Cost",
+      "Phase one is O(n). Phase two does n - 1 sift downs, each O(log n), for O(n log n). The article gives O(n log n) for the worst case, the average case and, for distinct keys, the best case. The auxiliary space is O(1), since everything happens inside the array. That combination, a guaranteed bound and no extra memory, is what quicksort and merge sort each lack one half of.",
+      "## Not stable",
+      "Heap sort is not a stable sort: equal items can change order, because swapping the root with a far-away last item moves items across each other. If you need a stable order, add the original index as a tie-breaker, at the cost of memory, or use merge sort or Python's built-in sort.",
+      "> A worked example: sort 5, 2, 8, 1, 9, 3, 7. The max-heap is 9, 5, 8, 1, 2, 3, 7. After the first extraction the array is 8, 5, 7, 1, 2, 3, 9. After the second it is 7, 5, 3, 1, 2, 8, 9. Continue until only the first item is left in the heap. The final array is 1, 2, 3, 5, 7, 8, 9.",
+      "## Compared with other sorts",
+      "The article says a well-implemented quicksort is usually two to three times faster than heap sort in practice, because it has better locality of reference, but it can take O(n squared) in a bad case. Heap sort never does. Merge sort is stable but needs extra space for arrays. Heap sort is also the idea behind a selection sort that uses a heap to find the maximum quickly: the article describes heap sort as selection sort with a heap.",
+      "## Why you must know it",
+      "Interviewers use heap sort to check that you understand heaps: building, sifting down, and the in-place trick of using the end of the array for the output. You rarely use it in practice, because Python's sort is faster and stable, but the idea of a heap-based selection is useful elsewhere.",
+      "## How to talk through it",
+      "State the two phases and their costs. Show one swap and one sift down. Say O(n log n) always, O(1) space, not stable. Compare it with quicksort and merge sort in one sentence."
+    ],
+    "keyPoints": [
+      "Phase 1: build a max-heap in place, O(n). Phase 2: swap the root with the last heap item, shrink the heap, sift down. Repeat.",
+      "O(n log n) in every case, O(1) extra space: in place.",
+      "Not stable. Equal items can change their relative order.",
+      "Quicksort is usually 2 to 3 times faster in practice but has an O(n squared) worst case. Merge sort is stable but needs O(n) space.",
+      "Heap sort is selection sort that uses a heap to find the maximum."
+    ],
+    "sql": [
+      {
+        "title": "Heap sort in place",
+        "lang": "py",
+        "code": "def sift_down(a, i, size):\n    while True:\n        big, left, right = i, 2 * i + 1, 2 * i + 2\n        if left < size and a[left] > a[big]:\n            big = left\n        if right < size and a[right] > a[big]:\n            big = right\n        if big == i:\n            return\n        a[i], a[big] = a[big], a[i]\n        i = big\n\ndef heap_sort(a):\n    n = len(a)\n    for i in range(n // 2 - 1, -1, -1):          # phase 1: build a max-heap\n        sift_down(a, i, n)\n    for end in range(n - 1, 0, -1):              # phase 2: move the largest to the end\n        a[0], a[end] = a[end], a[0]\n        sift_down(a, 0, end)                     # the heap is now a[:end]\n    return a\n\nassert heap_sort([5, 2, 8, 1, 9, 3, 7]) == [1, 2, 3, 5, 7, 8, 9]\nassert heap_sort([]) == [] and heap_sort([4]) == [4]\nassert heap_sort([3, 3, 1, 1]) == [1, 1, 3, 3]\nassert heap_sort([5, 4, 3, 2, 1]) == [1, 2, 3, 4, 5]"
+      },
+      {
+        "title": "Check against sorted, and see that it is not stable",
+        "lang": "py",
+        "code": "import random\n\ndef sift_down(a, i, size, key):\n    while True:\n        big, left, right = i, 2 * i + 1, 2 * i + 2\n        if left < size and key(a[left]) > key(a[big]):\n            big = left\n        if right < size and key(a[right]) > key(a[big]):\n            big = right\n        if big == i:\n            return\n        a[i], a[big] = a[big], a[i]\n        i = big\n\ndef heap_sort(a, key=lambda x: x):\n    n = len(a)\n    for i in range(n // 2 - 1, -1, -1):\n        sift_down(a, i, n, key)\n    for end in range(n - 1, 0, -1):\n        a[0], a[end] = a[end], a[0]\n        sift_down(a, 0, end, key)\n    return a\n\nrandom.seed(26)\nfor _ in range(200):\n    data = [random.randint(-50, 50) for _ in range(random.randint(0, 60))]\n    assert heap_sort(list(data)) == sorted(data)\n\n# find an input where equal keys swap order: heap sort is not stable\nfound = False\nfor _ in range(2000):\n    items = [(random.randint(0, 2), i) for i in range(8)]       # (key, original position)\n    result = heap_sort(list(items), key=lambda p: p[0])\n    if result != sorted(items, key=lambda p: p[0]):             # sorted() is stable\n        found = True\n        break\nassert found"
+      },
+      {
+        "title": "Heap sort with heapq, and the cost of phase one",
+        "lang": "py",
+        "code": "import heapq\n\ndef heap_sort_with_heapq(items):\n    heap = list(items)\n    heapq.heapify(heap)                                  # phase 1 in O(n)\n    return [heapq.heappop(heap) for _ in range(len(heap))]   # phase 2: n pops, O(log n) each\n\nassert heap_sort_with_heapq([5, 2, 8, 1, 9, 3, 7]) == [1, 2, 3, 5, 7, 8, 9]\nassert heap_sort_with_heapq([]) == []\n\ndef count_swaps_build(a):\n    a, swaps = list(a), 0\n    n = len(a)\n    for i in range(n // 2 - 1, -1, -1):\n        j = i\n        while True:\n            big, left, right = j, 2 * j + 1, 2 * j + 2\n            if left < n and a[left] > a[big]: big = left\n            if right < n and a[right] > a[big]: big = right\n            if big == j: break\n            a[j], a[big] = a[big], a[j]; j = big; swaps += 1\n    return swaps\n\nn = 1023\nassert count_swaps_build(list(range(1, n + 1))) < n    # building the max-heap is linear"
+      }
+    ],
+    "django": {},
+    "exercise": "Write heap_sort in place and check it against sorted on 200 random lists. Add a key function, then find an input that shows it is not stable. Next, write heap_sort using heapq and compare its speed with your version on 100,000 numbers using timeit. Finally, count the swaps in phase one and phase two for n = 1,000 and say which dominates.",
+    "pitfalls": [
+      "Sifting down in the full array in phase two instead of only in the shrinking heap a[:end].",
+      "Building a min-heap instead of a max-heap, which sorts in descending order.",
+      "Expecting heap sort to be stable. It is not.",
+      "Forgetting that after each swap you must sift down the new root.",
+      "Using heap sort in Python code. sorted and list.sort are faster and stable."
+    ],
+    "interview": [
+      {
+        "q": "How does heap sort work?",
+        "a": "Build a max-heap from the array in place in O(n). Then repeat: swap the root, the largest item, with the last item of the heap, shrink the heap by one, and sift the new root down. The sorted part grows from the right. The total is O(n log n)."
+      },
+      {
+        "q": "What are the time and space complexities of heap sort?",
+        "a": "O(n log n) time in the worst, average and best cases, and O(1) auxiliary space because it is in place."
+      },
+      {
+        "q": "Is heap sort stable?",
+        "a": "No. Swapping the root with the last item can move equal items across each other. You can make a sort stable by adding the original index as a tie-breaker, at the cost of extra memory."
+      },
+      {
+        "q": "When would you choose heap sort over quicksort or merge sort?",
+        "a": "When you need a guaranteed O(n log n) bound and cannot afford extra memory. Quicksort is usually faster but can reach O(n squared), and merge sort needs extra space for arrays."
+      }
+    ],
+    "references": [
+      {
+        "title": "Heapsort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Heapsort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Binary heap (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_heap",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: heap sort is a standard follow-up to heaps in coding rounds and tests understanding of sift down. The two phases, the O(n) build, the O(n log n) cost in all cases, the O(1) auxiliary space, the lack of stability and the comparison with quicksort come from the Wikipedia heapsort article, which I read in part. The worked trace and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-heapsort",
+      "wikipedia-binary-heap",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "heapsort",
+        "title": "Heap sort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The plan",
+            "at": 0
+          },
+          {
+            "text": "Build",
+            "at": 1
+          },
+          {
+            "text": "Extract",
+            "at": 2
+          },
+          {
+            "text": "Result",
+            "at": 7
+          },
+          {
+            "text": "Comparison",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -3.45,
+            "y": 3.45,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -2.3,
+            "y": 2.3,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -1.15,
+            "y": 1.15,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": 1.15,
+            "y": -1.15,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -2.3,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 3.45,
+            "y": -3.45,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Sort with a heap",
+            "tag": "technique",
+            "body": [
+              "Heap sort has two phases. First turn the array into a max-heap, so the largest number is at the front. Then repeatedly move the largest to the end, shrink the heap, and fix the heap. The sorted part grows from the right.",
+              "It sorts in place, with no extra array. The array here is 5, 2, 8, 1, 9, 3, 7."
+            ],
+            "short": "The plan",
+            "hud": [
+              {
+                "k": "Phase 1",
+                "v": "build a max-heap, O(n)"
+              },
+              {
+                "k": "Phase 2",
+                "v": "n times: swap, shrink, sift down"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Phase 1: build a max-heap",
+            "tag": "technique",
+            "body": [
+              "Use the bottom-up build from the last lesson, with a max-heap: sift down from the last parent to the root. The array becomes 9 5 8 1 2 3 7. The largest number, 9, is at index 0.",
+              "This costs O(n)."
+            ],
+            "short": "Build",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "9 5 8 1 2 3 7"
+              },
+              {
+                "k": "Largest",
+                "v": "9, at the front"
+              },
+              {
+                "k": "Cost",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "9",
+                "tone": "blue",
+                "pill": {
+                  "text": "largest",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Swap the root with the last item",
+            "tag": "solution",
+            "body": [
+              "Swap the first number, the largest, with the last number of the heap. The largest is now at its final place at the end. The heap is one smaller, and its root is probably out of order.",
+              "The green cells are the sorted part."
+            ],
+            "short": "Extract 1",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "9"
+              },
+              {
+                "k": "Heap",
+                "v": "8 5 7 1 2 3"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "8",
+                "tone": "blue",
+                "pill": {
+                  "text": "sifted down",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "c1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c6"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "After placing 9 at the end, the heap shrinks to 6 items. What must be done to the root?",
+              "options": [
+                "Nothing",
+                "Sift it down to restore the heap",
+                "Swap it with the first item"
+              ],
+              "answer": 1,
+              "why": "The item swapped into the root is probably small, so it is sifted down until the heap order holds again."
+            }
+          },
+          {
+            "title": "Sift down and take the next largest",
+            "tag": "solution",
+            "body": [
+              "The new root was sifted down to restore the heap. The next largest is at the front. Swap it with the last item of the heap, and the sorted part grows to two cells. The array is 7 5 3 1 2 8 9.",
+              "Each round costs one sift down, O(log n)."
+            ],
+            "short": "Extract 2",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "8 9"
+              },
+              {
+                "k": "Heap size",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Take the third largest",
+            "tag": "solution",
+            "body": [
+              "Swap the root with the last item of the shrinking heap, and sift down. The array is 5 2 3 1 7 8 9, and the sorted part has three cells.",
+              "The heap is now 4 items."
+            ],
+            "short": "Extract 3",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "7 8 9"
+              },
+              {
+                "k": "Heap size",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c4"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Take the fourth largest",
+            "tag": "solution",
+            "body": [
+              "Another swap and sift down. The array is 3 2 1 5 7 8 9, and four cells are sorted.",
+              "Three items are left in the heap."
+            ],
+            "short": "Extract 4",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "5 7 8 9"
+              },
+              {
+                "k": "Heap size",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c3"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Take the fifth largest",
+            "tag": "solution",
+            "body": [
+              "Another swap and sift down. The array is 2 1 3 5 7 8 9, and five cells are sorted.",
+              "Two items are left in the heap."
+            ],
+            "short": "Extract 5",
+            "hud": [
+              {
+                "k": "Sorted part",
+                "v": "3 5 7 8 9"
+              },
+              {
+                "k": "Heap size",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The last swap",
+            "tag": "solution",
+            "body": [
+              "Swap the last two items. The array is 1 2 3 5 7 8 9. A heap of one item is trivially in order, so we are done.",
+              "The whole array is sorted, from smallest to largest."
+            ],
+            "short": "Extract 6",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "1 2 3 5 7 8 9",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "c0",
+                  "c1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Cost and properties",
+            "tag": "insight",
+            "body": [
+              "Phase one costs O(n). Phase two does n - 1 sift downs of O(log n) each. The total is O(n log n) in the worst, average and best cases. It uses O(1) extra space, so it is in place. The Wikipedia article states these.",
+              "Heap sort is not stable: equal items may change their relative order."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n log n) always",
+                "tone": "good"
+              },
+              {
+                "k": "Extra space",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "no",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Against quicksort and merge sort",
+            "tag": "insight",
+            "body": [
+              "Quicksort is usually 2 to 3 times faster than heap sort in practice, because it reads memory in order, but it has an O(n squared) worst case. Merge sort is stable but needs extra space. Heap sort has neither problem, with a guaranteed O(n log n) and O(1) space.",
+              "Some real sorts start with quicksort and fall back to heap sort if the recursion goes too deep."
+            ],
+            "short": "Comparison",
+            "hud": [
+              {
+                "k": "Quicksort",
+                "v": "faster in practice, worst case O(n squared)"
+              },
+              {
+                "k": "Merge sort",
+                "v": "stable, needs O(n) space"
+              },
+              {
+                "k": "Heap sort",
+                "v": "guaranteed, in place, not stable"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Heap sort builds a max-heap, then repeatedly swaps the root to the end of the array, shrinks the heap and sifts down. O(n log n) time, O(1) extra space, not stable.",
+              "Choose it when you need a guaranteed bound without extra memory."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "7",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 build a max-heap: O(n)",
+                "2 swap root with the last heap item",
+                "3 shrink the heap, sift down",
+                "4 O(n log n), in place, not stable"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Heap sort is like choosing the tallest person again and again, and sending each one to the back of the line.",
+      "story": "A crowd stands in a loose group. First you arrange them so the tallest is always in front. Then you take that tallest person to the end of the line, tidy up the group so the next tallest comes to the front, and repeat. Each round sends one person to their final place at the end. When the group is gone, the line is sorted from shortest to tallest.",
+      "maps": [
+        [
+          "Choosing the tallest",
+          "Reading the root of a max-heap"
+        ],
+        [
+          "Sending them to the back",
+          "Swapping the root to the end"
+        ],
+        [
+          "Tidying the group",
+          "Sifting down"
+        ],
+        [
+          "The finished line at the end",
+          "The sorted part of the array"
+        ]
+      ],
+      "words": [
+        [
+          "heap sort",
+          "A sort that builds a heap and repeatedly takes out the largest item."
+        ],
+        [
+          "in place",
+          "Sorting inside the array, with no second array."
+        ],
+        [
+          "max-heap",
+          "A heap with the largest item at the root."
+        ],
+        [
+          "stable",
+          "Equal items keep the order they had before sorting."
+        ],
+        [
+          "sift down",
+          "Swap a key with its larger child until the heap order holds."
+        ]
+      ]
+    }
   }
 ]
