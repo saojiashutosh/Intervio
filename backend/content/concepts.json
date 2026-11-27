@@ -120609,5 +120609,1034 @@
         ]
       ]
     }
+  },
+  {
+    "id": "resizing-rehashing",
+    "n": 164,
+    "level": 14,
+    "week": "Core",
+    "title": "Resizing and Rehashing: Keeping the Load Factor Low",
+    "tagline": "See why a hash table grows, why every key must be placed again, and why doubling keeps insert O(1) on average.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "A hash table works well only while its load factor stays low. The load factor is the number of stored pairs n divided by the number of buckets m. As it climbs, collisions and probes multiply. So every real hash table grows when the load factor passes a limit. Growing a hash table has a twist that a plain dynamic array does not have: you must rehash.",
+      "## Why you must rehash",
+      "The bucket of a key is its hash modulo the table size. When the size changes, the bucket changes too. A key in bucket 2 of 4 might belong in bucket 6 of 8. So after allocating the bigger array, you cannot copy items straight across. You insert every key again. The Wikipedia article says rehashing is simple, but computationally expensive.",
+      "- Allocate a new array, usually double the size.\n- For each stored pair, compute its bucket in the new array and insert it there.\n- Release the old array.",
+      "## The cost",
+      "A rehash touches every key, so one resize costs O(n). But it happens only when the table doubles. The total cost of all rehashes over n inserts is 1 + 2 + 4 + ... up to n, which is less than 2n. So an insert costs O(1) amortized. The article states that resizing keeps the amortized O(1) performance of lookup and insertion. This is the same argument as in the dynamic arrays lesson.",
+      "## When to resize",
+      "The limit depends on the collision scheme. For open addressing the article says acceptable maximum load factors range around 0.6 to 0.75, since the load can never exceed 1 and probes rise sharply near it. For separate chaining, the best maximum is typically between 1 and 3. Resizing may also happen when the load factor drops too low, for example below a quarter of the maximum, to save memory.",
+      "> A worked example: an open-addressing table with 4 buckets holds the keys 3, 5, 9 and 14, so its load factor is 1.0. Growing to 8 buckets and rehashing puts each key at its hash mod 8: 14 goes to bucket 6, 5 to bucket 5, 9 to bucket 1 and 3 to bucket 3. Now the load factor is 0.5, and no keys collide.",
+      "## Avoiding the pause",
+      "A large rehash can pause a program for a noticeable time. The article describes incremental resizing: allocate the new table, and move a few keys at each later insert or lookup until the old table is empty. During the move, lookups check both tables. This spreads the cost evenly, at the price of more complex code.",
+      "## In Python",
+      "Python's dict and set resize themselves, so you never call a rehash. But the idea explains why insertion is O(1) on average, and why one insert in a big dict can occasionally take much longer than the rest. If you know the final size, you can build the dict in one go, for example from a comprehension, to avoid some resizes.",
+      "## How to talk through it",
+      "Define the load factor and the limit. Say why keys must be rehashed, give the doubling argument, and say amortized O(1). Mention incremental resizing if asked about latency."
+    ],
+    "keyPoints": [
+      "Load factor = stored pairs / buckets. Resize when it passes a limit: about 0.6 to 0.75 for open addressing, 1 to 3 for chaining.",
+      "A bucket is hash mod table size, so growing the table means rehashing every key, not copying.",
+      "One resize is O(n), but doubling makes the total O(n) over n inserts: O(1) amortized per insert.",
+      "Shrinking is optional, for example below a quarter of the limit.",
+      "Incremental resizing moves a few keys at a time to avoid one long pause."
+    ],
+    "sql": [
+      {
+        "title": "A table that grows by doubling and rehashes",
+        "lang": "py",
+        "code": "class GrowingTable:\n    def __init__(self, capacity=4, max_load=0.75):\n        self.slots = [None] * capacity\n        self.size = 0\n        self.max_load = max_load\n        self.rehash_moves = 0\n\n    def _find(self, slots, key):\n        i = hash(key) % len(slots)\n        while slots[i] is not None and slots[i][0] != key:\n            i = (i + 1) % len(slots)                   # linear probing\n        return i\n\n    def put(self, key, value):\n        if (self.size + 1) / len(self.slots) > self.max_load:\n            self._grow()\n        i = self._find(self.slots, key)\n        if self.slots[i] is None:\n            self.size += 1\n        self.slots[i] = (key, value)\n\n    def get(self, key, default=None):\n        slot = self.slots[self._find(self.slots, key)]\n        return slot[1] if slot else default\n\n    def _grow(self):\n        old = self.slots\n        self.slots = [None] * (len(old) * 2)           # twice the size\n        for item in old:\n            if item is not None:                       # place every key again: the index changed\n                self.slots[self._find(self.slots, item[0])] = item\n                self.rehash_moves += 1\n\nt = GrowingTable()\nfor i in range(100):\n    t.put(i, i * i)\nassert all(t.get(i) == i * i for i in range(100))\nassert len(t.slots) == 256 and t.size / len(t.slots) <= 0.75\nassert t.rehash_moves < 2 * t.size                      # doubling: under 2 moves per insert on average"
+      },
+      {
+        "title": "The index depends on the table size",
+        "lang": "py",
+        "code": "keys = [3, 5, 9, 14]\nold = {k: k % 4 for k in keys}\nnew = {k: k % 8 for k in keys}\nassert old == {3: 3, 5: 1, 9: 1, 14: 2}\nassert new == {3: 3, 5: 5, 9: 1, 14: 6}\nmoved = [k for k in keys if old[k] != new[k]]\nassert moved == [5, 14]                                 # these keys change bucket when the table doubles\nassert len(set(new.values())) == 4                      # and no keys collide in the bigger table"
+      },
+      {
+        "title": "Doubling versus growing by a fixed amount",
+        "lang": "py",
+        "code": "def total_moves(n, grow):\n    capacity, size, moves = 4, 0, 0\n    for _ in range(n):\n        if size + 1 > 0.75 * capacity:\n            moves += size                               # every stored key is rehashed\n            capacity = grow(capacity)\n        size += 1\n    return moves\n\nn = 20000\ndoubling = total_moves(n, lambda c: c * 2)\nfixed = total_moves(n, lambda c: c + 16)\nassert doubling < 2 * n\nassert fixed > 20 * doubling                            # a fixed step is quadratic in total"
+      }
+    ],
+    "django": {},
+    "exercise": "Write GrowingTable with doubling and count the rehash moves for 1,000 inserts. Add a shrink rule that halves the table when the load factor falls below a quarter of the maximum, and test that alternating inserts and deletes near the boundary do not resize every time. Then explain why growing by +16 each time makes inserts slow.",
+    "pitfalls": [
+      "Copying the old array into the bigger one without rehashing. Every lookup would then probe the wrong bucket.",
+      "Resizing only when the table is completely full. Probes become very long long before that.",
+      "Growing by a fixed number of buckets. The total rehash cost becomes quadratic.",
+      "Shrinking and growing at the same threshold, so that alternating operations resize on every call.",
+      "Forgetting that an insert can occasionally cost O(n), and calling it simply O(1)."
+    ],
+    "interview": [
+      {
+        "q": "Why does a hash table resize?",
+        "a": "To keep the load factor, the pairs per bucket, low. A high load factor means more collisions, longer chains or probe sequences, and slower operations. Resizing, usually by doubling, restores the O(1) average cost."
+      },
+      {
+        "q": "Why do you have to rehash when you resize?",
+        "a": "A key's bucket is its hash modulo the table size. When the size changes, the bucket changes, so each key must be placed in the new array again."
+      },
+      {
+        "q": "Why is insertion O(1) amortized even though resizing costs O(n)?",
+        "a": "Resizing happens only when the table doubles. The rehash costs form 1 + 2 + 4 + ... which add up to less than twice the final size, so the average cost per insert is constant."
+      },
+      {
+        "q": "How can you avoid a long pause when a large table resizes?",
+        "a": "Resize incrementally: keep the old and new tables at once, and move a few keys with each operation, checking both tables on lookups."
+      }
+    ],
+    "references": [
+      {
+        "title": "Hash table (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hash_table",
+        "kind": "Reference"
+      },
+      {
+        "title": "Open addressing (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Open_addressing",
+        "kind": "Reference"
+      },
+      {
+        "title": "Dynamic array (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_array",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: resizing and amortized cost are standard follow-ups to hash table questions. The load factor, the doubling and rehashing steps, the cost of rehashing, the typical thresholds and incremental resizing come from the Wikipedia hash table article, which I read in part, and the load limits for open addressing from the open addressing article, which I read in full. The amortized argument matches the dynamic array article I read earlier. The worked example and code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-hash-table",
+      "wikipedia-open-addressing",
+      "wikipedia-dynamic-array",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "rehash",
+        "title": "Resizing and rehashing, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "lookup or probe"
+          },
+          {
+            "kind": "write",
+            "label": "insert or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "collision or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Full table",
+            "at": 0
+          },
+          {
+            "text": "Grow",
+            "at": 2
+          },
+          {
+            "text": "Rehash",
+            "at": 3
+          },
+          {
+            "text": "Amortized",
+            "at": 5
+          },
+          {
+            "text": "Thresholds",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "o0",
+            "kind": "cube",
+            "x": -2.95,
+            "y": 0.95,
+            "label": "·",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o1",
+            "kind": "cube",
+            "x": -1.65,
+            "y": -0.35,
+            "label": "·",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o2",
+            "kind": "cube",
+            "x": -0.35,
+            "y": -1.65,
+            "label": "·",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "o3",
+            "kind": "cube",
+            "x": 0.95,
+            "y": -2.95,
+            "label": "·",
+            "icon": "cell",
+            "tone": "blue",
+            "until": 3
+          },
+          {
+            "id": "n0",
+            "kind": "cube",
+            "x": -2.5,
+            "y": 4.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": -1.5,
+            "y": 3.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": -0.5,
+            "y": 2.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": 0.5,
+            "y": 1.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n4",
+            "kind": "cube",
+            "x": 1.5,
+            "y": 0.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n5",
+            "kind": "cube",
+            "x": 2.5,
+            "y": -0.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n6",
+            "kind": "cube",
+            "x": 3.5,
+            "y": -1.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          },
+          {
+            "id": "n7",
+            "kind": "cube",
+            "x": 4.5,
+            "y": -2.5,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey",
+            "from": 2
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A table that is full",
+            "tag": "problem",
+            "body": [
+              "This open-addressing table has 4 buckets and holds the keys 3, 5, 9 and 14. The load factor is 4 over 4, which is 1.0: completely full.",
+              "Keys 5 and 9 both want bucket 1, so 9 was pushed on to the next bucket, and 14 and 3 were pushed along too. The table is crowded."
+            ],
+            "short": "Full table",
+            "hud": [
+              {
+                "k": "Buckets m",
+                "v": "4"
+              },
+              {
+                "k": "Keys n",
+                "v": "4"
+              },
+              {
+                "k": "Load factor",
+                "v": "1.0",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "o0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "label": "14",
+                "tone": "blue",
+                "pill": {
+                  "text": "load factor 1.0",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why a crowded table is slow",
+            "tag": "problem",
+            "body": [
+              "Look up 3. 3 mod 4 = 3, but bucket 3 holds 14. Probe on to bucket 0: found, after 2 probes. Lookups for other keys also walk through other people's buckets.",
+              "The Wikipedia article says probes rise dramatically as an open-addressing table approaches full. A new key cannot even be inserted."
+            ],
+            "short": "Slow lookups",
+            "hud": [
+              {
+                "k": "Probes for 3",
+                "v": "2",
+                "tone": "warn"
+              },
+              {
+                "k": "Next insert",
+                "v": "no free slot",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "o0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": {
+                  "text": "3 found after 2 probes",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": "live"
+              },
+              "o1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "label": "14",
+                "tone": "blue",
+                "pill": null,
+                "status": "hot"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "o3",
+                  "o0"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Grow: allocate a table twice as big",
+            "tag": "technique",
+            "body": [
+              "When the load factor passes a limit, the table allocates a new array, usually double the size. Here 4 buckets become 8. The new buckets are empty.",
+              "The Wikipedia article describes the same step: a new table with a size double that of the original."
+            ],
+            "short": "Allocate",
+            "hud": [
+              {
+                "k": "New size",
+                "v": "8 = 4 x 2",
+                "tone": "good"
+              },
+              {
+                "k": "Cost so far",
+                "v": "one allocation"
+              }
+            ],
+            "set": {
+              "o0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "label": "14",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Rehash: every key is placed again",
+            "tag": "solution",
+            "body": [
+              "You cannot just copy the old array. The bucket index is the hash mod the table size, and the size changed. 9 mod 4 was 1, but 9 mod 8 is 1. 5 mod 8 is 5. 14 mod 8 is 6. 3 mod 8 is 3. Each key is inserted into the new table.",
+              "The Wikipedia article calls rehashing simple but computationally expensive: it touches every key."
+            ],
+            "short": "Rehash",
+            "hud": [
+              {
+                "k": "Keys moved",
+                "v": "4 (all of them)",
+                "tone": "warn"
+              },
+              {
+                "k": "Rehash cost",
+                "v": "O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "o0": {
+                "label": "3",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "label": "5",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "label": "9",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "label": "14",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "o0",
+                  "n3"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "o1",
+                  "n5"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "o2",
+                  "n1"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              },
+              {
+                "path": [
+                  "o3",
+                  "n6"
+                ],
+                "kind": "write",
+                "delay": 0.9
+              }
+            ],
+            "predict": {
+              "question": "The table grows from 4 to 8 buckets. A key had hash 14. Which bucket does it use in the new table?",
+              "options": [
+                "Bucket 2, same as before",
+                "Bucket 6: 14 mod 8",
+                "Bucket 14"
+              ],
+              "answer": 1,
+              "why": "The index is hash mod table size. Old: 14 mod 4 = 2. New: 14 mod 8 = 6. The key moves."
+            }
+          },
+          {
+            "title": "Now the table is half empty again",
+            "tag": "solution",
+            "body": [
+              "The old array is released. The load factor is 4 over 8, which is 0.5, and no keys collide any more. Lookups for all four keys take one probe.",
+              "The expensive step bought a lot of cheap operations."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Load factor",
+                "v": "0.5",
+                "tone": "good"
+              },
+              {
+                "k": "Probes per lookup",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": {
+                  "text": "load factor 0.5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why doubling keeps inserts O(1) amortized",
+            "tag": "insight",
+            "body": [
+              "One insert may trigger an O(n) rehash, but it happens only when the table doubles. The rehash costs add up like the dynamic array lesson: 4 + 8 + 16 + ... stay below twice the final size.",
+              "So over n inserts the total rehash work is O(n), and each insert is O(1) amortized. The Wikipedia article says resizing keeps the amortized O(1) performance of lookup and insertion."
+            ],
+            "short": "Amortized",
+            "hud": [
+              {
+                "k": "One insert",
+                "v": "O(1) or O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "n inserts",
+                "v": "O(n) total",
+                "tone": "good"
+              },
+              {
+                "k": "Per insert",
+                "v": "O(1) amortized",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "When to resize",
+            "tag": "technique",
+            "body": [
+              "Resize when the load factor reaches a limit chosen for the scheme: around 0.6 to 0.75 for open addressing, and often above 1 for chaining. Some tables also shrink when the load drops very low, for example below a quarter of the limit.",
+              "Growing early costs memory. Growing late costs time."
+            ],
+            "short": "Thresholds",
+            "hud": [
+              {
+                "k": "Open addressing",
+                "v": "grow at about 0.6 to 0.75"
+              },
+              {
+                "k": "Chaining",
+                "v": "load 1 to 3 is fine"
+              },
+              {
+                "k": "Shrink",
+                "v": "optional, at a quarter of the limit"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The latency spike, and incremental resizing",
+            "tag": "insight",
+            "body": [
+              "One big rehash stops everything for a moment, which hurts a real-time system. Some tables rehash a few keys at a time while serving requests, keeping the old and the new table side by side until the move is done.",
+              "The Wikipedia article describes this incremental resizing."
+            ],
+            "short": "Spikes",
+            "hud": [
+              {
+                "k": "Plain resize",
+                "v": "rare long pause",
+                "tone": "warn"
+              },
+              {
+                "k": "Incremental",
+                "v": "a few keys per operation",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A hash table keeps its load factor low by growing, usually by doubling, and rehashing every key, since indexes depend on the table size. The cost is O(n) now and then, and O(1) amortized overall.",
+              "Say amortized when you answer, and mention the load factor limit."
+            ],
+            "short": "Recap",
+            "set": {
+              "n0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n6": {
+                "label": "14",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n7": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 load factor = n / m",
+                "2 grow when it passes the limit",
+                "3 rehash: index = hash mod new size",
+                "4 doubling gives O(1) amortized"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Resizing a hash table is like moving to a bigger shop and putting every item on a new shelf by the new rule.",
+      "story": "A shop gets so full that you can hardly find anything. You rent a shop twice as large. You cannot just carry the shelves across. The rule that tells you which shelf an item goes on depends on the number of shelves, so you must work out the shelf for every item again. It is a big job, but you only do it when the shop doubles, and then everything is quick to find.",
+      "maps": [
+        [
+          "The crowded shop",
+          "A table with a high load factor"
+        ],
+        [
+          "The bigger shop",
+          "The new, larger array"
+        ],
+        [
+          "Working out each shelf again",
+          "Rehashing"
+        ],
+        [
+          "Doing the move rarely",
+          "Amortized O(1)"
+        ]
+      ],
+      "words": [
+        [
+          "load factor",
+          "The number of stored pairs divided by the number of buckets."
+        ],
+        [
+          "rehash",
+          "Work out the bucket of every key again for the new table size."
+        ],
+        [
+          "resize",
+          "Replace the array with a bigger one."
+        ],
+        [
+          "amortized",
+          "Averaged over a whole run of operations."
+        ],
+        [
+          "probe",
+          "One attempt to find a free or matching bucket."
+        ]
+      ]
+    }
   }
 ]
