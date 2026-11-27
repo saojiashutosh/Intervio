@@ -2546,6 +2546,69 @@
       "kind": "official",
       "checked": "read",
       "used_for": "permutations(iterable, r) yields r-length orderings in lexicographic order by position; combinations(iterable, r) yields sorted subsequences; product gives the Cartesian product; counts are n!/(n-r)! and C(n, r)."
+    },
+    {
+      "key": "wikipedia-dynamic-programming",
+      "title": "Dynamic programming (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Needs optimal substructure and overlapping subproblems; top-down memoization versus bottom-up tabulation; the Fibonacci example turns an exponential recursion into O(n); developed by Bellman in the 1950s."
+    },
+    {
+      "key": "wikipedia-memoization",
+      "title": "Memoization (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Memoization",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Stores the results of calls to pure functions so repeated calls return the stored value; a space-time trade-off; only valid for referentially transparent functions; normally implemented with a hash table."
+    },
+    {
+      "key": "wikipedia-knapsack",
+      "title": "Knapsack problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Knapsack_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "0-1 knapsack maximizes value under a weight limit W; the recurrence m[i, w] runs in O(nW) time, pseudo-polynomial; the decision version is NP-complete; two rows are enough when only the value is needed."
+    },
+    {
+      "key": "wikipedia-change-making",
+      "title": "Change-making problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Change-making_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Minimum number of coins for an amount; dynamic programming in O(nW); greedy works for canonical coin systems but fails for others, for example coins 25, 10, 1 with amount 40 gives 7 coins greedily against 4 optimally."
+    },
+    {
+      "key": "wikipedia-lis",
+      "title": "Longest increasing subsequence (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Longest_increasing_subsequence",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Solvable in O(n log n) time with binary search on smallest tails; the LIS of a sequence equals the LCS of the sequence and its sorted copy; worked example 2, 8, 9, 5, 6, 7, 1 gives 2, 5, 6, 7."
+    },
+    {
+      "key": "wikipedia-lcs",
+      "title": "Longest common subsequence (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Longest_common_subsequence",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Subsequence elements need not be contiguous; the O(m n) table recurrence on matches and maxima; backtracking from the corner recovers the sequence; ABCD and ACBAD give length 3; used by diff."
+    },
+    {
+      "key": "wikipedia-edit-distance",
+      "title": "Edit distance (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Edit_distance",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Levenshtein distance counts insertions, deletions and substitutions; the Wagner-Fischer table takes Theta(m n) time; two rows reduce space to Theta(min(m, n)); kitten to sitting is 3."
     }
   ],
   "levels": [
