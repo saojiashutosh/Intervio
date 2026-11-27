@@ -146369,5 +146369,1242 @@
         ]
       ]
     }
+  },
+  {
+    "id": "shortest-paths",
+    "n": 188,
+    "level": 14,
+    "week": "Core",
+    "title": "Shortest Paths: Relaxation and Dijkstra's Algorithm",
+    "tagline": "Find the cheapest route to every vertex in a weighted graph by repeatedly relaxing edges from the closest unfinished vertex.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "In a weighted graph, the shortest path between two vertices is the route with the smallest total weight, not the fewest edges. BFS finds fewest edges, so it fails when weights differ. The single-source shortest path problem asks for the cheapest route from one start vertex to all others. Dijkstra's algorithm solves it when every edge weight is zero or positive.",
+      "## Relaxation",
+      "The core operation is relaxation. Keep for each vertex v an estimate dist(v), starting at 0 for the source and infinity for the rest, and a parent. To relax an edge from u to v with weight w, check whether going through u is cheaper: if dist(u) + w is less than dist(v), set dist(v) to that value and set parent(v) to u. Every shortest path algorithm is a different order of relaxing edges. Bellman-Ford relaxes all edges repeatedly. Dijkstra relaxes edges from the closest vertex first.",
+      "## The algorithm",
+      "Put the source in a priority queue with distance 0. Repeat: take the vertex u with the smallest estimate. If it is already finished, skip it. Mark it finished, and relax each edge from u. Whenever an estimate improves, push the new pair onto the queue. The Wikipedia article describes this as picking the closest unvisited vertex with a priority queue. When the queue is empty, all reachable vertices have their final distances.",
+      "## Why it works, and its limit",
+      "When u is the smallest estimate among unfinished vertices, no other route to u can be shorter. Any other route must leave the finished set through some unfinished vertex that is at least as far as u, and with non-negative weights adding more edges cannot reduce the cost. A negative edge breaks this argument, since a later, longer path can end up cheaper. So Dijkstra requires non-negative weights.",
+      "> A worked example: edges A-B 4, A-C 2, C-B 1, B-D 5, C-D 8, D-E 3, from A. Take A: B becomes 4 and C becomes 2. Take C, which is 2: B improves to 3 and D becomes 10. Take B, which is 3: D improves to 8. Take D, which is 8: E becomes 11. Take E. The route to E is A, C, B, D, E, with cost 11. The direct edge A to B costs 4, but the route through C costs 3.",
+      "## Cost",
+      "With a binary heap, each of the E relaxations can push one entry, and each push or pop is O(log V), so the total is O((V + E) log V). The article lists O(E + V log V) with a Fibonacci heap and O(V squared) with a simple array. In Python, use heapq, push a new entry when an estimate improves, and skip stale entries when you pop them.",
+      "## Getting the route",
+      "Follow the parent links backwards from the target to the source, then reverse the list. If a vertex was never reached, its distance stays infinity and it has no route.",
+      "## Variations",
+      "Stop early when the target is taken from the queue, if you need only one distance. For a graph whose weights are only 0 and 1, a deque gives 0-1 BFS in linear time. A* adds a heuristic estimate of the remaining distance to search toward the target.",
+      "## Common mistakes",
+      "Using Dijkstra with negative weights. Not skipping stale heap entries, which is correct but slow, or worse, treating them as new. Marking vertices finished when they are pushed rather than when popped. Comparing a tuple with an unorderable item in the heap.",
+      "## How to talk through it",
+      "Say that you relax edges from the closest vertex, using a priority queue, and give O((V + E) log V). State the non-negative weight condition and why. Run the example, showing an estimate improving."
+    ],
+    "keyPoints": [
+      "Shortest path means smallest total weight, not fewest edges. BFS does not solve it for weighted graphs.",
+      "Relaxation: if dist[u] + w < dist[v], update dist[v] and parent[v].",
+      "Dijkstra: repeatedly take the unfinished vertex with the smallest estimate, finish it, relax its edges. Needs non-negative weights.",
+      "Binary heap: O((V + E) log V). In Python push new entries and skip stale ones.",
+      "Follow parent links backwards for the route. Negative weights need Bellman-Ford."
+    ],
+    "sql": [
+      {
+        "title": "Dijkstra with a heap and the route",
+        "lang": "py",
+        "code": "import heapq\n\ndef dijkstra(graph, source):\n    dist = {v: float(\"inf\") for v in graph}\n    dist[source] = 0\n    parent = {source: None}\n    heap = [(0, source)]\n    done = set()\n    while heap:\n        d, u = heapq.heappop(heap)\n        if u in done:\n            continue                                     # a stale entry\n        done.add(u)\n        for v, w in graph[u]:\n            if d + w < dist[v]:                          # relax the edge u -> v\n                dist[v] = d + w\n                parent[v] = u\n                heapq.heappush(heap, (dist[v], v))\n    return dist, parent\n\ndef route(parent, target):\n    out = []\n    while target is not None:\n        out.append(target)\n        target = parent[target]\n    return out[::-1]\n\nedges = [(\"A\", \"B\", 4), (\"A\", \"C\", 2), (\"C\", \"B\", 1), (\"B\", \"D\", 5), (\"C\", \"D\", 8), (\"D\", \"E\", 3)]\ngraph = {}\nfor a, b, w in edges:\n    graph.setdefault(a, []).append((b, w))\n    graph.setdefault(b, []).append((a, w))\ndist, parent = dijkstra(graph, \"A\")\nassert dist == {\"A\": 0, \"B\": 3, \"C\": 2, \"D\": 8, \"E\": 11}\nassert route(parent, \"E\") == [\"A\", \"C\", \"B\", \"D\", \"E\"]\nassert dijkstra({\"X\": [], \"Y\": []}, \"X\")[0] == {\"X\": 0, \"Y\": float(\"inf\")}"
+      },
+      {
+        "title": "Negative weights break Dijkstra",
+        "lang": "py",
+        "code": "import heapq\n\ndef dijkstra(graph, source):\n    dist = {v: float(\"inf\") for v in graph}\n    dist[source] = 0\n    heap, done = [(0, source)], set()\n    while heap:\n        d, u = heapq.heappop(heap)\n        if u in done:\n            continue\n        done.add(u)\n        for v, w in graph[u]:\n            if d + w < dist[v] and v not in done:\n                dist[v] = d + w\n                heapq.heappush(heap, (dist[v], v))\n    return dist\n\n# S -> A costs 4, S -> B costs 5, and B -> A costs -2: the true cost to A is 5 - 2 = 3\ngraph = {\"S\": [(\"A\", 4), (\"B\", 5)], \"A\": [], \"B\": [(\"A\", -2)]}\nassert dijkstra(graph, \"S\")[\"A\"] == 4                   # wrong: A was finished too early"
+      },
+      {
+        "title": "Check against Bellman-Ford on random graphs",
+        "lang": "py",
+        "code": "import heapq\nimport random\n\ndef dijkstra(n, edges, source):\n    graph = {v: [] for v in range(n)}\n    for a, b, w in edges:\n        graph[a].append((b, w))\n    dist = [float(\"inf\")] * n\n    dist[source] = 0\n    heap, done = [(0, source)], set()\n    while heap:\n        d, u = heapq.heappop(heap)\n        if u in done:\n            continue\n        done.add(u)\n        for v, w in graph[u]:\n            if d + w < dist[v]:\n                dist[v] = d + w\n                heapq.heappush(heap, (dist[v], v))\n    return dist\n\ndef bellman_ford(n, edges, source):\n    dist = [float(\"inf\")] * n\n    dist[source] = 0\n    for _ in range(n - 1):\n        for a, b, w in edges:\n            if dist[a] + w < dist[b]:\n                dist[b] = dist[a] + w\n    return dist\n\nrandom.seed(34)\nfor _ in range(200):\n    n = random.randint(1, 7)\n    edges = [(a, b, random.randint(0, 9)) for a in range(n) for b in range(n) if a != b and random.random() < 0.35]\n    assert dijkstra(n, edges, 0) == bellman_ford(n, edges, 0)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write dijkstra with a heap and a route function. Check it against Bellman-Ford on 200 random graphs with non-negative weights. Then show a small graph with a negative edge where Dijkstra gives a wrong answer. Finally, write a version that stops as soon as the target is taken from the heap, and a 0-1 BFS with a deque.",
+    "pitfalls": [
+      "Using Dijkstra with negative weights. The answer can be wrong without any error.",
+      "Not skipping stale heap entries, which re-processes vertices.",
+      "Using BFS for a weighted graph and expecting the cheapest path.",
+      "Forgetting that unreachable vertices keep an infinite distance.",
+      "Pushing items the heap cannot compare when two distances tie. Put the vertex as the second tuple element only if vertices are comparable, or add a counter."
+    ],
+    "interview": [
+      {
+        "q": "How does Dijkstra's algorithm work?",
+        "a": "Start with distance 0 at the source and infinity elsewhere. Repeatedly take the unfinished vertex with the smallest distance from a priority queue, mark it finished, and relax its edges: if going through it is cheaper, update the neighbour's distance. With non-negative weights, a finished vertex's distance is final."
+      },
+      {
+        "q": "What is the complexity of Dijkstra's algorithm?",
+        "a": "O((V + E) log V) with a binary heap. It is O(E + V log V) with a Fibonacci heap and O(V squared) with a plain array."
+      },
+      {
+        "q": "Why doesn't Dijkstra work with negative weights?",
+        "a": "It finishes a vertex when it is the closest, assuming no later path can be shorter. A negative edge can make a later, longer path cheaper, so a finished distance could still improve."
+      },
+      {
+        "q": "When would you use BFS instead of Dijkstra?",
+        "a": "When all edges have the same weight, or you want the fewest edges. BFS is simpler and runs in O(V + E)."
+      }
+    ],
+    "references": [
+      {
+        "title": "Dijkstra's algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: Dijkstra's algorithm is the standard weighted shortest path method in coding rounds and system design. The shortest path from a source, the priority queue operations and the cost bounds come from the Wikipedia Dijkstra article, which I read in an earlier lesson, and the heap behaviour from the Python heapq page, which I read in full. The relaxation framing, the correctness argument and the examples are my own illustration and judgment, and the code is checked by running it against Bellman-Ford. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-dijkstra",
+      "py-heapq",
+      "wikipedia-priority-queue",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "dijkstra",
+        "title": "Dijkstra's algorithm, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or relax"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "Relaxation",
+            "at": 1
+          },
+          {
+            "text": "Take A",
+            "at": 3
+          },
+          {
+            "text": "Take C",
+            "at": 4
+          },
+          {
+            "text": "The route",
+            "at": 8
+          },
+          {
+            "text": "Negative edges",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.2,
+            "y": -0.6,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.6,
+            "y": 2.2,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -1.2,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.9,
+            "y": -2.9,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none",
+            "label": "4"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none",
+            "label": "2"
+          },
+          {
+            "a": "gC",
+            "b": "gB",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none",
+            "label": "5"
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none",
+            "label": "8"
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none",
+            "label": "3"
+          }
+        ],
+        "steps": [
+          {
+            "title": "The task: the cheapest route to every vertex",
+            "tag": "technique",
+            "body": [
+              "Each edge has a weight, such as a distance or a price. We want the cheapest route from A to every other vertex. BFS counts edges, so it cannot do this when the weights differ.",
+              "Dijkstra's algorithm solves it when every weight is zero or positive."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Weights",
+                "v": "4, 2, 1, 5, 8, 3"
+              },
+              {
+                "k": "Needs",
+                "v": "no negative weights",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Distance estimates and relaxation",
+            "tag": "technique",
+            "body": [
+              "Keep an estimate of the distance to each vertex: 0 for the start and infinity for the rest. Relaxing an edge from u to v asks: is it cheaper to reach v by way of u? If dist(u) + weight is less than dist(v), update dist(v) and remember u as v's parent.",
+              "Dijkstra's algorithm is a careful order of relaxing edges."
+            ],
+            "short": "Relaxation",
+            "hud": [
+              {
+                "k": "Start",
+                "v": "dist(A) = 0"
+              },
+              {
+                "k": "Others",
+                "v": "inf"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if dist[u] + w < dist[v]:",
+                "    dist[v] = dist[u] + w",
+                "    parent[v] = u"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "The rule: always take the closest unfinished vertex",
+            "tag": "technique",
+            "body": [
+              "Keep a priority queue of vertices by their current estimate. Repeatedly take the vertex with the smallest estimate, call it finished, and relax all its edges. With non-negative weights, a finished vertex's distance can never improve.",
+              "The Wikipedia article describes this with a priority queue of vertices."
+            ],
+            "short": "The rule",
+            "hud": [
+              {
+                "k": "Take",
+                "v": "smallest estimate first"
+              },
+              {
+                "k": "Finished",
+                "v": "its distance is final",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Take A: distance 0, improves B, C",
+            "tag": "solution",
+            "body": [
+              "Take A, which has the smallest estimate, 0. Its edges lead to B (4), C (2). Relaxing improves B to 4, C to 2.",
+              "A is now finished with distance 0."
+            ],
+            "short": "Take A",
+            "hud": [
+              {
+                "k": "dist A",
+                "v": "0"
+              },
+              {
+                "k": "dist B",
+                "v": "4"
+              },
+              {
+                "k": "dist C",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 4",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Take C: distance 2, improves B, D",
+            "tag": "solution",
+            "body": [
+              "Take C, which has the smallest estimate, 2. Its edges lead to A (2), B (1), D (8). Relaxing improves B to 3, D to 10.",
+              "C is now finished with distance 2."
+            ],
+            "short": "Take C",
+            "hud": [
+              {
+                "k": "dist C",
+                "v": "2"
+              },
+              {
+                "k": "dist B",
+                "v": "3"
+              },
+              {
+                "k": "dist D",
+                "v": "10"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 10",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gB"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ],
+            "predict": {
+              "question": "C is taken with distance 2. Its edge to B has weight 1. What is B's new estimate?",
+              "options": [
+                "4: it stays",
+                "3 = 2 + 1: cheaper than the direct edge",
+                "1"
+              ],
+              "answer": 1,
+              "why": "2 + 1 = 3 is less than the old estimate 4, so B improves, and its parent becomes C."
+            }
+          },
+          {
+            "title": "Take B: distance 3, improves D",
+            "tag": "solution",
+            "body": [
+              "Take B, which has the smallest estimate, 3. Its edges lead to A (4), C (1), D (5). Relaxing improves D to 8.",
+              "B is now finished with distance 3."
+            ],
+            "short": "Take B",
+            "hud": [
+              {
+                "k": "dist B",
+                "v": "3"
+              },
+              {
+                "k": "dist D",
+                "v": "8"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take D: distance 8, improves E",
+            "tag": "solution",
+            "body": [
+              "Take D, which has the smallest estimate, 8. Its edges lead to B (5), C (8), E (3). Relaxing improves E to 11.",
+              "D is now finished with distance 8."
+            ],
+            "short": "Take D",
+            "hud": [
+              {
+                "k": "dist D",
+                "v": "8"
+              },
+              {
+                "k": "dist E",
+                "v": "11"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take E: distance 11",
+            "tag": "solution",
+            "body": [
+              "Take E, which has the smallest estimate, 11. Its edges lead to D (3). No estimate improves.",
+              "E is now finished with distance 11."
+            ],
+            "short": "Take E",
+            "hud": [
+              {
+                "k": "dist E",
+                "v": "11"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Read the route from the parent links",
+            "tag": "insight",
+            "body": [
+              "To get the route to E, follow the parents backwards: E came from D, D from B, B from C, C from A. The route is A, C, B, D, E, with total cost 2 + 1 + 5 + 3 = 11.",
+              "Note that the direct edge from A to B costs 4, but going through C costs 3. The cheapest route is not the one with the fewest edges."
+            ],
+            "short": "The route",
+            "hud": [
+              {
+                "k": "Route to E",
+                "v": "A C B D E",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "11",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gC",
+                  "gB",
+                  "gD",
+                  "gE"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Why negative weights break it",
+            "tag": "problem",
+            "body": [
+              "Dijkstra's finishes a vertex when it is the closest, trusting that no later path can be shorter. A negative edge can make a later path shorter, so a finished distance could still improve. Then the answer is wrong.",
+              "For negative weights, use Bellman-Ford, in the next lesson."
+            ],
+            "short": "Negative edges",
+            "hud": [
+              {
+                "k": "Non-negative weights",
+                "v": "Dijkstra works",
+                "tone": "good"
+              },
+              {
+                "k": "Negative weights",
+                "v": "use Bellman-Ford",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost with a binary heap",
+            "tag": "insight",
+            "body": [
+              "Each vertex is finished once. Each edge may push one entry onto the heap. With a binary heap each push or pop costs O(log V), so the total is O((V + E) log V). The Wikipedia article lists the better bound of O(E + V log V) with a Fibonacci heap.",
+              "To change an estimate in Python, push a new entry and skip stale ones when you pop them."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Binary heap",
+                "v": "O((V + E) log V)",
+                "tone": "good"
+              },
+              {
+                "k": "Python",
+                "v": "heapq with stale entries skipped"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Dijkstra's algorithm: estimates start at infinity, take the unfinished vertex with the smallest estimate, relax its edges, repeat. It needs non-negative weights, and gives the cheapest distance to every vertex, with routes by parents.",
+              "Use BFS for unweighted graphs, Dijkstra for non-negative weights, Bellman-Ford for negative weights."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 8",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 11",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 dist = inf, start = 0",
+                "2 take the smallest estimate",
+                "3 relax its edges",
+                "4 no negative weights"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Dijkstra's algorithm is like finding the cheapest trip by always extending the nearest unfinished journey first.",
+      "story": "You are planning cheap train journeys from your home town. You keep a list of the cheapest known price to each town. You always pick the town with the lowest price so far that you have not yet finished, and check whether going on from there makes any neighbouring town cheaper. When you pick a town, its price is final, because every other way to reach it would have to go through a more expensive town first.",
+      "maps": [
+        [
+          "Cheapest known price to a town",
+          "The distance estimate"
+        ],
+        [
+          "Picking the cheapest unfinished town",
+          "Taking from the priority queue"
+        ],
+        [
+          "Checking whether going on is cheaper",
+          "Relaxing an edge"
+        ],
+        [
+          "A price that is now final",
+          "A finished vertex"
+        ]
+      ],
+      "words": [
+        [
+          "shortest path",
+          "The route with the smallest total weight."
+        ],
+        [
+          "relaxation",
+          "Updating a distance when a cheaper route is found."
+        ],
+        [
+          "priority queue",
+          "A collection that always gives back the smallest item."
+        ],
+        [
+          "weight",
+          "The cost or length of an edge."
+        ],
+        [
+          "parent",
+          "The vertex before this one on the cheapest route."
+        ]
+      ]
+    }
   }
 ]
