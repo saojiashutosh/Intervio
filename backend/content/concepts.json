@@ -163811,5 +163811,1532 @@
         ]
       ]
     }
+  },
+  {
+    "id": "interval-scheduling",
+    "n": 202,
+    "level": 14,
+    "week": "Core",
+    "title": "Interval Scheduling: The Earliest Finish Rule",
+    "tagline": "Choose the most non-overlapping jobs with a greedy rule, and learn how an exchange argument proves that a greedy rule is correct.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A greedy algorithm builds a solution one step at a time. At each step it takes the choice that looks best right now, and it never goes back. The Wikipedia article says there is no single formal definition of when this gives the best answer overall, so every greedy algorithm needs its own proof. Classic problems it solves optimally include activity selection, Dijkstra's shortest paths, Kruskal's and Prim's spanning trees and Huffman coding.",
+      "## The problem",
+      "You are given jobs, each with a start time and an end time. Two jobs overlap if their time ranges overlap. A job that starts exactly when another ends does not overlap it. Choose the largest set of jobs with no two overlapping. This is called interval scheduling, or the activity selection problem.",
+      "## The greedy rule",
+      "Sort the jobs by end time. Walk through the list. Keep the end time of the last chosen job. Take a job if it starts at or after that end time, and then update the end time. Skip it otherwise. The rule is: always take the job that finishes first among those that still fit.",
+      "> A worked example: jobs A 1-4, B 3-5, C 0-6, D 5-7, E 3-9, F 5-9, G 8-11 and H 12-16, in order of end time. Take A, which ends at 4. B starts at 3, so skip it. C starts at 0, skip. D starts at 5, take it, and the end becomes 7. E and F start before 7, skip. G starts at 8, take it, end 11. H starts at 12, take it. The answer is A, D, G, H: four jobs.",
+      "## Why it is correct: an exchange argument",
+      "Look at any best plan. If its first job is not the one that finishes earliest, replace it with the job that finishes earliest. That job ends no later, so every other job in the plan still fits. The plan has the same size. Repeat the argument for the next job, and the next. In the end the greedy plan is as large as any best plan. This kind of proof is called an exchange argument. For a greedy algorithm to be trusted, you need such a proof.",
+      "## Rules that look right but are not",
+      "Earliest start first is wrong: one long job that starts at time 0 can block everything. Shortest job first is also wrong on some inputs, because a short job in the middle can overlap two longer jobs that could both be held. Fewest conflicts first can fail as well. Only earliest finish time is always right here.",
+      "## Cost",
+      "Sorting takes O(n log n) time. The single pass takes O(n). The total is O(n log n). The sorted order is the only extra memory. Trying all subsets would take 2 to the power n steps.",
+      "## Close relatives",
+      "Merging overlapping intervals also begins with a sort. Finding the fewest rooms for a set of meetings sorts by start time and keeps a heap of end times. Weighted interval scheduling, where jobs have different values, is no longer greedy: it needs dynamic programming.",
+      "## How to talk through it",
+      "State the rule, show it on a small example, and give the exchange argument in two sentences. Then give O(n log n). Name a rule that fails, such as earliest start, to show you understand why the proof matters."
+    ],
+    "keyPoints": [
+      "Greedy: take the best-looking choice now and never undo it. It needs a proof for each problem.",
+      "Interval scheduling: sort by end time and take each job that starts at or after the last chosen end.",
+      "Exchange argument: swapping any plan's first job for the earliest finisher never makes the plan worse.",
+      "Earliest start and shortest first are wrong. O(n log n) from the sort.",
+      "With weights on the jobs it is no longer greedy: use dynamic programming."
+    ],
+    "sql": [
+      {
+        "title": "Choose the most non-overlapping jobs",
+        "lang": "py",
+        "code": "def schedule(jobs):\n    chosen, last_end = [], float(\"-inf\")\n    for name, start, end in sorted(jobs, key=lambda j: j[2]):     # earliest finish first\n        if start >= last_end:                                       # touching is allowed\n            chosen.append(name)\n            last_end = end\n    return chosen\n\nJOBS = [(\"A\", 1, 4), (\"B\", 3, 5), (\"C\", 0, 6), (\"D\", 5, 7), (\"E\", 3, 9), (\"F\", 5, 9), (\"G\", 8, 11), (\"H\", 12, 16)]\nassert schedule(JOBS) == [\"A\", \"D\", \"G\", \"H\"]\nassert schedule([]) == [] and schedule([(\"X\", 1, 2)]) == [\"X\"]\nassert schedule([(\"X\", 1, 3), (\"Y\", 3, 5)]) == [\"X\", \"Y\"]          # a job may start when another ends"
+      },
+      {
+        "title": "Check the greedy rule against brute force, and a wrong rule",
+        "lang": "py",
+        "code": "import itertools\nimport random\n\ndef schedule(jobs):\n    chosen, last_end = [], float(\"-inf\")\n    for name, start, end in sorted(jobs, key=lambda j: j[2]):\n        if start >= last_end:\n            chosen.append(name)\n            last_end = end\n    return chosen\n\ndef schedule_by_start(jobs):                                       # the wrong rule\n    chosen, last_end = [], float(\"-inf\")\n    for name, start, end in sorted(jobs, key=lambda j: j[1]):\n        if start >= last_end:\n            chosen.append(name)\n            last_end = end\n    return chosen\n\ndef best_by_brute_force(jobs):\n    best = 0\n    for r in range(len(jobs) + 1):\n        for subset in itertools.combinations(jobs, r):\n            ordered = sorted(subset, key=lambda j: j[1])\n            if all(ordered[i][2] <= ordered[i + 1][1] for i in range(len(ordered) - 1)):\n                best = max(best, r)\n    return best\n\nrandom.seed(70)\nworse = 0\nfor _ in range(300):\n    jobs = []\n    for k in range(random.randint(0, 8)):\n        s = random.randint(0, 12)\n        jobs.append((str(k), s, s + random.randint(1, 6)))\n    assert len(schedule(jobs)) == best_by_brute_force(jobs)         # earliest finish is always best\n    if len(schedule_by_start(jobs)) < best_by_brute_force(jobs):\n        worse += 1\nassert worse > 0                                                    # earliest start is sometimes wrong"
+      },
+      {
+        "title": "Related: the fewest rooms with a heap",
+        "lang": "py",
+        "code": "import heapq\n\ndef rooms_needed(meetings):\n    ends = []                                                       # a heap of end times, one for each room in use\n    for start, end in sorted(meetings):                             # by start time\n        if ends and ends[0] <= start:\n            heapq.heapreplace(ends, end)                            # reuse the room that frees up first\n        else:\n            heapq.heappush(ends, end)                               # open a new room\n    return len(ends)\n\nassert rooms_needed([(0, 30), (5, 10), (15, 20)]) == 2\nassert rooms_needed([(7, 10), (2, 4)]) == 1\nassert rooms_needed([(1, 5), (1, 5), (1, 5)]) == 3\nassert rooms_needed([]) == 0"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the earliest-finish scheduler and check it against brute force on 300 random inputs. Then write the earliest-start and shortest-first versions and find an input where each loses. Finally, write rooms_needed with a heap and check it on a few meeting lists.",
+    "pitfalls": [
+      "Sorting by start time. The correct key is the end time.",
+      "Using start > last_end, which wrongly rejects a job that starts exactly when the last one ends.",
+      "Trusting a greedy rule because it sounds sensible, without a proof or a brute-force check.",
+      "Using this when jobs have weights. That needs dynamic programming.",
+      "Forgetting to update the end time only when you take a job."
+    ],
+    "interview": [
+      {
+        "q": "What is a greedy algorithm?",
+        "a": "An algorithm that builds a solution step by step, taking the choice that looks best at the moment and never undoing it. It is correct only for problems where that local choice can be proven safe."
+      },
+      {
+        "q": "How do you choose the most non-overlapping meetings?",
+        "a": "Sort by end time. Keep the end of the last chosen meeting and take each meeting that starts at or after it. It takes O(n log n), and an exchange argument proves it is optimal."
+      },
+      {
+        "q": "What is an exchange argument?",
+        "a": "A proof that takes any best solution and swaps one of its choices for the greedy choice without making it worse, so the greedy solution is as good as any best one."
+      },
+      {
+        "q": "What is the fewest rooms needed for a set of meetings?",
+        "a": "Sort by start time and keep a min-heap of end times. If the earliest end is at or before the next start, reuse that room. Otherwise open a new one. The heap size at the end is the answer."
+      }
+    ],
+    "references": [
+      {
+        "title": "Greedy algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Greedy_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: interval scheduling is the standard first greedy problem, and meeting-room questions are common in interviews. That a greedy algorithm takes the locally best choice and never reconsiders, that there is no single formal rule for when it works, that it is optimal for activity selection, Dijkstra, Kruskal, Prim and Huffman coding, and the idea of exchange arguments come from the Wikipedia greedy algorithm article, which I read in part. The example jobs, the worked trace, the failing rules and the code are my own illustration and judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-greedy-algorithm",
+      "py-heapq",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "intervalsched",
+        "title": "Interval scheduling, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "pick or merge"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Take or skip",
+            "at": 2
+          },
+          {
+            "text": "Why it works",
+            "at": 10
+          },
+          {
+            "text": "Cost",
+            "at": 12
+          }
+        ],
+        "nodes": [
+          {
+            "id": "j0",
+            "kind": "cube",
+            "x": -3.5,
+            "y": 3.5,
+            "label": "A 1-4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j1",
+            "kind": "cube",
+            "x": -2.5,
+            "y": 2.5,
+            "label": "B 3-5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j2",
+            "kind": "cube",
+            "x": -1.5,
+            "y": 1.5,
+            "label": "C 0-6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j3",
+            "kind": "cube",
+            "x": -0.5,
+            "y": 0.5,
+            "label": "D 5-7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j4",
+            "kind": "cube",
+            "x": 0.5,
+            "y": -0.5,
+            "label": "E 3-9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j5",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -1.5,
+            "label": "F 5-9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j6",
+            "kind": "cube",
+            "x": 2.5,
+            "y": -2.5,
+            "label": "G 8-11",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "j7",
+            "kind": "cube",
+            "x": 3.5,
+            "y": -3.5,
+            "label": "H 12-16",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Many jobs, one room",
+            "tag": "technique",
+            "body": [
+              "Eight meetings want the same room. Each has a start and an end time, for example A runs from 1 to 4. Two meetings clash if their times overlap. A meeting that starts exactly when another ends does not clash.",
+              "We want to hold as many meetings as possible. We list them in order of finishing time: A, B, C, D, E, F, G, H."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Goal",
+                "v": "the most meetings"
+              },
+              {
+                "k": "Clash",
+                "v": "overlapping times"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The greedy rule: always take the one that ends first",
+            "tag": "technique",
+            "body": [
+              "A greedy algorithm makes the best-looking choice right now and never takes it back. Here the rule is: from the meetings that still fit, take the one that finishes earliest. It leaves the most room for the rest.",
+              "To apply it, sort by end time and walk through the list once, remembering when the last chosen meeting ended."
+            ],
+            "short": "The rule",
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "jobs.sort(key=lambda j: j[2])   # by end time",
+                "last_end = float('-inf')",
+                "for name, start, end in jobs:",
+                "    if start >= last_end:",
+                "        chosen.append(name); last_end = end"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "A fits, so take it",
+            "tag": "solution",
+            "body": [
+              "A runs from 1 to 4. The last chosen meeting ended at nowhere yet, and 1 is not before that, so there is no clash. Take A and move the end marker to 4.",
+              "Chosen so far: A."
+            ],
+            "short": "Take A",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "4",
+                "tone": "good"
+              },
+              {
+                "k": "Chosen",
+                "v": "A"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "After taking A, which ends at 4, does B (3 to 5) fit?",
+              "options": [
+                "Yes",
+                "No: it starts before 4",
+                "Only if it is short"
+              ],
+              "answer": 1,
+              "why": "B starts at 3, before A ends at 4, so they overlap. We skip B."
+            }
+          },
+          {
+            "title": "B overlaps, so skip it",
+            "tag": "problem",
+            "body": [
+              "B runs from 3 to 5. It starts at 3, which is before the last chosen end, 4. They overlap, so skip B.",
+              "Skipping costs nothing: the meeting we already hold finishes earlier than this one would."
+            ],
+            "short": "Skip B",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "4"
+              },
+              {
+                "k": "Start",
+                "v": "3",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "C overlaps, so skip it",
+            "tag": "problem",
+            "body": [
+              "C runs from 0 to 6. It starts at 0, which is before the last chosen end, 4. They overlap, so skip C.",
+              "Skipping costs nothing: the meeting we already hold finishes earlier than this one would."
+            ],
+            "short": "Skip C",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "4"
+              },
+              {
+                "k": "Start",
+                "v": "0",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "D fits, so take it",
+            "tag": "solution",
+            "body": [
+              "D runs from 5 to 7. The last chosen meeting ended at 4, and 5 is not before that, so there is no clash. Take D and move the end marker to 7.",
+              "Chosen so far: A, D."
+            ],
+            "short": "Take D",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "7",
+                "tone": "good"
+              },
+              {
+                "k": "Chosen",
+                "v": "A, D"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "E overlaps, so skip it",
+            "tag": "problem",
+            "body": [
+              "E runs from 3 to 9. It starts at 3, which is before the last chosen end, 7. They overlap, so skip E.",
+              "Skipping costs nothing: the meeting we already hold finishes earlier than this one would."
+            ],
+            "short": "Skip E",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "7"
+              },
+              {
+                "k": "Start",
+                "v": "3",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "F overlaps, so skip it",
+            "tag": "problem",
+            "body": [
+              "F runs from 5 to 9. It starts at 5, which is before the last chosen end, 7. They overlap, so skip F.",
+              "Skipping costs nothing: the meeting we already hold finishes earlier than this one would."
+            ],
+            "short": "Skip F",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "7"
+              },
+              {
+                "k": "Start",
+                "v": "5",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "G fits, so take it",
+            "tag": "solution",
+            "body": [
+              "G runs from 8 to 11. The last chosen meeting ended at 7, and 8 is not before that, so there is no clash. Take G and move the end marker to 11.",
+              "Chosen so far: A, D, G."
+            ],
+            "short": "Take G",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "11",
+                "tone": "good"
+              },
+              {
+                "k": "Chosen",
+                "v": "A, D, G"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "H fits, so take it",
+            "tag": "solution",
+            "body": [
+              "H runs from 12 to 16. The last chosen meeting ended at 11, and 12 is not before that, so there is no clash. Take H and move the end marker to 16.",
+              "Chosen so far: A, D, G, H."
+            ],
+            "short": "Take H",
+            "hud": [
+              {
+                "k": "Last end",
+                "v": "16",
+                "tone": "good"
+              },
+              {
+                "k": "Chosen",
+                "v": "A, D, G, H"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why finishing first is safe",
+            "tag": "insight",
+            "body": [
+              "This is an exchange argument. Take any best plan. If its first meeting is not the one that ends first, swap it for the one that ends first. That meeting ends no later, so the rest of the plan still fits. The plan is no worse. By repeating this, the greedy plan is as good as any best plan.",
+              "A greedy rule needs a proof like this. A rule that sounds sensible is not enough."
+            ],
+            "short": "Why it works",
+            "hud": [
+              {
+                "k": "Exchange argument",
+                "v": "swap in the earliest finish"
+              },
+              {
+                "k": "Plan size",
+                "v": "never gets smaller",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Other rules that fail",
+            "tag": "problem",
+            "body": [
+              "Taking the earliest start fails: meeting C starts at 0 but runs to 6, and it blocks A, B and D. Taking the shortest looks smart but can fail too, when a short meeting sits across the middle of two long ones that could both be held.",
+              "Only the earliest-finish rule is always right for this problem."
+            ],
+            "short": "Rules that fail",
+            "hud": [
+              {
+                "k": "Earliest start",
+                "v": "picks C, holds 3 meetings",
+                "tone": "bad"
+              },
+              {
+                "k": "Earliest finish",
+                "v": "holds 4 meetings",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost",
+            "tag": "insight",
+            "body": [
+              "Sorting costs O(n log n). The scan costs O(n). So the whole algorithm is O(n log n). It needs O(n) extra space for the sorted copy, or O(1) if you sort in place.",
+              "Brute force would try every subset of the meetings, which is 2 to the power n."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Brute force",
+                "v": "2^n subsets",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Interval scheduling: sort by end time, take every meeting that starts at or after the last end. The exchange argument proves it. The same idea solves room counting with a heap and merging intervals.",
+              "Always ask which greedy rule, and why it is safe."
+            ],
+            "short": "Recap",
+            "set": {
+              "j0": {
+                "label": "A 1-4",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j1": {
+                "label": "B 3-5",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j2": {
+                "label": "C 0-6",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j3": {
+                "label": "D 5-7",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j4": {
+                "label": "E 3-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j5": {
+                "label": "F 5-9",
+                "tone": "grey",
+                "pill": {
+                  "text": "overlaps",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "j6": {
+                "label": "G 8-11",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "j7": {
+                "label": "H 12-16",
+                "tone": "green",
+                "pill": {
+                  "text": "picked",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 sort by end time",
+                "2 take a job if start >= last end",
+                "3 O(n log n), proven by exchange",
+                "4 earliest start is wrong"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Interval scheduling is like booking the most appointments in one room by always accepting the one that ends soonest.",
+      "story": "A hall can host one event at a time and ten groups have asked for it. You sort the requests by the time they finish. You accept the group that finishes first. Then you accept the next group that starts after that event is over, and skip any group that would clash. You end up with as many events as the hall can hold, and you never had to try every combination.",
+      "maps": [
+        [
+          "The hall",
+          "The one resource"
+        ],
+        [
+          "Requests sorted by finish time",
+          "Sorting by end time"
+        ],
+        [
+          "Skipping a clashing group",
+          "An overlapping job"
+        ],
+        [
+          "Never undoing a booking",
+          "A greedy choice"
+        ]
+      ],
+      "words": [
+        [
+          "greedy algorithm",
+          "An algorithm that takes the best-looking choice now and never undoes it."
+        ],
+        [
+          "overlap",
+          "Two time ranges that share some time."
+        ],
+        [
+          "exchange argument",
+          "A proof that swaps a choice for the greedy choice without making things worse."
+        ],
+        [
+          "activity selection",
+          "Another name for interval scheduling."
+        ],
+        [
+          "optimal",
+          "As good as any solution can be."
+        ]
+      ]
+    }
   }
 ]
