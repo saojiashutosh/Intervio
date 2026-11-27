@@ -196695,5 +196695,2128 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bitsets",
+    "n": 219,
+    "level": 14,
+    "week": "Core",
+    "title": "Bitsets: Sets as Integers",
+    "tagline": "Store a set of small numbers in one integer, combine sets with one operator, and enumerate subsets with masks.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "A bit array stores one bit for each possible item. The Wikipedia article on the bit array says it can be used to implement a set, where each bit says whether an item is present, and that union, intersection and difference become word-wide bit operations. In Python an integer can serve as a bitset, since it has any number of bits.",
+      "## Sets as integers",
+      "Suppose the items are the numbers 0 to n - 1. Let bit k of an integer be 1 when k is in the set. The set {1, 3, 5} is 00101010 in binary, which is 42. The empty set is 0. The full set of n items is (1 << n) - 1.",
+      "## Operations",
+      "- Add k: s | (1 << k). Remove k: s & ~(1 << k). Test k: (s >> k) & 1.\n- Union: a | b. Intersection: a & b. Difference: a & ~b. Symmetric difference: a ^ b.\n- Size: s.bit_count(), which counts the ones.\n- Subset test: a is a subset of b when a & ~b == 0.\n- Equality: the integers are equal.",
+      "Each operation handles many elements at once. A machine word holds 64 bits, so one AND intersects 64 items in a single step.",
+      "> A worked example: A = {1, 3, 5} is 00101010 and B = {3, 4, 5} is 00111000. A | B is 00111010, the set {1, 3, 4, 5}. A & B is {3, 5}. A & ~B is {1}. A ^ B is {1, 4}. The size of A is 3.",
+      "## Visiting the elements",
+      "To list the members, take the lowest set bit with s & -s, find its position with bit_length() - 1, and remove it with s ^ low. The loop runs once for each element.",
+      "## When to use a bitset",
+      "A bitset wins when the universe is small, up to a few thousand items, and the sets are dense, since it is compact and fast. The Wikipedia article notes that bit arrays are wasteful for sparse sets, where only a few items are present in a huge range. A set of three items out of a million would still use a million bits. Then use a hash set. A bitset also needs the items to be small non-negative integers.",
+      "## Masks as subsets",
+      "A number from 0 to 2^n - 1 names a subset of n items. Looping mask from 0 to 2^n - 1 visits every subset. To visit the subsets of a given mask m, start with s = m and repeat s = (s - 1) & m until s is 0. For m = 00000101 the subsets are 5, 4, 1 and 0. Dynamic programming over subsets stores one value per mask, for problems such as the travelling salesman problem with about 20 cities or assigning tasks to workers.",
+      "## Where it is used",
+      "Sieve of Eratosthenes, visited flags in graph searches on small graphs, Bloom filters, permissions, board game positions, and set operations in databases and search engines use bitsets.",
+      "## How to talk through it",
+      "Say that bit k means item k is present, and give union, intersection and difference as one operator each. Mention bit_count for the size, the weakness with sparse sets, and masks for subsets in dynamic programming."
+    ],
+    "keyPoints": [
+      "Bit k of an integer is 1 when item k is in the set. Items must be small non-negative integers.",
+      "Add |, remove & ~, test (s >> k) & 1. Union |, intersection &, difference & ~, symmetric difference ^.",
+      "Size is bit_count(). Subset: a & ~b == 0.",
+      "Compact and fast for dense sets in a small universe. Wasteful for sparse sets: use a hash set.",
+      "Masks name subsets: 0 to 2^n - 1. Submasks of m: s = (s - 1) & m. Used in subset dynamic programming."
+    ],
+    "sql": [
+      {
+        "title": "A small bitset class",
+        "lang": "py",
+        "code": "class BitSet:\n    def __init__(self, items=(), bits=0):\n        self.bits = bits\n        for k in items:\n            self.bits |= 1 << k\n\n    def add(self, k):\n        self.bits |= 1 << k\n\n    def remove(self, k):\n        self.bits &= ~(1 << k)\n\n    def __contains__(self, k):\n        return (self.bits >> k) & 1 == 1\n\n    def __or__(self, other):\n        return BitSet(bits=self.bits | other.bits)\n\n    def __and__(self, other):\n        return BitSet(bits=self.bits & other.bits)\n\n    def __sub__(self, other):\n        return BitSet(bits=self.bits & ~other.bits)\n\n    def __xor__(self, other):\n        return BitSet(bits=self.bits ^ other.bits)\n\n    def __len__(self):\n        return self.bits.bit_count()\n\n    def __iter__(self):\n        x = self.bits\n        while x:\n            low = x & -x\n            yield low.bit_length() - 1\n            x ^= low\n\na, b = BitSet([1, 3, 5]), BitSet([3, 4, 5])\nassert a.bits == 0b101010 == 42\nassert list(a | b) == [1, 3, 4, 5] and list(a & b) == [3, 5] and list(a - b) == [1] and list(a ^ b) == [1, 4]\nassert len(a) == 3 and 3 in a and 4 not in a\na.add(6); a.remove(1)\nassert list(a) == [3, 5, 6]"
+      },
+      {
+        "title": "Check against Python sets",
+        "lang": "py",
+        "code": "import random\n\ndef to_set(bits):\n    return {k for k in range(bits.bit_length()) if bits >> k & 1}\n\nrandom.seed(88)\nfor _ in range(300):\n    x = {random.randint(0, 20) for _ in range(random.randint(0, 10))}\n    y = {random.randint(0, 20) for _ in range(random.randint(0, 10))}\n    mx = sum(1 << k for k in x)\n    my = sum(1 << k for k in y)\n    assert to_set(mx | my) == x | y\n    assert to_set(mx & my) == x & y\n    assert to_set(mx & ~my) == x - y\n    assert to_set(mx ^ my) == x ^ y\n    assert mx.bit_count() == len(x)\n    assert (mx & ~my == 0) == (x <= y)                      # subset test"
+      },
+      {
+        "title": "Submasks and subset dynamic programming",
+        "lang": "py",
+        "code": "def submasks(mask):\n    s = mask\n    while True:\n        yield s\n        if s == 0:\n            break\n        s = (s - 1) & mask\n\nassert list(submasks(0b101)) == [5, 4, 1, 0]\nassert len(list(submasks(0b1111))) == 16\nassert list(submasks(0)) == [0]\n\ndef subsets_with_sum(numbers, target):\n    # each mask from 0 to 2^n - 1 names a subset\n    n = len(numbers)\n    found = []\n    for mask in range(1 << n):\n        if sum(numbers[k] for k in range(n) if mask >> k & 1) == target:\n            found.append(mask)\n    return found\n\nassert subsets_with_sum([2, 3, 5], 5) == [0b011, 0b100]               # {2, 3} and {5}\n\ndef min_trips(weights, limit):\n    # fewest groups, each with total weight at most limit; one value per subset\n    n = len(weights)\n    total = [sum(weights[k] for k in range(n) if m >> k & 1) for m in range(1 << n)]\n    INF = float(\"inf\")\n    dp = [INF] * (1 << n)\n    dp[0] = 0\n    for mask in range(1, 1 << n):\n        for s in submasks(mask):\n            if s and total[s] <= limit and dp[mask ^ s] + 1 < dp[mask]:\n                dp[mask] = dp[mask ^ s] + 1\n    return dp[-1]\n\nassert min_trips([5, 5, 5], 10) == 2\nassert min_trips([3, 4, 5, 6], 10) == 2\nassert min_trips([9, 9], 10) == 2"
+      }
+    ],
+    "django": {},
+    "exercise": "Write a BitSet class with add, remove, membership, union, intersection, difference, size and iteration. Check it against Python sets on 300 random pairs. Write submasks and count the subsets of a mask with k ones. Then use masks to find the fewest trips needed to carry items of given weights with a weight limit.",
+    "pitfalls": [
+      "Using a bitset for items that are not small non-negative integers.",
+      "Using a bitset for a sparse set in a huge range, which wastes memory.",
+      "Forgetting that ~b is negative in Python, so apply it with & to a non-negative mask.",
+      "Iterating over all 2^n masks when n is large. 2^25 is already 33 million.",
+      "Mixing up the bit position with the value stored: bit k means item k."
+    ],
+    "interview": [
+      {
+        "q": "How can you store a set of small integers compactly?",
+        "a": "As the bits of an integer: bit k is 1 when k is in the set. Add with OR, remove with AND NOT, test with shift and AND. It uses one bit per possible item."
+      },
+      {
+        "q": "How do you take the union, intersection and difference of two bitsets?",
+        "a": "Union a | b, intersection a & b, difference a & ~b, symmetric difference a ^ b. Each handles many items in one operation."
+      },
+      {
+        "q": "How do you enumerate all subsets of a mask?",
+        "a": "Start with s = mask and repeat s = (s - 1) & mask, visiting s each time, until s reaches 0. A mask with k ones has 2^k subsets."
+      },
+      {
+        "q": "When is a bitset a bad choice?",
+        "a": "When the set is sparse in a huge range of values, or the items are not small integers. A hash set is better then."
+      }
+    ],
+    "references": [
+      {
+        "title": "Bit array (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bit_array",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bitwise operation (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bitwise_operation",
+        "kind": "Reference"
+      },
+      {
+        "title": "Hamming weight (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hamming_weight",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: bitsets and masks are the base of fast set operations and of subset dynamic programming. That a bit array stores one bit for each item and can implement a set, that union, intersection and difference are word-wide operations, the population count, and the wastefulness for sparse sets come from the Wikipedia bit array article, which I read in part. The weight of a number as its count of 1 bits comes from the Wikipedia Hamming weight article, which I read in part. The example sets and the code are my own illustration and judgment, and the code is checked by running it against Python sets. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-bit-array",
+      "wikipedia-hamming-weight",
+      "wikipedia-bitwise-operation",
+      "py-bitwise"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bitsets",
+        "title": "Bitsets, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read"
+          },
+          {
+            "kind": "write",
+            "label": "change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "A bitset",
+            "at": 0
+          },
+          {
+            "text": "Add and remove",
+            "at": 1
+          },
+          {
+            "text": "Membership",
+            "at": 2
+          },
+          {
+            "text": "Union",
+            "at": 4
+          },
+          {
+            "text": "Size",
+            "at": 7
+          },
+          {
+            "text": "Submasks",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -4.362,
+            "y": 1.762,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -3.487,
+            "y": 0.887,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -2.612,
+            "y": 0.012,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": -1.738,
+            "y": -0.863,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": -0.863,
+            "y": -1.738,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 0.012,
+            "y": -2.612,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 0.887,
+            "y": -3.487,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "a7",
+            "kind": "cube",
+            "x": 1.762,
+            "y": -4.362,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -3.062,
+            "y": 3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": -2.188,
+            "y": 2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": -1.312,
+            "y": 1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": -0.438,
+            "y": 0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": 0.438,
+            "y": -0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": 1.312,
+            "y": -1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b6",
+            "kind": "cube",
+            "x": 2.188,
+            "y": -2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b7",
+            "kind": "cube",
+            "x": 3.062,
+            "y": -3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -1.762,
+            "y": 4.362,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -0.887,
+            "y": 3.487,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -0.012,
+            "y": 2.612,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": 0.863,
+            "y": 1.738,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": 1.738,
+            "y": 0.863,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 2.612,
+            "y": -0.012,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 3.487,
+            "y": -0.887,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c7",
+            "kind": "cube",
+            "x": 4.362,
+            "y": -1.762,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A set as one integer",
+            "tag": "technique",
+            "body": [
+              "Suppose the items are the numbers 0 to 7. A set can be stored in one integer: bit k is 1 when k is in the set. The set {1, 3, 5} is the number 00101010, which is 42. A set is called a bitset or a bit array.",
+              "The labels in the diagram show which numbers are in the set; a dash means absent."
+            ],
+            "short": "A bitset",
+            "hud": [
+              {
+                "k": "A",
+                "v": "{1, 3, 5} = 42"
+              },
+              {
+                "k": "Bit k",
+                "v": "is 1 when k is in the set"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b7": {
+                "hidden": true
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Add and remove an element",
+            "tag": "technique",
+            "body": [
+              "To add k, OR with 1 << k. To remove k, AND with the inverse of 1 << k. Adding 6 to A gives {1, 3, 5, 6}, which is 106. Removing 1 gives {3, 5, 6}, which is 104.",
+              "Each is one machine operation, whatever the size of the set."
+            ],
+            "short": "Add and remove",
+            "hud": [
+              {
+                "k": "A | (1 << 6)",
+                "v": "{1, 3, 5, 6}"
+              },
+              {
+                "k": "A & ~(1 << 1)",
+                "v": "{3, 5, 6}"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b7": {
+                "hidden": true
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Membership",
+            "tag": "technique",
+            "body": [
+              "Is 3 in the set? Check bit 3: (A >> 3) & 1 is 1, so yes. Is 4 in it? (A >> 4) & 1 is 0, so no.",
+              "A hash set takes more memory and more steps for the same question."
+            ],
+            "short": "Membership",
+            "hud": [
+              {
+                "k": "3 in A",
+                "v": "yes",
+                "tone": "good"
+              },
+              {
+                "k": "4 in A",
+                "v": "no"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b7": {
+                "hidden": true
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            },
+            "predict": {
+              "question": "The set {1, 3, 5} is stored as 00101010. Is 5 in it?",
+              "options": [
+                "Yes: bit 5 is 1",
+                "No",
+                "Cannot tell"
+              ],
+              "answer": 0,
+              "why": "Bit 5 of 00101010 is 1, so 5 is in the set."
+            }
+          },
+          {
+            "title": "Two sets, A and B",
+            "tag": "technique",
+            "body": [
+              "Let A = {1, 3, 5} and B = {3, 4, 5}. As bits, A is 00101010 and B is 00111000. We will combine them with one operator each.",
+              "The operators work on all 8 elements at once. Real bitsets use 64 or more bits in one machine word."
+            ],
+            "short": "A and B",
+            "hud": [
+              {
+                "k": "A",
+                "v": "{1, 3, 5}"
+              },
+              {
+                "k": "B",
+                "v": "{3, 4, 5}"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Union: A | B",
+            "tag": "solution",
+            "body": [
+              "An element is in the union if it is in A or in B. That is OR. {1, 3, 5} union {3, 4, 5} = {1, 3, 4, 5}.",
+              "One operation for the whole set."
+            ],
+            "short": "Union",
+            "hud": [
+              {
+                "k": "A | B",
+                "v": "{1, 3, 4, 5}",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Intersection: A & B",
+            "tag": "solution",
+            "body": [
+              "An element is in both if both bits are 1. That is AND. The result is {3, 5}.",
+              "Use it to ask what two sets share."
+            ],
+            "short": "Intersection",
+            "hud": [
+              {
+                "k": "A & B",
+                "v": "{3, 5}",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Difference and symmetric difference",
+            "tag": "solution",
+            "body": [
+              "Elements in A but not in B: A & ~B, which is {1}. Elements in exactly one of the two: A ^ B, which is {1, 4}.",
+              "XOR gives the symmetric difference."
+            ],
+            "short": "Difference",
+            "hud": [
+              {
+                "k": "A & ~B",
+                "v": "{1}",
+                "tone": "good"
+              },
+              {
+                "k": "A ^ B",
+                "v": "{1, 4}"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Size and subset tests",
+            "tag": "technique",
+            "body": [
+              "The number of elements is the number of 1 bits, the population count: A.bit_count() is 3. A is a subset of B when A & ~B is 0, or A & B == A. Here it is not, since 1 is only in A.",
+              "Equal sets are equal integers."
+            ],
+            "short": "Size and subset",
+            "hud": [
+              {
+                "k": "Size of A",
+                "v": "3"
+              },
+              {
+                "k": "A subset of B",
+                "v": "no: 1 is only in A"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Visit the elements",
+            "tag": "technique",
+            "body": [
+              "To list the elements, repeatedly take the lowest set bit with x & -x, record its position, and clear it. For {1, 3, 5} you get 1, then 3, then 5. The loop runs as many times as there are elements, not 8.",
+              "A sparse set in a large universe wastes memory, though: a bitset for numbers up to a million uses a million bits even to hold three items."
+            ],
+            "short": "Visit elements",
+            "hud": [
+              {
+                "k": "Order",
+                "v": "1, 3, 5"
+              },
+              {
+                "k": "Weakness",
+                "v": "sparse sets waste space",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b7": {
+                "hidden": true
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "All the subsets of a set",
+            "tag": "insight",
+            "body": [
+              "A bit mask is a way to name a subset of up to about 20 items: each number from 0 to 2^n - 1 is a subset. To visit all subsets of a mask m, use s = (s - 1) & m, starting at s = m, until s is 0. For m = 00000101 you get 5, 4, 1 and 0.",
+              "This is the base of subset dynamic programming: store one value for each mask."
+            ],
+            "short": "Submasks",
+            "hud": [
+              {
+                "k": "Submasks of 5",
+                "v": "5, 4, 1, 0"
+              },
+              {
+                "k": "All masks",
+                "v": "2^n of them"
+              }
+            ],
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "0",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": true
+              },
+              "b1": {
+                "hidden": true
+              },
+              "b2": {
+                "hidden": true
+              },
+              "b3": {
+                "hidden": true
+              },
+              "b4": {
+                "hidden": true
+              },
+              "b5": {
+                "hidden": true
+              },
+              "b6": {
+                "hidden": true
+              },
+              "b7": {
+                "hidden": true
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A bitset stores a set of small integers in one number. Add with |, remove with & ~, test with >> and &, union |, intersection &, difference & ~, size bit_count. It is compact and fast for dense sets over a small universe. Masks also name subsets for dynamic programming.",
+              "For sparse or large universes, use a hash set."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b6": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "-",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 bit k = k is in the set",
+                "2 union |, intersection &, difference & ~",
+                "3 size = bit_count",
+                "4 submasks: s = (s - 1) & m"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A bitset is like a row of coat hooks where a hook with a coat means that person is at the party.",
+      "story": "A party has room numbers 0 to 7 on a row of hooks. If a coat hangs on hook 3, guest 3 is here. To see who is here, you look along the row. To find who came to both parties, you hold the two rows side by side and note the hooks with coats on both. The whole row can be read as one number, so the computer can compare all hooks at once.",
+      "maps": [
+        [
+          "A hook",
+          "A bit"
+        ],
+        [
+          "A coat on the hook",
+          "The item is in the set"
+        ],
+        [
+          "Hooks with coats on both rows",
+          "Intersection, AND"
+        ],
+        [
+          "Hooks with a coat on either row",
+          "Union, OR"
+        ]
+      ],
+      "words": [
+        [
+          "bitset",
+          "A set stored as the bits of a number."
+        ],
+        [
+          "bit array",
+          "A row of bits, one for each possible item."
+        ],
+        [
+          "population count",
+          "The number of 1 bits."
+        ],
+        [
+          "submask",
+          "A mask whose ones are a subset of another mask's ones."
+        ],
+        [
+          "universe",
+          "All the values an item could take."
+        ]
+      ]
+    }
   }
 ]
