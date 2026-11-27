@@ -145295,5 +145295,1079 @@
         ]
       ]
     }
+  },
+  {
+    "id": "strongly-connected-components",
+    "n": 187,
+    "level": 14,
+    "week": "Core",
+    "title": "Strongly Connected Components: Kosaraju and Tarjan",
+    "tagline": "Find the groups of vertices in a directed graph that can all reach each other, in linear time, and see how they turn a graph into a DAG.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 3,
+    "explain": [
+      "In a directed graph, a strongly connected component is a maximal group of vertices in which every vertex can reach every other along directed paths. The Wikipedia article defines the components as the equivalence classes of mutual reachability, so they partition the vertex set. A vertex with no cycle through it is a trivial component of its own. Finding these components is the directed counterpart of finding connected components.",
+      "## The condensation",
+      "Contract each strongly connected component into a single vertex, and keep the edges between components. The result is always a directed acyclic graph, called the condensation. The article states that a directed graph is acyclic if and only if no component has more than one vertex. The condensation lets you reason about a tangled graph in a topological order of its components.",
+      "## Kosaraju's algorithm",
+      "Kosaraju's algorithm uses two depth-first passes.",
+      "- Pass 1: run a DFS over the whole graph and record the vertices in the order they finish.\n- Reverse every edge to make the transpose graph.\n- Pass 2: take the vertices in decreasing finish order. For each one not yet assigned, run a DFS on the transpose graph. Everything it reaches is one component.",
+      "It works because the last vertex to finish in pass 1 lies in a source component of the condensation. In the transpose graph, the edges between components are reversed, so a search starting there cannot escape into another component. The article names the two passes: the first on the original graph, the second on the transpose, and says each search in the second finds one component. The total time is Theta(V + E).",
+      "> A worked example: edges A to B, B to C, C to A, C to D, D to E, E to D and E to F. Pass 1 finishes F, E, D, C, B, A. In the transpose graph, a search from A reaches C and B only, so A, B and C are one component. The next unassigned vertex is D, and the search finds D and E. The last is F, alone. The condensation is a chain of three components.",
+      "## Tarjan's algorithm",
+      "Tarjan's algorithm finds the components in one DFS. It keeps a stack of vertices that have been visited but not yet assigned, and for each vertex a low-link number: the smallest discovery number reachable from it using tree edges and at most one back edge. When a vertex's low-link equals its own discovery number, it is the root of a component, and you pop the stack down to it. The article says Tarjan's algorithm needs one DFS where Kosaraju's needs two.",
+      "## Uses",
+      "2-SAT, where every clause has two literals, is solved by building an implication graph. The article cites that an instance is unsatisfiable if and only if some variable and its negation lie in the same component. Strongly connected components are also used to find mutually dependent modules, to simplify graphs before running other algorithms, and in compilers.",
+      "## Common mistakes",
+      "Running the plain connected components scan on a directed graph. Forgetting to process the vertices in decreasing finish order in pass 2. Reusing the visited set from pass 1 in pass 2. Forgetting to reverse the edges.",
+      "## How to talk through it",
+      "Define the component as mutual reachability, mention the condensation DAG, and describe the two passes of Kosaraju. Give O(V + E). If asked for one pass, describe Tarjan's low-link idea in one sentence."
+    ],
+    "keyPoints": [
+      "A strongly connected component is a maximal set of vertices that can all reach each other. They partition the vertices.",
+      "Contracting each component gives a DAG, the condensation. A graph is acyclic iff all components are single vertices.",
+      "Kosaraju: DFS for finish order, reverse the edges, DFS in decreasing finish order. Each search is a component. O(V + E).",
+      "Tarjan: one DFS with a stack and low-link numbers. Also O(V + E).",
+      "Use: 2-SAT is unsatisfiable iff a variable and its negation share a component."
+    ],
+    "sql": [
+      {
+        "title": "Kosaraju's algorithm",
+        "lang": "py",
+        "code": "def kosaraju(graph):\n    order, seen = [], set()\n    def dfs1(v):\n        seen.add(v)\n        for w in graph[v]:\n            if w not in seen:\n                dfs1(w)\n        order.append(v)                                  # finish order\n    for v in graph:\n        if v not in seen:\n            dfs1(v)\n\n    rev = {v: [] for v in graph}\n    for v in graph:\n        for w in graph[v]:\n            rev[w].append(v)                             # reverse every edge\n\n    comps, assigned = [], set()\n    def dfs2(v, comp):\n        assigned.add(v)\n        comp.append(v)\n        for w in rev[v]:\n            if w not in assigned:\n                dfs2(w, comp)\n    for v in reversed(order):                            # decreasing finish order\n        if v not in assigned:\n            comp = []\n            dfs2(v, comp)\n            comps.append(sorted(comp))\n    return comps\n\ng = {\"A\": [\"B\"], \"B\": [\"C\"], \"C\": [\"A\", \"D\"], \"D\": [\"E\"], \"E\": [\"D\", \"F\"], \"F\": []}\nassert kosaraju(g) == [[\"A\", \"B\", \"C\"], [\"D\", \"E\"], [\"F\"]]\nassert kosaraju({\"X\": []}) == [[\"X\"]]\nassert kosaraju({}) == []\nassert kosaraju({1: [2], 2: [3], 3: []}) == [[1], [2], [3]]     # a DAG: every vertex alone"
+      },
+      {
+        "title": "Tarjan's algorithm and the condensation",
+        "lang": "py",
+        "code": "def tarjan(graph):\n    index, low, on_stack, stack, comps = {}, {}, set(), [], []\n    counter = [0]\n    def visit(v):\n        index[v] = low[v] = counter[0]\n        counter[0] += 1\n        stack.append(v)\n        on_stack.add(v)\n        for w in graph[v]:\n            if w not in index:\n                visit(w)\n                low[v] = min(low[v], low[w])\n            elif w in on_stack:\n                low[v] = min(low[v], index[w])          # a back edge into the current component\n        if low[v] == index[v]:                          # v is the root of a component\n            comp = []\n            while True:\n                w = stack.pop()\n                on_stack.discard(w)\n                comp.append(w)\n                if w == v:\n                    break\n            comps.append(sorted(comp))\n    for v in graph:\n        if v not in index:\n            visit(v)\n    return comps\n\ng = {\"A\": [\"B\"], \"B\": [\"C\"], \"C\": [\"A\", \"D\"], \"D\": [\"E\"], \"E\": [\"D\", \"F\"], \"F\": []}\ncomps = tarjan(g)\nassert sorted(comps) == [[\"A\", \"B\", \"C\"], [\"D\", \"E\"], [\"F\"]]\n\ndef condensation(graph, comps):\n    comp_of = {v: i for i, c in enumerate(comps) for v in c}\n    edges = {(comp_of[v], comp_of[w]) for v in graph for w in graph[v] if comp_of[v] != comp_of[w]}\n    return comp_of, edges\n\ncomp_of, edges = condensation(g, comps)\nassert len(edges) == 2                                    # ABC to DE, and DE to F\nassert all(a != b for a, b in edges)"
+      },
+      {
+        "title": "2-SAT with strongly connected components",
+        "lang": "py",
+        "code": "def tarjan(graph):\n    index, low, on_stack, stack, comp_of = {}, {}, set(), [], {}\n    counter, n_comps = [0], [0]\n    def visit(v):\n        index[v] = low[v] = counter[0]\n        counter[0] += 1\n        stack.append(v); on_stack.add(v)\n        for w in graph[v]:\n            if w not in index:\n                visit(w); low[v] = min(low[v], low[w])\n            elif w in on_stack:\n                low[v] = min(low[v], index[w])\n        if low[v] == index[v]:\n            while True:\n                w = stack.pop(); on_stack.discard(w)\n                comp_of[w] = n_comps[0]\n                if w == v:\n                    break\n            n_comps[0] += 1\n    for v in graph:\n        if v not in index:\n            visit(v)\n    return comp_of\n\ndef two_sat(n, clauses):\n    # variables 1..n; a literal is k or -k; each clause is (a or b)\n    graph = {lit: [] for k in range(1, n + 1) for lit in (k, -k)}\n    for a, b in clauses:\n        graph[-a].append(b)                              # not a implies b\n        graph[-b].append(a)                              # not b implies a\n    comp_of = tarjan(graph)\n    return all(comp_of[k] != comp_of[-k] for k in range(1, n + 1))\n\nassert two_sat(2, [(1, 2), (-1, 2)])                     # satisfiable: y = true\nassert not two_sat(1, [(1, 1), (-1, -1)])                # x and not x are both forced\nassert two_sat(3, [(1, 2), (-2, 3), (-1, -3)])\nassert not two_sat(2, [(1, 2), (1, -2), (-1, 2), (-1, -2)])"
+      }
+    ],
+    "django": {},
+    "exercise": "Write Kosaraju's algorithm and Tarjan's algorithm and check that they find the same components on 200 random directed graphs. Build the condensation and verify that it has no cycle by topologically sorting it. Then solve 2-SAT with the components and check it against brute force over all assignments for small instances.",
+    "pitfalls": [
+      "Using the plain connected-components scan on a directed graph. It finds weak components.",
+      "Forgetting to reverse the edges for pass 2, or reversing them before pass 1.",
+      "Processing vertices in increasing instead of decreasing finish order in pass 2.",
+      "Sharing the visited set between the two passes.",
+      "Hitting the recursion limit on a long chain. Use an explicit stack for large graphs."
+    ],
+    "interview": [
+      {
+        "q": "What is a strongly connected component?",
+        "a": "A maximal set of vertices in a directed graph such that every vertex in it can reach every other along directed paths. The components partition the vertices, and contracting each gives a directed acyclic graph."
+      },
+      {
+        "q": "How does Kosaraju's algorithm work?",
+        "a": "Run a DFS and record the finish order. Reverse all edges. Then run DFS on the reversed graph, starting from vertices in decreasing finish order. Each DFS tree is one strongly connected component. It takes O(V + E)."
+      },
+      {
+        "q": "How is Tarjan's algorithm different?",
+        "a": "It finds the components in one DFS, using a stack and low-link numbers. A vertex whose low-link equals its own discovery number is the root of a component, and the stack is popped down to it."
+      },
+      {
+        "q": "What is the condensation of a graph?",
+        "a": "The graph you get by contracting each strongly connected component into one vertex. It is always a directed acyclic graph, so it has a topological order."
+      }
+    ],
+    "references": [
+      {
+        "title": "Strongly connected component (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Strongly_connected_component",
+        "kind": "Reference"
+      },
+      {
+        "title": "Depth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: strongly connected components are a standard hard graph topic. The definition, the partition, the condensation as a DAG, Kosaraju's two passes, Tarjan's one pass with low-link numbers, the linear time and the 2-SAT application come from the Wikipedia strongly connected component article, which I read in full. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-strongly-connected-component",
+      "wikipedia-depth-first-search",
+      "wikipedia-topological-sorting",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "scc",
+        "title": "Strongly connected components, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or relax"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Condensation",
+            "at": 2
+          },
+          {
+            "text": "Pass 1",
+            "at": 4
+          },
+          {
+            "text": "Pass 2",
+            "at": 6
+          },
+          {
+            "text": "Uses",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -3.1,
+            "y": 0.3,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": -0.3,
+            "y": 3.1,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": -0.5,
+            "y": -1.1,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 1.3,
+            "y": 0.7,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gF",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.2,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "to"
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "to"
+          },
+          {
+            "a": "gC",
+            "b": "gA",
+            "dir": "to"
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "to"
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "to"
+          },
+          {
+            "a": "gE",
+            "b": "gD",
+            "dir": "to"
+          },
+          {
+            "a": "gE",
+            "b": "gF",
+            "dir": "to"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Groups of vertices that can all reach each other",
+            "tag": "technique",
+            "body": [
+              "In a directed graph, two vertices are in the same strongly connected component if each can reach the other along directed paths. Here A, B and C form a loop, so they can all reach each other. D and E reach each other. F can be reached from E, but cannot get back.",
+              "The Wikipedia article says the strongly connected components partition the vertices."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Strongly connected",
+                "v": "paths both ways"
+              },
+              {
+                "k": "Components",
+                "v": "3: ABC, DE, F"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The answer: three components",
+            "tag": "insight",
+            "body": [
+              "Here they are, coloured. A, B and C are one component, D and E another, and F is alone, since a single vertex with no loop is a trivial component.",
+              "The rest of the lesson shows how to find them in linear time."
+            ],
+            "short": "Three components",
+            "hud": [
+              {
+                "k": "Component 1",
+                "v": "A B C"
+              },
+              {
+                "k": "Component 2",
+                "v": "D E"
+              },
+              {
+                "k": "Component 3",
+                "v": "F"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Contract each component: you get a DAG",
+            "tag": "insight",
+            "body": [
+              "If you shrink each component into one vertex, you get a smaller graph with an edge from component 1 to component 2 (from C to D) and from component 2 to component 3 (from E to F). It has no cycles.",
+              "The article says a directed graph is acyclic if and only if every strongly connected component is a single vertex. This contracted graph is the condensation."
+            ],
+            "short": "Condensation",
+            "hud": [
+              {
+                "k": "Condensation",
+                "v": "1 to 2 to 3: a DAG",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "response"
+              },
+              {
+                "path": [
+                  "gE",
+                  "gF"
+                ],
+                "kind": "response",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Why a plain DFS is not enough",
+            "tag": "problem",
+            "body": [
+              "A single DFS from A reaches every vertex, but that does not tell you which are in A's component. C reaches D, yet D cannot get back to C. Reachability one way is not mutual.",
+              "Kosaraju's algorithm uses two passes to solve this."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "A reaches D",
+                "v": "yes"
+              },
+              {
+                "k": "D reaches A",
+                "v": "no",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "red",
+                "pill": {
+                  "text": "reached, but cannot return",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Pass 1: run a DFS and note the finish order",
+            "tag": "technique",
+            "body": [
+              "Run a DFS over the whole graph, and record vertices in the order they finish. Here the finish order is F E D C B A. The vertex that finishes last, A, is in a component that has no edges coming in from other components.",
+              "The last finisher is always in a source component of the condensation."
+            ],
+            "short": "Pass 1",
+            "hud": [
+              {
+                "k": "Finish order",
+                "v": "F E D C B A"
+              },
+              {
+                "k": "Last to finish",
+                "v": "A"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 6",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 5",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 4",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 3",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 2",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "finished 1",
+                  "tone": "grey",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Reverse every edge",
+            "tag": "technique",
+            "body": [
+              "Build the transpose graph, with every edge flipped. In it, the edges between components point the other way, so a search from a component cannot leave it for a component that came after it in the condensation.",
+              "The components themselves stay the same, because reversing a cycle keeps it a cycle."
+            ],
+            "short": "Transpose",
+            "hud": [
+              {
+                "k": "Transpose",
+                "v": "flip all edges"
+              },
+              {
+                "k": "Components",
+                "v": "unchanged",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "rev = {v: [] for v in graph}",
+                "for v in graph:",
+                "    for w in graph[v]: rev[w].append(v)"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Pass 2: search the transpose in decreasing finish order",
+            "tag": "solution",
+            "body": [
+              "Take the vertices from the last finished to the first. A is first. A search from A on the reversed graph reaches C and B, and cannot go further. That is component 1: A, B and C.",
+              "The search stays inside the component, because the reversed edges between components point away from it."
+            ],
+            "short": "Find ABC",
+            "hud": [
+              {
+                "k": "Found",
+                "v": "A B C",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gC",
+                  "gB"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "After A, B and C are assigned, which vertex is taken next in the second pass?",
+              "options": [
+                "The next unassigned vertex in decreasing finish order",
+                "F, always",
+                "Any vertex"
+              ],
+              "answer": 0,
+              "why": "Pass 2 goes through the finish order from last to first, skipping vertices already in a component."
+            }
+          },
+          {
+            "title": "Next unassigned: D finds D and E",
+            "tag": "solution",
+            "body": [
+              "The next unassigned vertex in the order is D. A search from D on the reversed graph reaches E. D already points back to C, but C is assigned. So component 2 is D and E.",
+              "Each search finds exactly one component."
+            ],
+            "short": "Find DE",
+            "hud": [
+              {
+                "k": "Found",
+                "v": "D E",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Last: F is alone",
+            "tag": "solution",
+            "body": [
+              "F is the last unassigned vertex. In the reversed graph F points to E, which is assigned, so the search finds nothing new. F is a component by itself.",
+              "All vertices are assigned, so we are done."
+            ],
+            "short": "Find F",
+            "hud": [
+              {
+                "k": "Components",
+                "v": "ABC, DE, F",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost, and Tarjan's one-pass version",
+            "tag": "insight",
+            "body": [
+              "Both passes are DFS, so Kosaraju's algorithm takes O(V + E). Tarjan's algorithm does it in a single DFS with a stack and a low-link number that records the earliest vertex each one can reach. It is also linear.",
+              "The Wikipedia article gives both, and the path-based variant."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Kosaraju",
+                "v": "two DFS passes, O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Tarjan",
+                "v": "one DFS, O(V + E)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Where it is used: 2-SAT",
+            "tag": "insight",
+            "body": [
+              "A famous use is 2-SAT, a logic puzzle where every clause has two variables. Build a graph with an edge for each implication. The formula is unsatisfiable exactly when some variable and its negation are in the same strongly connected component.",
+              "The article cites this result. Condensations are also used to simplify graphs of dependencies."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "2-SAT",
+                "v": "x and not x in one component: unsatisfiable"
+              },
+              {
+                "k": "Dependencies",
+                "v": "find mutual cycles"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Strongly connected components are groups of mutually reachable vertices. Contracting them gives a DAG. Kosaraju: DFS for finish order, reverse the graph, DFS in decreasing finish order. Each search is one component. O(V + E).",
+              "Know the idea and one algorithm."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 DFS, record finish order",
+                "2 reverse all edges",
+                "3 search in decreasing finish order",
+                "4 each search = one component"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Strongly connected components are like groups of friends who can all phone each other, even through other friends.",
+      "story": "In a town where each person can only call certain people, a group of friends is strongly connected if each of them can reach any other, perhaps through a chain of calls. A one-way call from one group to another does not make them one group, because the call cannot come back. If you treat each group as one block, the blocks form a one-way chain with no loops.",
+      "maps": [
+        [
+          "A group that can all reach each other",
+          "A strongly connected component"
+        ],
+        [
+          "A one-way call between groups",
+          "An edge in the condensation"
+        ],
+        [
+          "Treating each group as one block",
+          "Contracting the components"
+        ],
+        [
+          "Blocks in a one-way chain",
+          "A directed acyclic graph"
+        ]
+      ],
+      "words": [
+        [
+          "strongly connected component",
+          "A maximal group of vertices that can all reach each other along directed paths."
+        ],
+        [
+          "condensation",
+          "The graph left after contracting each component to one vertex."
+        ],
+        [
+          "transpose",
+          "The same graph with every edge reversed."
+        ],
+        [
+          "Kosaraju's algorithm",
+          "Find the components with two depth-first passes."
+        ],
+        [
+          "low-link",
+          "A number that tells how far back in the search a vertex can reach."
+        ]
+      ]
+    }
   }
 ]
