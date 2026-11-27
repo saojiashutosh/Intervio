@@ -2204,6 +2204,69 @@
       "kind": "official",
       "checked": "read",
       "used_for": "Counter is a dict subclass for counting hashable objects, returns zero for missing items and has most_common; defaultdict calls default_factory for a missing key and is simpler and faster than setdefault for grouping."
+    },
+    {
+      "key": "wikipedia-binary-tree",
+      "title": "Binary tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Each node has at most two children; full, perfect, complete and balanced trees; height counted in edges; node-count bounds; a complete tree stores in an array with children at 2i+1 and 2i+2; degenerate trees behave like lists."
+    },
+    {
+      "key": "wikipedia-tree-traversal",
+      "title": "Tree traversal (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Tree_traversal",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Pre-order NLR, in-order LNR, post-order LRN and level-order; in-order on a BST gives ascending keys; stack-based traversal uses O(h) space; pre-order with in-order determines a tree; Morris traversal."
+    },
+    {
+      "key": "wikipedia-lowest-common-ancestor",
+      "title": "Lowest common ancestor (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Lowest_common_ancestor",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The LCA of v and w is the deepest node with both as descendants, and a node counts as its own descendant; root-path method costs O(h); Tarjan's offline algorithm; Euler tour plus range minimum query; dist(v,w) = depth(v) + depth(w) - 2 depth(LCA)."
+    },
+    {
+      "key": "wikipedia-binary-search-tree",
+      "title": "Binary search tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_search_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Ordering property; search, insert and delete are O(h), Theta(log n) average and O(n) worst case; insertion adds a leaf; successor rules; three deletion cases; in-order visits keys in order; degeneration into a list."
+    },
+    {
+      "key": "wikipedia-self-balancing-bst",
+      "title": "Self-balancing binary search tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Self-balancing_binary_search_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Self-balancing trees keep height O(log n) with rotations that preserve in-order sequence; sorted insertion degenerates a plain BST; minimum height floor(log2 n); AVL, red-black, splay and treap examples."
+    },
+    {
+      "key": "wikipedia-avl-tree",
+      "title": "AVL tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/AVL_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Balance factor in {-1, 0, 1}; the four cases Left-Left, Right-Right, Left-Right and Right-Left fixed by single or double rotations; height below about 1.44 log2 n; search, insert and delete O(log n)."
+    },
+    {
+      "key": "wikipedia-segment-tree",
+      "title": "Segment tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Segment_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A segment tree answers an associative function over a contiguous range in O(log n); each node covers the union of its children's intervals; stabbing queries O(log n + k); invented by Bentley in 1977."
     }
   ],
   "levels": [
