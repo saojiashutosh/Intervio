@@ -134895,5 +134895,691 @@
         ]
       ]
     }
+  },
+  {
+    "id": "priority-queues",
+    "n": 177,
+    "level": 14,
+    "week": "Core",
+    "title": "Priority Queues: Most Urgent First",
+    "tagline": "Use a priority queue to always get the best item next, build it with a heap, and handle ties, updates and max-priority in Python.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A priority queue is a collection where each item has a priority, and you always remove the item with the best priority. Unlike a normal queue, arrival time does not decide the order. The Wikipedia article lists the operations: insert an item with its priority, look at the best item, and extract the best item. For a min-priority queue these are insert, minimum and extract-min, plus decrease-key to improve an item's priority.",
+      "## Ways to implement it",
+      "- An unsorted array: insert is O(1), but extract needs a scan, O(n).\n- A sorted array: extract is O(1), but insert needs a shift, O(n).\n- A binary heap: insert and extract are both O(log n), and building from n items takes O(n).\n- A self-balancing search tree: insert and removal are O(log n), but building takes O(n log n).",
+      "The binary heap is the usual choice. The article notes that stacks and queues can be modelled as priority queues whose priority is the insertion order, and that sorting algorithms correspond to priority queue implementations: heap sort uses a heap, and insertion sort a sorted array.",
+      "## In Python",
+      "The heapq module is a binary min-heap on a list, which is the usual way to get a priority queue. Push tuples (priority, count, item). Python compares tuples from the left, so the smallest priority wins. The count is a tie-breaker: without it, two entries with equal priority would compare their items next, which may be impossible or wrong. A running counter also keeps equal priorities in arrival order. For a max-priority queue, push the negated priority.",
+      "## Changing a priority",
+      "A heap cannot find an arbitrary item quickly, so decrease-key is awkward. The common trick is lazy deletion. Push a new entry with the new priority, mark the old entry as stale, and skip stale entries when they reach the top. The article notes that Dijkstra's algorithm needs decrease-key, or an implementation that skips stale entries.",
+      "> A worked example: jobs A:2, B:5, C:1, D:3, E:4 arrive in that order. The pops return C, A, D, E, B, which is priority order and not arrival order. With heapq you push (priority, count, name) tuples, and pop them in the same way.",
+      "## Where they appear",
+      "Dijkstra's algorithm uses a priority queue to pick the vertex with the shortest distance so far. Prim's algorithm uses one for the cheapest edge. Huffman coding obtains the two lowest-frequency trees at each step. Operating system schedulers, event simulations and the top-k and median-of-stream problems all use priority queues.",
+      "## What a priority queue is not",
+      "It is not sorted storage. You can get the best item quickly, but not the third best without popping two items. And it does not search: finding an arbitrary item is O(n).",
+      "## How to talk through it",
+      "Say what the priority decides, name the heap and its costs, and say how ties are handled. Mention lazy deletion for updates. For a Python answer, use heapq and negate for a max queue."
+    ],
+    "keyPoints": [
+      "A priority queue returns the item with the best priority, not the oldest.",
+      "A binary heap gives O(log n) insert and extract-min, and O(1) peek. A sorted or unsorted list makes one of them O(n).",
+      "Python: heapq on (priority, count, item). The count breaks ties and keeps arrival order.",
+      "Max-priority queue: negate the priorities.",
+      "Change a priority by pushing a new entry and skipping stale ones when popped (lazy deletion)."
+    ],
+    "sql": [
+      {
+        "title": "A priority queue with heapq",
+        "lang": "py",
+        "code": "import heapq\nimport itertools\n\nclass PriorityQueue:\n    def __init__(self):\n        self.heap = []\n        self.count = itertools.count()                  # tie-breaker: equal priorities keep arrival order\n\n    def push(self, item, priority):\n        heapq.heappush(self.heap, (priority, next(self.count), item))\n\n    def pop(self):\n        priority, _, item = heapq.heappop(self.heap)\n        return item, priority\n\n    def peek(self):\n        priority, _, item = self.heap[0]\n        return item, priority\n\n    def __len__(self):\n        return len(self.heap)\n\npq = PriorityQueue()\nfor name, p in ((\"A\", 2), (\"B\", 5), (\"C\", 1), (\"D\", 3), (\"E\", 4)):\n    pq.push(name, p)\nassert pq.peek() == (\"C\", 1)\nassert [pq.pop()[0] for _ in range(5)] == [\"C\", \"A\", \"D\", \"E\", \"B\"]\n\nties = PriorityQueue()\nfor name in (\"x\", \"y\", \"z\"):\n    ties.push({\"name\": name}, 1)                        # dicts cannot be compared: the counter saves us\nassert [ties.pop()[0][\"name\"] for _ in range(3)] == [\"x\", \"y\", \"z\"]"
+      },
+      {
+        "title": "A max queue, and changing a priority with lazy deletion",
+        "lang": "py",
+        "code": "import heapq\nimport itertools\n\nclass UpdatablePQ:\n    def __init__(self):\n        self.heap, self.entries = [], {}\n        self.count = itertools.count()\n\n    def push(self, item, priority):                     # also used to change a priority\n        entry = [priority, next(self.count), item, True]\n        if item in self.entries:\n            self.entries[item][3] = False               # mark the old entry stale\n        self.entries[item] = entry\n        heapq.heappush(self.heap, entry)\n\n    def pop(self):\n        while self.heap:\n            priority, _, item, valid = heapq.heappop(self.heap)\n            if valid:\n                del self.entries[item]\n                return item, priority\n        raise KeyError(\"pop from an empty priority queue\")\n\npq = UpdatablePQ()\npq.push(\"a\", 5); pq.push(\"b\", 3); pq.push(\"c\", 4)\npq.push(\"a\", 1)                                         # a becomes the most urgent\nassert pq.pop() == (\"a\", 1) and pq.pop() == (\"b\", 3) and pq.pop() == (\"c\", 4)\ntry:\n    pq.pop()\nexcept KeyError:\n    pass\nelse:\n    raise AssertionError(\"an empty queue must raise\")\n\nbest_first = []\nfor x in (5, 1, 8, 3):\n    heapq.heappush(best_first, -x)                      # negate: the largest comes out first\nassert -heapq.heappop(best_first) == 8"
+      },
+      {
+        "title": "Merge sorted lists with a heap, and schedule tasks",
+        "lang": "py",
+        "code": "import heapq\n\ndef merge_sorted(lists):\n    heap = [(lst[0], i, 0) for i, lst in enumerate(lists) if lst]\n    heapq.heapify(heap)\n    out = []\n    while heap:\n        value, i, j = heapq.heappop(heap)\n        out.append(value)\n        if j + 1 < len(lists[i]):\n            heapq.heappush(heap, (lists[i][j + 1], i, j + 1))\n    return out\n\nassert merge_sorted([[1, 4, 7], [2, 3, 9], [], [5]]) == [1, 2, 3, 4, 5, 7, 9]\nassert list(heapq.merge([1, 4, 7], [2, 3, 9])) == [1, 2, 3, 4, 7, 9]\n\ndef schedule(tasks):\n    # tasks: (priority, name). The lowest number runs first.\n    heap = list(tasks)\n    heapq.heapify(heap)\n    return [heapq.heappop(heap)[1] for _ in range(len(heap))]\n\nassert schedule([(2, \"email\"), (1, \"deploy\"), (3, \"lunch\")]) == [\"deploy\", \"email\", \"lunch\"]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write PriorityQueue with a tie-breaking counter, and test equal priorities with items that cannot be compared. Then write UpdatablePQ with lazy deletion and test changing a priority twice. Finally, use a priority queue to merge k sorted lists, and say why the tuple holds the list index.",
+    "pitfalls": [
+      "Pushing (priority, item) when items can tie and cannot be compared. Add a counter.",
+      "Assuming heapq is a max-heap. It is a min-heap. Negate for a max queue.",
+      "Trying to update an item in place. The heap cannot find it. Use lazy deletion.",
+      "Expecting the heap list to be sorted. Only the first item is guaranteed.",
+      "Using a sorted list and bisect.insort when many inserts are needed. Insert is O(n)."
+    ],
+    "interview": [
+      {
+        "q": "What is a priority queue and how is it implemented?",
+        "a": "A collection where you always remove the item with the best priority. It is usually built on a binary heap, which gives O(log n) insert and extract and O(1) peek."
+      },
+      {
+        "q": "How do you make a max-priority queue in Python?",
+        "a": "heapq is a min-heap, so push the negated priorities, or negated values, and negate again when you pop."
+      },
+      {
+        "q": "How do you change an item's priority in a heap?",
+        "a": "Push a new entry with the new priority, mark the old entry as stale, and skip stale entries when you pop. This lazy deletion avoids searching the heap."
+      },
+      {
+        "q": "Why do we put a counter in the heap tuples?",
+        "a": "To break ties between equal priorities, so Python never needs to compare the items themselves, and so equal priorities come out in arrival order."
+      }
+    ],
+    "references": [
+      {
+        "title": "Priority queue (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Priority_queue",
+        "kind": "Reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: the priority queue is the abstract tool behind many graph, scheduling and top-k questions. The operations, the costs of the unsorted, sorted, heap and tree implementations, and the uses in Dijkstra and Huffman coding come from the Wikipedia priority queue article, which I read in part. The heapq behaviour comes from the Python heapq page, which I read in full. The tuple counter and lazy deletion are standard practice that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-priority-queue",
+      "py-heapq",
+      "wikipedia-binary-heap",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "pqueue",
+        "title": "Priority queues, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "pop",
+            "at": 1
+          },
+          {
+            "text": "Implementations",
+            "at": 4
+          },
+          {
+            "text": "heapq",
+            "at": 5
+          },
+          {
+            "text": "Uses",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "j0",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "A:2",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "j1",
+            "kind": "cube",
+            "x": -1.4,
+            "y": 1.4,
+            "label": "B:5",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "j2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "C:1",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "j3",
+            "kind": "cube",
+            "x": 1.4,
+            "y": -1.4,
+            "label": "D:3",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "j4",
+            "kind": "cube",
+            "x": 2.8,
+            "y": -2.8,
+            "label": "E:4",
+            "icon": "plate",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A queue where urgency beats arrival",
+            "tag": "technique",
+            "body": [
+              "In a normal queue, the first item in is the first out. In a priority queue, each item has a priority, and the item with the best priority comes out first, whatever its arrival time. Here the jobs arrived in the order A, B, C, D, E, with priorities 2, 5, 1, 3, 4. Lower means more urgent.",
+              "The best job is C with priority 1."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Arrival order",
+                "v": "A B C D E"
+              },
+              {
+                "k": "Priority order",
+                "v": "C A D E B",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "most urgent",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "j3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "pop: the most urgent comes out first",
+            "tag": "solution",
+            "body": [
+              "pop removes and returns the item with the smallest priority number. C has priority 1, so C comes out first, though it arrived third.",
+              "peek would show C without removing it."
+            ],
+            "short": "pop C",
+            "hud": [
+              {
+                "k": "pop returned",
+                "v": "C (priority 1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": false,
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "pop() returned C",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "j3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The jobs left are A:2, B:5, D:3, E:4. Which comes out next?",
+              "options": [
+                "B: it arrived second",
+                "A: priority 2 is the smallest",
+                "E: it arrived last"
+              ],
+              "answer": 1,
+              "why": "A priority queue ignores arrival order. 2 is the smallest priority number left."
+            }
+          },
+          {
+            "title": "pop again: A",
+            "tag": "solution",
+            "body": [
+              "The best remaining job is A with priority 2. It comes out next.",
+              "Each pop looks only at priorities."
+            ],
+            "short": "pop A",
+            "hud": [
+              {
+                "k": "pop returned",
+                "v": "A (priority 2)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": false,
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "pop() returned A",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "pop again: D",
+            "tag": "solution",
+            "body": [
+              "Next is D, with priority 3. Then E, then B. The output order is C, A, D, E, B: sorted by priority, with no sorting of the whole set done up front.",
+              "You only pay for as many pops as you actually make."
+            ],
+            "short": "pop D",
+            "hud": [
+              {
+                "k": "So far",
+                "v": "C A D"
+              },
+              {
+                "k": "Left",
+                "v": "B and E"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": false,
+                "tone": "grey",
+                "status": "dim",
+                "pill": {
+                  "text": "pop() returned D",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Ways to build one, and what they cost",
+            "tag": "insight",
+            "body": [
+              "An unsorted list: insert O(1), but extract needs a scan, O(n). A sorted list: extract O(1), but insert needs a shift, O(n). A binary heap: both insert and extract are O(log n).",
+              "The Wikipedia article lists these, and says a heap-based queue can be built from n items in O(n)."
+            ],
+            "short": "Implementations",
+            "hud": [
+              {
+                "k": "Unsorted list",
+                "v": "insert O(1), extract O(n)"
+              },
+              {
+                "k": "Sorted list",
+                "v": "insert O(n), extract O(1)"
+              },
+              {
+                "k": "Binary heap",
+                "v": "both O(log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": true
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python: heapq with tuples",
+            "tag": "technique",
+            "body": [
+              "heapq is a min-heap on a list. Push tuples of (priority, count, item). Tuples compare from the left, so the lowest priority wins. The counter breaks ties, so two items with equal priority are never compared directly, and equal priorities come out in arrival order.",
+              "For a max-priority queue, negate the priorities."
+            ],
+            "short": "heapq",
+            "hud": [
+              {
+                "k": "Entry",
+                "v": "(priority, count, item)"
+              },
+              {
+                "k": "Max queue",
+                "v": "push -priority"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": true
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "import heapq",
+                "heapq.heappush(pq, (priority, count, item))",
+                "priority, _, item = heapq.heappop(pq)"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Changing a priority: skip stale entries",
+            "tag": "technique",
+            "body": [
+              "A heap cannot find an item quickly to change its priority. A common trick is to push a new entry with the new priority and remember that the old one is stale. When you pop a stale entry, you skip it.",
+              "The Wikipedia article mentions this approach for Dijkstra's algorithm, which needs decrease-key."
+            ],
+            "short": "Update",
+            "hud": [
+              {
+                "k": "Update",
+                "v": "push again, skip stale on pop"
+              },
+              {
+                "k": "Cost",
+                "v": "O(log n)"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": true
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Where priority queues are used",
+            "tag": "insight",
+            "body": [
+              "Dijkstra's shortest path and Prim's spanning tree pick the cheapest next step. Huffman coding repeatedly merges the two least frequent symbols. Schedulers pick the most urgent task, and top-k and median problems use heaps.",
+              "A stack and a queue are special cases where the priority is the arrival order."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "Graph algorithms",
+                "v": "Dijkstra, Prim"
+              },
+              {
+                "k": "Compression",
+                "v": "Huffman coding"
+              },
+              {
+                "k": "Scheduling",
+                "v": "most urgent first"
+              }
+            ],
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": true
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A priority queue returns the item with the best priority. Back it with a binary heap, for O(log n) push and pop and O(1) peek. In Python, use heapq with (priority, count, item) tuples.",
+              "Skip stale entries instead of updating a priority in place."
+            ],
+            "short": "Recap",
+            "set": {
+              "j0": {
+                "hidden": true
+              },
+              "j1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "j2": {
+                "hidden": true
+              },
+              "j3": {
+                "hidden": true
+              },
+              "j4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 best priority comes out first",
+                "2 heap: push and pop O(log n)",
+                "3 heapq: (priority, count, item)",
+                "4 stale entries instead of updates"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A priority queue is the line at an emergency room, where the most urgent patient is seen first, not the one who arrived first.",
+      "story": "In an emergency room, each patient gets a priority when they come in. The nurse always calls the most urgent patient next, however long the others have waited. If two patients are equally urgent, the one who arrived first goes first. A heap is the clever way to find the next patient without checking everyone each time.",
+      "maps": [
+        [
+          "The waiting room",
+          "The priority queue"
+        ],
+        [
+          "How urgent a patient is",
+          "The priority"
+        ],
+        [
+          "Calling the most urgent",
+          "pop"
+        ],
+        [
+          "Equal urgency: first come first served",
+          "The tie-breaking counter"
+        ]
+      ],
+      "words": [
+        [
+          "priority queue",
+          "A collection that always gives back the item with the best priority."
+        ],
+        [
+          "peek",
+          "Look at the best item without removing it."
+        ],
+        [
+          "tie-breaker",
+          "An extra value that decides between items with equal priority."
+        ],
+        [
+          "lazy deletion",
+          "Marking an old entry stale and skipping it later, instead of removing it now."
+        ],
+        [
+          "min-priority",
+          "The smallest number is the most urgent."
+        ]
+      ]
+    }
   }
 ]
