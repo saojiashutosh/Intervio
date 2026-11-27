@@ -2267,6 +2267,33 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "A segment tree answers an associative function over a contiguous range in O(log n); each node covers the union of its children's intervals; stabbing queries O(log n + k); invented by Bentley in 1977."
+    },
+    {
+      "key": "wikipedia-binary-heap",
+      "title": "Binary heap (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_heap",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A complete binary tree with the heap property; insert by sift-up and extract by sift-down, both O(log n); Floyd's build-heap is O(n); array layout with children at 2i+1 and 2i+2; searching is O(n); introduced by Williams in 1964."
+    },
+    {
+      "key": "wikipedia-heapsort",
+      "title": "Heapsort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Heapsort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Build a max-heap in O(n), then repeatedly swap the root to the end and sift down; O(n log n) in all cases, O(1) auxiliary space, not stable; quicksort is usually 2 to 3 times faster in practice."
+    },
+    {
+      "key": "wikipedia-priority-queue",
+      "title": "Priority queue (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Priority_queue",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Insert, find-min, extract-min and decrease-key; unsorted array O(1) insert and O(n) extract, sorted array the reverse, binary heap O(log n) for both; used by Dijkstra, Prim and Huffman coding; Python's heapq is a binary min-heap on a list."
     }
   ],
   "levels": [
