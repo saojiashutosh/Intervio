@@ -2483,6 +2483,24 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "A sort is stable when equal keys keep their input order; comparison sorts cannot beat O(n log n) on average; table of common sorts with best, average and worst cases, memory and stability."
+    },
+    {
+      "key": "wikipedia-greedy-algorithm",
+      "title": "Greedy algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Greedy_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A greedy algorithm makes the locally best choice at each step and never reconsiders; no formal definition of when it works; exchange arguments; optimal for activity selection, Dijkstra, Kruskal, Prim and Huffman coding; fails on some other problems."
+    },
+    {
+      "key": "wikipedia-huffman-coding",
+      "title": "Huffman coding (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Huffman_coding",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Builds an optimal prefix code from symbol weights by repeatedly merging the two lowest-weight nodes with a priority queue, in O(n log n); decoding walks the tree bit by bit; optimal among prefix codes for known symbol probabilities."
     }
   ],
   "levels": [
