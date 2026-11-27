@@ -153815,5 +153815,1171 @@
         ]
       ]
     }
+  },
+  {
+    "id": "binary-search",
+    "n": 194,
+    "level": 14,
+    "week": "Core",
+    "title": "Binary Search: Halving a Sorted List",
+    "tagline": "Find a value or its insertion point in a sorted array in O(log n), handle duplicates with lower and upper bounds, and avoid the classic off-by-one bugs.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Binary search finds a value in a sorted array by repeatedly halving the part that could contain it. The Wikipedia article says it works on sorted arrays, takes O(log n) time in the worst case, and uses O(1) space, because it needs only three indexes whatever the size. Compare the target with the middle item. If they are equal, you are done. If the target is smaller, discard the middle and everything to its right. If larger, discard the middle and everything to its left.",
+      "## The loop",
+      "Keep lo and hi as the first and last index that may still hold the target. While lo <= hi, compute mid = lo + (hi - lo) // 2. The article gives the midpoint in this form. If a[mid] is smaller than the target, set lo = mid + 1. If it is larger, set hi = mid - 1. If equal, return mid. If the loop ends, the target is absent. The worst case is floor(log2 n) + 1 iterations, so a million items need at most 20 probes.",
+      "- Both updates use mid + 1 or mid - 1, because mid has been checked. Using mid alone can loop forever.\n- The condition is lo <= hi, since a range with one item has lo equal to hi.\n- Python integers do not overflow, but in languages with fixed-size integers lo + (hi - lo) // 2 avoids overflow where (lo + hi) // 2 may not.",
+      "## When the target is absent",
+      "When the loop ends, lo has a useful meaning: it is the insertion point, the index where the target would go to keep the array sorted, and equal to the number of items smaller than the target. The article describes this as the rank of the target. Nearest-neighbour queries follow: the predecessor is at lo - 1 and the successor at lo, if the target is absent.",
+      "## Duplicates",
+      "When values repeat, the plain loop returns any matching index. To find the first copy, use the lower bound: lo = 0, hi = n, and while lo < hi, set mid, and if a[mid] < target then lo = mid + 1 else hi = mid. The result is the first index whose value is at least the target. The article gives this leftmost procedure. The rightmost version uses a[mid] <= target to move lo, and returns the first index with a value greater than the target. The count of copies is the difference.",
+      "> A worked example: find 23 in 2, 5, 8, 12, 16, 23, 38, 56, 72, 91. lo = 0, hi = 9, mid = 4, a[4] = 16, smaller, so lo = 5. mid = 7, a[7] = 56, larger, so hi = 6. mid = 5, a[5] = 23. Found at 5 after 3 probes. For 24, the same steps end with lo = 6 and hi = 5, so 24 is absent, with insertion point 6.",
+      "## In Python",
+      "The bisect module does all of this. bisect_left returns the leftmost insertion point and bisect_right the rightmost. insort inserts into a sorted list, and the documentation reminds you that the O(log n) search is dominated by the O(n) insertion. The functions use only the less-than comparison. For exact lookups, a dict is faster, as the article notes for hash tables, but binary search also answers range and nearest queries.",
+      "## Beyond arrays",
+      "Binary search works on any sorted sequence with fast random access, and on any monotonic yes or no question, which the next lesson covers. It does not work on a linked list in O(log n), since reaching the middle costs O(n).",
+      "## How to talk through it",
+      "State that the data must be sorted. Define lo, hi and mid, and say why the updates use mid + 1 and mid - 1. Give O(log n). Trace a small example, and say what lo means when the target is absent."
+    ],
+    "keyPoints": [
+      "Binary search needs sorted data. O(log n) time, O(1) space. Worst case floor(log2 n) + 1 probes.",
+      "Loop while lo <= hi with mid = lo + (hi - lo) // 2. Update with mid + 1 or mid - 1.",
+      "If the target is absent, lo ends at the insertion point: the count of smaller items.",
+      "Duplicates: lower bound (first index with a[i] >= x) and upper bound (first index with a[i] > x). Count = upper - lower.",
+      "Python's bisect_left, bisect_right and insort. insort is O(n) because of the insert."
+    ],
+    "sql": [
+      {
+        "title": "Binary search, the insertion point and the bounds",
+        "lang": "py",
+        "code": "def binary_search(a, target):\n    lo, hi = 0, len(a) - 1\n    while lo <= hi:\n        mid = lo + (hi - lo) // 2\n        if a[mid] < target:\n            lo = mid + 1\n        elif a[mid] > target:\n            hi = mid - 1\n        else:\n            return mid\n    return -(lo + 1)                                   # negative: not found, lo is the insertion point\n\ndef lower_bound(a, x):                                 # first index with a[i] >= x\n    lo, hi = 0, len(a)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] < x:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\ndef upper_bound(a, x):                                 # first index with a[i] > x\n    lo, hi = 0, len(a)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] <= x:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\na = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]\nassert binary_search(a, 23) == 5 and binary_search(a, 2) == 0 and binary_search(a, 91) == 9\nassert binary_search(a, 24) == -7                        # insertion point 6\nassert binary_search([], 1) == -1 and binary_search([5], 5) == 0\nd = [1, 2, 2, 2, 3, 5]\nassert (lower_bound(d, 2), upper_bound(d, 2)) == (1, 4) and upper_bound(d, 2) - lower_bound(d, 2) == 3\nassert lower_bound(d, 4) == upper_bound(d, 4) == 5"
+      },
+      {
+        "title": "Check against the bisect module",
+        "lang": "py",
+        "code": "import bisect\nimport random\n\ndef lower_bound(a, x):\n    lo, hi = 0, len(a)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] < x:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\ndef upper_bound(a, x):\n    lo, hi = 0, len(a)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] <= x:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\nrandom.seed(50)\nfor _ in range(300):\n    a = sorted(random.randint(0, 20) for _ in range(random.randint(0, 25)))\n    x = random.randint(-2, 22)\n    assert lower_bound(a, x) == bisect.bisect_left(a, x)\n    assert upper_bound(a, x) == bisect.bisect_right(a, x)\n\ngrades = [60, 70, 80, 90]\nassert [\"FDCBA\"[bisect.bisect(grades, score)] for score in (33, 99, 77, 70, 89, 90, 100)] == [\"F\", \"A\", \"C\", \"C\", \"B\", \"A\", \"A\"]\nwords = [\"apple\", \"Banana\", \"cherry\"]\nassert bisect.bisect_left(words, \"banana\", key=str.lower) == 1        # the key parameter needs Python 3.10 or newer"
+      },
+      {
+        "title": "Binary search on a condition: the first value that is true",
+        "lang": "py",
+        "code": "def first_true(lo, hi, pred):\n    # the smallest x in [lo, hi] with pred(x) True, if pred is False ... False True ... True; None if never true\n    if not pred(hi):\n        return None\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if pred(mid):\n            hi = mid                                   # mid may be the answer: keep it\n        else:\n            lo = mid + 1\n    return lo\n\nassert first_true(0, 100, lambda x: x * x >= 50) == 8\nassert first_true(0, 10, lambda x: x >= 0) == 0\nassert first_true(0, 10, lambda x: False) is None\n\nversions = [False, False, False, True, True, True]      # the first bad version\nassert first_true(0, len(versions) - 1, lambda i: versions[i]) == 3\n\ndef sqrt_floor(n):\n    return first_true(0, n + 1, lambda x: x * x > n) - 1\n\nassert [sqrt_floor(n) for n in (0, 1, 15, 16, 17, 99, 100)] == [0, 1, 3, 4, 4, 9, 10]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write binary_search, lower_bound and upper_bound without looking, and check them against bisect on 300 random lists. Then use them to count how many times a value occurs, and to find the closest value to a target. Finally, write first_true and use it for the first bad version and for an integer square root.",
+    "pitfalls": [
+      "Using lo = mid or hi = mid in the equality-checking loop. It can loop forever. Use mid + 1 and mid - 1.",
+      "Using lo < hi when the loop should run until lo > hi, so the last remaining item is never checked.",
+      "Running it on unsorted data. The answer is silently wrong.",
+      "Using (lo + hi) // 2 in a language where the sum can overflow.",
+      "Using insort in a loop and thinking the whole thing is O(n log n). Each insert is O(n)."
+    ],
+    "interview": [
+      {
+        "q": "How does binary search work and what does it cost?",
+        "a": "On sorted data, compare the target with the middle item and discard the half that cannot contain it. Repeat on the remaining half. It takes O(log n) time, at most floor(log2 n) + 1 probes, and O(1) space."
+      },
+      {
+        "q": "What does the loop variable lo mean when the target is not found?",
+        "a": "It is the insertion point: the index where the target would be inserted to keep the array sorted, which equals the number of items smaller than the target."
+      },
+      {
+        "q": "How do you find the first and last occurrence of a value?",
+        "a": "Use the lower bound, the first index with a value at least the target, and the upper bound, the first index with a value greater than the target. The last occurrence is upper - 1 and the count is upper - lower."
+      },
+      {
+        "q": "Why can't you use binary search on a linked list?",
+        "a": "Binary search needs to reach the middle element in O(1). A linked list takes O(n) to reach the middle, so the total becomes O(n)."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "bisect: array bisection (Python docs)",
+        "url": "https://docs.python.org/3/library/bisect.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: binary search is the most tested algorithm in coding rounds and the base of many harder questions. The sorted-array requirement, the O(log n) and O(1) costs, the floor(log2 n) + 1 worst case, the midpoint form, the leftmost and rightmost procedures and the rank of an absent target come from the Wikipedia binary search article, which I read in part, and the bisect functions, the key parameter and the O(n) insertion warning from the Python bisect page, which I read in full. The worked example and the code are my own illustration and judgment, and the code is checked by running it against bisect. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-search",
+      "py-bisect",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "binsearch",
+        "title": "Binary search, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or probe"
+          },
+          {
+            "kind": "write",
+            "label": "move or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Halving",
+            "at": 0
+          },
+          {
+            "text": "lo, hi, mid",
+            "at": 1
+          },
+          {
+            "text": "Go right",
+            "at": 2
+          },
+          {
+            "text": "Not found",
+            "at": 5
+          },
+          {
+            "text": "Duplicates",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -4.05,
+            "y": 4.05,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -3.15,
+            "y": 3.15,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -2.25,
+            "y": 2.25,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": -1.35,
+            "y": 1.35,
+            "label": "12",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": -0.45,
+            "y": 0.45,
+            "label": "16",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 0.45,
+            "y": -0.45,
+            "label": "23",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 1.35,
+            "y": -1.35,
+            "label": "38",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a7",
+            "kind": "cube",
+            "x": 2.25,
+            "y": -2.25,
+            "label": "56",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a8",
+            "kind": "cube",
+            "x": 3.15,
+            "y": -3.15,
+            "label": "72",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a9",
+            "kind": "cube",
+            "x": 4.05,
+            "y": -4.05,
+            "label": "91",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Searching a sorted list by halving it",
+            "tag": "technique",
+            "body": [
+              "Binary search finds a value in a sorted array without looking at every item. It compares the target with the middle item and throws away the half that cannot contain it. The Wikipedia article says plainly that binary search works on sorted arrays.",
+              "We search for 23 in 2, 5, 8, 12, 16, 23, 38, 56, 72, 91."
+            ],
+            "short": "Halving",
+            "hud": [
+              {
+                "k": "Needs",
+                "v": "sorted data",
+                "tone": "warn"
+              },
+              {
+                "k": "Time",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Keep two ends and look at the middle",
+            "tag": "technique",
+            "body": [
+              "Keep lo and hi, the ends of the part that may still contain the target. Start with lo = 0 and hi = 9. The middle is mid = lo + (hi - lo) // 2, which is 4. Writing it this way is the form the Wikipedia article uses.",
+              "The loop runs while lo <= hi."
+            ],
+            "short": "lo, hi, mid",
+            "hud": [
+              {
+                "k": "lo",
+                "v": "0"
+              },
+              {
+                "k": "hi",
+                "v": "9"
+              },
+              {
+                "k": "mid",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "orange",
+                "pill": {
+                  "text": "mid",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "lo, hi = 0, len(a) - 1",
+                "while lo <= hi:",
+                "    mid = lo + (hi - lo) // 2"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "16 < 23: discard the left half",
+            "tag": "solution",
+            "body": [
+              "a[4] is 16, which is smaller than 23. If 23 is anywhere, it is to the right of index 4. So set lo = mid + 1 = 5. Five items are gone in one comparison.",
+              "The new range is indexes 5 to 9."
+            ],
+            "short": "Go right",
+            "hud": [
+              {
+                "k": "lo",
+                "v": "5"
+              },
+              {
+                "k": "hi",
+                "v": "9"
+              },
+              {
+                "k": "Left",
+                "v": "discarded",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a1": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a2": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a3": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a4": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The range is now 5 to 9. What is the next mid?",
+              "options": [
+                "7",
+                "5",
+                "9"
+              ],
+              "answer": 0,
+              "why": "mid = 5 + (9 - 5) // 2 = 7, the middle of indexes 5 to 9."
+            }
+          },
+          {
+            "title": "56 > 23: discard the right half",
+            "tag": "solution",
+            "body": [
+              "mid is now 7. a[7] is 56, which is larger than 23, so the target must be to the left. Set hi = mid - 1 = 6. The range is indexes 5 to 6.",
+              "Each step halves the range."
+            ],
+            "short": "Go left",
+            "hud": [
+              {
+                "k": "mid",
+                "v": "7"
+              },
+              {
+                "k": "Range",
+                "v": "5 to 6"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a1": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a2": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a3": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a4": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a7": {
+                "tone": "orange",
+                "pill": {
+                  "text": "mid",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "dim"
+              },
+              "a8": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a9": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            }
+          },
+          {
+            "title": "mid = 5: a[5] = 23. Found",
+            "tag": "insight",
+            "body": [
+              "mid = 5 + (6 - 5) // 2 = 5. a[5] is 23, equal to the target. Return 5. We needed 3 probes for 10 items.",
+              "A linear scan would have needed 6."
+            ],
+            "short": "Found",
+            "hud": [
+              {
+                "k": "Index",
+                "v": "5",
+                "tone": "good"
+              },
+              {
+                "k": "Probes",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a1": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a2": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a3": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a4": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a5": {
+                "tone": "green",
+                "pill": {
+                  "text": "found",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a7": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a8": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a9": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a4",
+                  "a7",
+                  "a5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "A missing target: the loop ends with lo > hi",
+            "tag": "technique",
+            "body": [
+              "Search for 24 in the same way. The probes are mid 4, then 7, then 5 (23 < 24, so lo = 6), then 6 (38 > 24, so hi = 5). Now lo = 6 is greater than hi = 5, so the range is empty and 24 is absent.",
+              "The value of lo is useful: it is the insertion point, the index where 24 would go. It also equals the number of items smaller than 24."
+            ],
+            "short": "Not found",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "absent"
+              },
+              {
+                "k": "Insertion point",
+                "v": "6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a1": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a2": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a3": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a4": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a5": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a6": {
+                "tone": "grey",
+                "pill": {
+                  "text": "insertion point",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": "dim"
+              },
+              "a7": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a8": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "a9": {
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            }
+          },
+          {
+            "title": "Duplicates: leftmost and rightmost match",
+            "tag": "technique",
+            "body": [
+              "With repeated values, a plain search may land on any copy. To find the first copy, keep searching left while a[mid] >= target: that is the lower bound, and the Wikipedia article gives this leftmost procedure with R = n. The rightmost copy is the mirror image.",
+              "The number of copies is the rightmost bound minus the leftmost bound."
+            ],
+            "short": "Duplicates",
+            "hud": [
+              {
+                "k": "Leftmost",
+                "v": "lower bound"
+              },
+              {
+                "k": "Rightmost",
+                "v": "upper bound"
+              },
+              {
+                "k": "Count",
+                "v": "upper - lower"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "lo, hi = 0, len(a)",
+                "while lo < hi:",
+                "    mid = (lo + hi) // 2",
+                "    if a[mid] < target: lo = mid + 1",
+                "    else: hi = mid",
+                "# lo is the first index with a[lo] >= target"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "How fast: log2 n",
+            "tag": "insight",
+            "body": [
+              "The worst case is floor(log2 n) + 1 iterations, which the article states. For n = 10 that is 4. For a million items it is 20. Doubling the data adds just one probe. Space is O(1): three variables.",
+              "The article notes that hash tables are faster for exact lookups, but binary search also answers nearest-value questions."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "n = 10",
+                "v": "4 probes at most"
+              },
+              {
+                "k": "n = 1,000,000",
+                "v": "20 probes at most",
+                "tone": "good"
+              },
+              {
+                "k": "Hash table",
+                "v": "O(1) for exact lookup"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python: the bisect module",
+            "tag": "technique",
+            "body": [
+              "bisect_left(a, x) returns the leftmost insertion point, and bisect_right(a, x) the rightmost. insort inserts and keeps the list sorted, but the insert is O(n), as the docs warn. Since Python 3.10 there is also a key parameter.",
+              "Use bisect instead of writing the loop when you can."
+            ],
+            "short": "bisect",
+            "hud": [
+              {
+                "k": "Search",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "insort",
+                "v": "search O(log n), insert O(n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "import bisect",
+                "bisect.bisect_left(a, 23)    # 5",
+                "bisect.bisect_left(a, 24)    # 6, the insertion point"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Binary search halves a sorted range using lo, hi and mid. It takes O(log n) time and O(1) space. A failed search leaves lo at the insertion point. For duplicates, use the lower and upper bound versions.",
+              "Check the loop condition, the mid formula and the updates mid + 1 and mid - 1, or you will loop forever."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "lo",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "hi",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 sorted data",
+                "2 mid = lo + (hi - lo) // 2",
+                "3 lo = mid + 1 or hi = mid - 1",
+                "4 lo is the insertion point"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Binary search is like guessing a number from 1 to 100 where each answer is higher or lower.",
+      "story": "Someone thinks of a number between 1 and 100. You guess 50. They say lower. Now you know it is between 1 and 49, so you guess 25. Higher. You keep guessing the middle of what is left. Each answer cuts the possibilities in half. In about seven guesses you find any number. A sorted list works the same way: each comparison tells you which half to throw away.",
+      "maps": [
+        [
+          "Guessing the middle",
+          "Comparing with a[mid]"
+        ],
+        [
+          "Higher or lower",
+          "Discarding one half"
+        ],
+        [
+          "The range of possible numbers",
+          "The range from lo to hi"
+        ],
+        [
+          "Where the number would fit",
+          "The insertion point"
+        ]
+      ],
+      "words": [
+        [
+          "binary search",
+          "Find an item in sorted data by repeatedly halving the range."
+        ],
+        [
+          "insertion point",
+          "The index where a missing item would go to keep the list sorted."
+        ],
+        [
+          "lower bound",
+          "The first index whose value is at least the target."
+        ],
+        [
+          "sorted",
+          "Arranged in order from smallest to largest."
+        ],
+        [
+          "probe",
+          "One look at the middle item of the current range."
+        ]
+      ]
+    }
   }
 ]
