@@ -186775,5 +186775,3550 @@
         ]
       ]
     }
+  },
+  {
+    "id": "longest-common-subsequence",
+    "n": 215,
+    "level": 14,
+    "week": "Core",
+    "title": "Longest Common Subsequence",
+    "tagline": "Find the longest group of letters shared by two strings in the same order, and rebuild it by walking back through the table.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A subsequence of a string keeps the order of its letters but may skip some. A common subsequence of two strings is a subsequence of both. The Wikipedia article says the elements of a subsequence need not be contiguous, and describes the table method that runs in O(mn) time for strings of lengths m and n. The longest common subsequence, LCS, is used by tools such as diff to find what two files share.",
+      "## The table",
+      "Let lcs(i, j) be the length of the LCS of the first i letters of X and the first j letters of Y. The first row and the first column are 0, since an empty string shares nothing. For other cells, compare the letters X[i] and Y[j]. If they are equal, the LCS of the two prefixes ends with that letter, so lcs(i, j) = lcs(i - 1, j - 1) + 1. If they differ, at least one of the two letters is not in the LCS, so lcs(i, j) is the larger of lcs(i - 1, j) and lcs(i, j - 1).",
+      "> A worked example: X = ABCBD and Y = BCAD. The last row of the table is 0, 1, 2, 2, 3, so the LCS has length 3. Walking back from the corner gives the letters B, C and D.",
+      "## Fill order",
+      "Each cell reads the cell above, the cell to the left and the cell up and to the left. So fill row by row, left to right. All three inputs are then ready.",
+      "## Reading the subsequence",
+      "The table gives the length. To get the letters, start at the bottom right. If X[i] equals Y[j], record the letter and move up and left. Otherwise move to the larger neighbour, up or left. When you reach an edge, stop. The recorded letters, reversed, are an LCS. Several different LCS strings can have the same length, so ties can be broken either way.",
+      "## Cost",
+      "There are (m + 1) times (n + 1) cells and each takes constant time. The time is O(mn) and so is the memory. If you only need the length, two rows are enough, which gives O(min(m, n)) memory when you put the shorter string in the columns. You need the whole table to walk back.",
+      "## Subsequence and substring",
+      "A substring is contiguous, and a subsequence is not. The longest common substring is a different problem: when the letters differ the cell is set to 0, and the answer is the largest cell anywhere. Read the problem to see which one is asked.",
+      "## Where it is used",
+      "diff compares two files by finding their longest common subsequence of lines, and shows the rest as additions and deletions. Version control, merging tools and comparing DNA sequences use the same table. The longest increasing subsequence of a list equals the LCS of the list and its sorted copy of distinct items, as the Wikipedia article notes.",
+      "## How to talk through it",
+      "Say what a cell means, give the two cases of the recurrence, name the fill order and give O(mn). Then say how to rebuild the string, and mention the two-row trick for the length."
+    ],
+    "keyPoints": [
+      "lcs(i, j) = LCS length of the first i letters of X and the first j letters of Y. Edges are 0.",
+      "Equal last letters: lcs(i - 1, j - 1) + 1. Otherwise the larger of lcs(i - 1, j) and lcs(i, j - 1).",
+      "O(m n) time. Two rows give the length in O(min(m, n)) memory.",
+      "Walk back from the bottom right to rebuild the subsequence.",
+      "Subsequence may skip letters. Longest common substring is a different table (reset to 0 on a mismatch)."
+    ],
+    "sql": [
+      {
+        "title": "LCS length and the subsequence",
+        "lang": "py",
+        "code": "def lcs(x, y):\n    m, n = len(x), len(y)\n    dp = [[0] * (n + 1) for _ in range(m + 1)]\n    for i in range(1, m + 1):\n        for j in range(1, n + 1):\n            if x[i - 1] == y[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1] + 1\n            else:\n                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])\n    letters, i, j = [], m, n\n    while i > 0 and j > 0:                                     # walk back from the corner\n        if x[i - 1] == y[j - 1]:\n            letters.append(x[i - 1])\n            i, j = i - 1, j - 1\n        elif dp[i - 1][j] >= dp[i][j - 1]:\n            i -= 1\n        else:\n            j -= 1\n    return dp[m][n], \"\".join(reversed(letters))\n\nassert lcs(\"ABCBD\", \"BCAD\") == (3, \"BCD\")\nassert lcs(\"\", \"abc\") == (0, \"\") and lcs(\"abc\", \"abc\") == (3, \"abc\") and lcs(\"abc\", \"xyz\") == (0, \"\")\nlength, text = lcs(\"AGGTAB\", \"GXTXAYB\")\nassert (length, text) == (4, \"GTAB\")"
+      },
+      {
+        "title": "Check against brute force, and two rows for the length",
+        "lang": "py",
+        "code": "import itertools\nimport random\n\ndef lcs_length(x, y):\n    if len(y) > len(x):\n        x, y = y, x                                            # keep the shorter string in the columns\n    prev = [0] * (len(y) + 1)\n    for i in range(1, len(x) + 1):\n        cur = [0] * (len(y) + 1)\n        for j in range(1, len(y) + 1):\n            cur[j] = prev[j - 1] + 1 if x[i - 1] == y[j - 1] else max(prev[j], cur[j - 1])\n        prev = cur\n    return prev[-1]\n\ndef subsequences(s):\n    return {\"\".join(c) for r in range(len(s) + 1) for c in itertools.combinations(s, r)}\n\ndef brute(x, y):\n    return max(len(s) for s in subsequences(x) & subsequences(y))\n\nrandom.seed(82)\nfor _ in range(200):\n    a = \"\".join(random.choice(\"abc\") for _ in range(random.randint(0, 7)))\n    b = \"\".join(random.choice(\"abc\") for _ in range(random.randint(0, 7)))\n    assert lcs_length(a, b) == brute(a, b)\nassert lcs_length(\"ABCBD\", \"BCAD\") == 3"
+      },
+      {
+        "title": "Longest common substring: a different table",
+        "lang": "py",
+        "code": "def longest_common_substring(x, y):\n    best, end = 0, 0\n    dp = [[0] * (len(y) + 1) for _ in range(len(x) + 1)]\n    for i in range(1, len(x) + 1):\n        for j in range(1, len(y) + 1):\n            if x[i - 1] == y[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1] + 1\n                if dp[i][j] > best:\n                    best, end = dp[i][j], i\n            else:\n                dp[i][j] = 0                                   # a mismatch breaks the run\n    return x[end - best:end]\n\nassert longest_common_substring(\"ABCBD\", \"BCAD\") == \"BC\"\nassert longest_common_substring(\"abcdef\", \"zcdemn\") == \"cde\"\nassert longest_common_substring(\"abc\", \"xyz\") == \"\""
+      }
+    ],
+    "django": {},
+    "exercise": "Write lcs with the trace back and check lcs('AGGTAB', 'GXTXAYB') is 'GTAB'. Write the two-row length version and compare both with a brute force over all subsequences on 200 random pairs of short strings. Then write the longest common substring and explain the one-line difference. Finally, use lcs to compute the longest increasing subsequence of a list.",
+    "pitfalls": [
+      "Confusing a subsequence with a substring.",
+      "Using the two-row version and then trying to trace back.",
+      "Off-by-one errors between the table index i and the string index i - 1.",
+      "Forgetting that several LCS strings can exist, so tests must check the length or any valid answer.",
+      "Not putting the shorter string in the columns when you want the least memory."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the longest common subsequence of two strings?",
+        "a": "Fill a table where lcs(i, j) is the LCS length of the two prefixes. If the last letters match, it is lcs(i - 1, j - 1) + 1, otherwise the larger of lcs(i - 1, j) and lcs(i, j - 1). The time is O(mn)."
+      },
+      {
+        "q": "How do you get the subsequence itself?",
+        "a": "Walk back from the bottom right: if the letters are equal, record the letter and move diagonally up-left, otherwise move to the larger of the cell above or on the left."
+      },
+      {
+        "q": "What is the difference between a subsequence and a substring?",
+        "a": "A substring is contiguous, a subsequence keeps order but may skip letters. For the longest common substring, reset the cell to 0 on a mismatch and take the maximum cell."
+      },
+      {
+        "q": "How can you reduce the memory?",
+        "a": "For the length only, keep two rows, which gives O(min(m, n)) memory. To rebuild the subsequence you need the full table, or a divide and conquer method."
+      }
+    ],
+    "references": [
+      {
+        "title": "Longest common subsequence (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Longest_common_subsequence",
+        "kind": "Reference"
+      },
+      {
+        "title": "Longest increasing subsequence (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Longest_increasing_subsequence",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: LCS is the standard two-string dynamic programming problem and the model for edit distance. That the elements of a subsequence need not be contiguous, the O(mn) table recurrence on matches and maxima, the trace back from the corner, and the use in diff come from the Wikipedia longest common subsequence article, which I read in part. The link between LIS and LCS comes from the Wikipedia longest increasing subsequence article, which I read in part. The strings, the worked table and the code are my own illustration and judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-lcs",
+      "wikipedia-lis",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "lcs",
+        "title": "Longest common subsequence, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "A cell",
+            "at": 1
+          },
+          {
+            "text": "Recurrence",
+            "at": 2
+          },
+          {
+            "text": "Rows",
+            "at": 3
+          },
+          {
+            "text": "The length",
+            "at": 8
+          },
+          {
+            "text": "Trace back",
+            "at": 9
+          },
+          {
+            "text": "Cost",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "l0_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": -4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l0_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l0_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l0_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": -4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l0_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l1_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l1_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l1_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l1_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l1_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l2_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l2_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l2_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l2_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l2_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l3_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l3_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l3_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l3_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l3_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": 0.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l4_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l4_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l4_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l4_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l4_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": 2.8499999999999996,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l5_0",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l5_1",
+            "kind": "cube",
+            "x": -1.9,
+            "y": 4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l5_2",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l5_3",
+            "kind": "cube",
+            "x": 1.9,
+            "y": 4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "l5_4",
+            "kind": "cube",
+            "x": 3.8,
+            "y": 4.75,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "What do two strings share, in order?",
+            "tag": "technique",
+            "body": [
+              "The strings are ABCBD and BCAD. A common subsequence is a group of letters that appears in both strings in the same order, though not necessarily next to each other. B, C and D appear in both in that order. What is the longest common subsequence, the LCS?",
+              "This is how a tool such as diff finds what two files share."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "X",
+                "v": "ABCBD"
+              },
+              {
+                "k": "Y",
+                "v": "BCAD"
+              },
+              {
+                "k": "Want",
+                "v": "the longest shared subsequence"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "What a cell means",
+            "tag": "technique",
+            "body": [
+              "Let lcs(i, j) be the length of the LCS of the first i letters of X and the first j letters of Y. The table has a row for each prefix of X and a column for each prefix of Y. The answer is the bottom right cell. The top row and the left column are 0, because an empty string shares nothing.",
+              "The letters in the pills show which letter each row and column adds."
+            ],
+            "short": "A cell",
+            "hud": [
+              {
+                "k": "Cell (i, j)",
+                "v": "LCS of X[:i] and Y[:j]"
+              },
+              {
+                "k": "Edges",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence: match or skip",
+            "tag": "technique",
+            "body": [
+              "Look at the last letters X[i] and Y[j]. If they are equal, they extend the LCS of the two shorter prefixes: lcs(i, j) = lcs(i - 1, j - 1) + 1. If they differ, one of them is not used: lcs(i, j) is the larger of lcs(i - 1, j) and lcs(i, j - 1).",
+              "Each cell reads three neighbours: up, left and up-left."
+            ],
+            "short": "Recurrence",
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if x[i-1] == y[j-1]:",
+                "    dp[i][j] = dp[i-1][j-1] + 1",
+                "else:",
+                "    dp[i][j] = max(dp[i-1][j], dp[i][j-1])"
+              ],
+              "hl": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Row 1: the letter A",
+            "tag": "solution",
+            "body": [
+              "Fill the row for the letter A, from left to right. It matches A in Y: at each match the cell is the up-left cell plus 1. At the other cells it is the larger of the cell above and the cell to the left.",
+              "The row becomes 0 0 0 1 1."
+            ],
+            "short": "Row 1",
+            "hud": [
+              {
+                "k": "Row 1",
+                "v": "0 0 0 1 1"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Row 1 is for the letter A. Y is BCAD. A matches the third letter of Y. What is the cell there?",
+              "options": [
+                "0",
+                "1",
+                "2"
+              ],
+              "answer": 1,
+              "why": "A matches, so the cell is the up-left cell, 0, plus 1, which is 1."
+            }
+          },
+          {
+            "title": "Row 2: the letter B",
+            "tag": "solution",
+            "body": [
+              "Fill the row for the letter B, from left to right. It matches B in Y: at each match the cell is the up-left cell plus 1. At the other cells it is the larger of the cell above and the cell to the left.",
+              "The row becomes 0 1 1 1 1."
+            ],
+            "short": "Row 2",
+            "hud": [
+              {
+                "k": "Row 2",
+                "v": "0 1 1 1 1"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Row 3: the letter C",
+            "tag": "solution",
+            "body": [
+              "Fill the row for the letter C, from left to right. It matches C in Y: at each match the cell is the up-left cell plus 1. At the other cells it is the larger of the cell above and the cell to the left.",
+              "The row becomes 0 1 2 2 2."
+            ],
+            "short": "Row 3",
+            "hud": [
+              {
+                "k": "Row 3",
+                "v": "0 1 2 2 2"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Row 4: the letter B",
+            "tag": "solution",
+            "body": [
+              "Fill the row for the letter B, from left to right. It matches B in Y: at each match the cell is the up-left cell plus 1. At the other cells it is the larger of the cell above and the cell to the left.",
+              "The row becomes 0 1 2 2 2."
+            ],
+            "short": "Row 4",
+            "hud": [
+              {
+                "k": "Row 4",
+                "v": "0 1 2 2 2"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "",
+                "tone": "blue",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Row 5: the letter D",
+            "tag": "solution",
+            "body": [
+              "Fill the row for the letter D, from left to right. It matches D in Y: at each match the cell is the up-left cell plus 1. At the other cells it is the larger of the cell above and the cell to the left.",
+              "The row becomes 0 1 2 2 3."
+            ],
+            "short": "Row 5",
+            "hud": [
+              {
+                "k": "Row 5",
+                "v": "0 1 2 2 3"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The answer: length 3",
+            "tag": "insight",
+            "body": [
+              "The bottom right cell is 3, so the longest common subsequence has length 3. The table has the length, but which letters are they?",
+              "Walk back from the corner to find out."
+            ],
+            "short": "The length",
+            "hud": [
+              {
+                "k": "LCS length",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Walk back to read the subsequence",
+            "tag": "technique",
+            "body": [
+              "Start at the bottom right. If the two letters are equal, the letter is part of the LCS: record it and move up and left. Otherwise move to the larger of the cell above and the cell on the left. Reading the recorded letters backwards gives BCD.",
+              "B, C and D appear in both strings in that order."
+            ],
+            "short": "Trace back",
+            "hud": [
+              {
+                "k": "Subsequence",
+                "v": "BCD",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "purple",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost",
+            "tag": "insight",
+            "body": [
+              "There are (m + 1) times (n + 1) cells and each takes O(1), so the time is O(m n), and the memory is O(m n). The Wikipedia article notes the O(m n) table. If you only need the length, two rows are enough, giving O(min(m, n)) memory.",
+              "You need the full table to rebuild the subsequence, unless you use a divide and conquer method."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(m x n)"
+              },
+              {
+                "k": "Memory",
+                "v": "O(m x n), or two rows for the length"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Uses",
+            "tag": "insight",
+            "body": [
+              "diff finds the lines two files share, and shows the rest as changes. Version control, spell checkers and DNA comparison use the same idea. The LCS also gives the longest increasing subsequence when one string is the sorted copy.",
+              "The next lesson, edit distance, uses nearly the same table."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "diff",
+                "v": "common lines"
+              },
+              {
+                "k": "Next",
+                "v": "edit distance"
+              }
+            ],
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "LCS: a table of prefixes. Equal last letters give up-left plus 1. Otherwise take the larger of up and left. O(m n). Walk back from the corner to rebuild the subsequence. A subsequence skips letters, a substring does not.",
+              "Practise reading the table: every cell is the best for a pair of prefixes."
+            ],
+            "short": "Recap",
+            "set": {
+              "l0_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l0_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_3": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l0_4": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "A",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l1_1": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_2": {
+                "label": "0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l1_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l2_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_3": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l2_4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "C",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l3_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l3_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "B",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l4_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l4_4": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "D",
+                  "tone": "purple",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "l5_1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_2": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_3": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "l5_4": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 cell = LCS of two prefixes",
+                "2 equal: up-left + 1",
+                "3 else max(up, left)",
+                "4 trace back from the corner"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "The longest common subsequence is like finding the longest run of songs two friends both have on their playlists in the same order.",
+      "story": "Two friends each have a playlist. You want the longest list of songs that appear on both playlists in the same order, though other songs can be in between. You compare the playlists a song at a time. When the newest songs match, you add one to what you had before them. When they do not, you keep the better of ignoring one song or the other. At the end the biggest number is the length of the shared playlist.",
+      "maps": [
+        [
+          "A song on both lists",
+          "A matching letter"
+        ],
+        [
+          "Other songs in between",
+          "Skipped letters in a subsequence"
+        ],
+        [
+          "Keeping the better of two options",
+          "The larger of up and left"
+        ],
+        [
+          "The shared playlist",
+          "The LCS"
+        ]
+      ],
+      "words": [
+        [
+          "subsequence",
+          "Letters taken in order, possibly skipping some."
+        ],
+        [
+          "substring",
+          "Letters that sit together without gaps."
+        ],
+        [
+          "diff",
+          "A tool that shows the differences between two files."
+        ],
+        [
+          "prefix",
+          "The first few letters of a string."
+        ],
+        [
+          "trace back",
+          "Walking back through the table to read off the answer."
+        ]
+      ]
+    }
   }
 ]
