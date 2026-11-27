@@ -136798,5 +136798,1161 @@
         ]
       ]
     }
+  },
+  {
+    "id": "median-of-a-stream",
+    "n": 179,
+    "level": 14,
+    "week": "Core",
+    "title": "Median of a Stream: Two Heaps",
+    "tagline": "Keep the running median of numbers arriving one by one with a max-heap for the lower half and a min-heap for the upper half.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "The median is the middle value of a sorted collection: the middle number if the count is odd, and the average of the two middle numbers if it is even. In a stream, numbers arrive one at a time, and after each one you must report the median. A sorted list makes the median easy but costs O(n) per insert. Sorting each time is worse. Two heaps give O(log n) per number and O(1) per median.",
+      "## The two halves",
+      "Keep the smaller half of the numbers in a max-heap, called low, so its largest is on top. Keep the larger half in a min-heap, called high, so its smallest is on top. Every number in low is at most every number in high, and their sizes differ by at most one. Then the median is easy to read. If low has one more item, the median is the top of low. If the sizes are equal, it is the average of the two tops.",
+      "## Adding a number",
+      "A reliable way to add x keeps the invariants automatically. Push x onto low. Then move the top of low to high. If high is now larger than low, move its top back to low. After this, every number in low is still at most every number in high, because the largest of low and x went across, and the sizes are balanced.",
+      "In Python, heapq is a min-heap, so store the negated numbers in the low heap.",
+      "> A worked example: the stream 5, 15, 1, 3, 8, 7. After 5, the median is 5. After 15, low is 5 and high is 15, so the median is 10. After 1, low is 5, 1 and high is 15, so the median is 5. After 3, low is 3, 1 and high is 5, 15, so the median is 4. After 8, low is 5, 3, 1 and high is 8, 15, so the median is 5. After 7, low is 5, 3, 1 and high is 7, 8, 15, so the median is 6.",
+      "## Cost",
+      "Each add does a constant number of heap pushes and pops on heaps of size about n / 2, so it costs O(log n). Reading the median looks at one or two tops, so it costs O(1). The total space is O(n), since every number is kept. A sorted list with insort would cost O(n) per insert for the shifting.",
+      "## Variations",
+      "A sliding-window median needs the heaps to forget the numbers that leave the window. That is done with lazy deletion and size counters. The same idea gives other percentiles: balance the halves unevenly, for example a quarter and three quarters for the 25th percentile. If you have a fixed array and need a single median, quickselect finds it in O(n) on average, with no heaps.",
+      "## Why two heaps work",
+      "A heap is good at one thing: giving the extreme item. The median is not an extreme, but it sits between the largest of the small half and the smallest of the large half. By splitting the numbers there, each half needs only its extreme item, which is exactly what a heap provides.",
+      "## How to talk through it",
+      "Describe the two halves and the size rule. Show the add steps in three lines. Say that median is O(1) and add is O(log n). Test an empty stream, one number, duplicates and an even count."
+    ],
+    "keyPoints": [
+      "Low half in a max-heap, high half in a min-heap. Low sizes equal high, or one larger.",
+      "Median: the top of low if low is larger, else the average of both tops.",
+      "Add: push to low, move low's top to high, and if high is larger, move its top back.",
+      "add is O(log n), median is O(1), space O(n). Python: store negated numbers in the low heap.",
+      "Sliding-window median needs lazy deletion. For one fixed array, quickselect is simpler."
+    ],
+    "sql": [
+      {
+        "title": "A running median with two heaps",
+        "lang": "py",
+        "code": "import heapq\n\nclass MedianFinder:\n    def __init__(self):\n        self.low = []                                   # max-heap, stored as negated numbers\n        self.high = []                                  # min-heap\n\n    def add(self, x):\n        heapq.heappush(self.low, -x)\n        heapq.heappush(self.high, -heapq.heappop(self.low))\n        if len(self.high) > len(self.low):\n            heapq.heappush(self.low, -heapq.heappop(self.high))\n\n    def median(self):\n        if len(self.low) > len(self.high):\n            return -self.low[0]\n        return (-self.low[0] + self.high[0]) / 2\n\nm = MedianFinder()\nmedians = []\nfor x in (5, 15, 1, 3, 8, 7):\n    m.add(x)\n    medians.append(m.median())\nassert medians == [5, 10, 5, 4, 5, 6]\nassert len(m.low) == len(m.high) == 3"
+      },
+      {
+        "title": "Check against sorting",
+        "lang": "py",
+        "code": "import heapq\nimport random\nimport statistics\n\nclass MedianFinder:\n    def __init__(self):\n        self.low, self.high = [], []\n    def add(self, x):\n        heapq.heappush(self.low, -x)\n        heapq.heappush(self.high, -heapq.heappop(self.low))\n        if len(self.high) > len(self.low):\n            heapq.heappush(self.low, -heapq.heappop(self.high))\n    def median(self):\n        if len(self.low) > len(self.high):\n            return -self.low[0]\n        return (-self.low[0] + self.high[0]) / 2\n\nrandom.seed(24)\nfor _ in range(50):\n    m, seen = MedianFinder(), []\n    for _ in range(random.randint(1, 40)):\n        x = random.randint(-20, 20)\n        m.add(x)\n        seen.append(x)\n        assert m.median() == statistics.median(seen)\n        assert -m.low[0] <= (m.high[0] if m.high else float(\"inf\"))      # every low number is at most every high number\n        assert 0 <= len(m.low) - len(m.high) <= 1"
+      },
+      {
+        "title": "The k-th smallest of a stream, and the sorted-list approach",
+        "lang": "py",
+        "code": "import bisect\nimport heapq\n\nclass KthSmallest:\n    def __init__(self, k):\n        self.k, self.heap = k, []                       # a max-heap of the k smallest, stored negated\n\n    def add(self, x):\n        if len(self.heap) < self.k:\n            heapq.heappush(self.heap, -x)\n        elif x < -self.heap[0]:\n            heapq.heapreplace(self.heap, -x)\n\n    def value(self):\n        return -self.heap[0]\n\nq = KthSmallest(3)\nfor x in (5, 15, 1, 3, 8, 7):\n    q.add(x)\nassert q.value() == 5                                   # the sorted stream is 1 3 5 7 8 15\n\nsorted_list = []\nfor x in (5, 15, 1, 3, 8, 7):\n    bisect.insort(sorted_list, x)                       # O(n) each, because of the shifting\nn = len(sorted_list)\nassert (sorted_list[n // 2 - 1] + sorted_list[n // 2]) / 2 == 6"
+      }
+    ],
+    "django": {},
+    "exercise": "Write MedianFinder and compare it with statistics.median on random streams after every add. Check the two invariants: every low number is at most every high number, and the sizes differ by at most one. Then write a percentile finder that keeps the 90th percentile by balancing the halves 9 to 1, and say what changes in add.",
+    "pitfalls": [
+      "Forgetting that heapq is a min-heap and not negating the low half.",
+      "Letting the heaps differ in size by more than one, so the median is read from the wrong place.",
+      "Comparing the new number with only one top and putting it in the wrong half.",
+      "Returning an integer for an even count. The median is the average and may be a float.",
+      "Using a sorted list with insort. Each insert costs O(n)."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the median of a data stream?",
+        "a": "Keep the lower half in a max-heap and the upper half in a min-heap, with sizes differing by at most one. The median is the top of the bigger heap, or the average of both tops. Each insert costs O(log n) and reading the median costs O(1)."
+      },
+      {
+        "q": "How do you add a number so the invariants hold?",
+        "a": "Push it onto the low heap, move the low heap's top to the high heap, and if the high heap is now larger, move its top back to the low heap."
+      },
+      {
+        "q": "Why not keep a sorted list?",
+        "a": "Finding the median in a sorted list is O(1), but each insert needs a shift, which is O(n). Two heaps make inserts O(log n)."
+      },
+      {
+        "q": "How would you handle a sliding window median?",
+        "a": "Use two heaps again, but remove numbers that leave the window with lazy deletion, and keep counts of the valid numbers in each heap to rebalance."
+      }
+    ],
+    "references": [
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Priority queue (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Priority_queue",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: the two-heap median is a classic hard-ish coding question. The heap behaviour and the min-heap-only nature of heapq come from the Python heapq page, which I read in full, and the priority queue operations from the Wikipedia priority queue article, which I read in part. The two-halves method, the add rule and the variations are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it against the statistics module. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-heapq",
+      "wikipedia-priority-queue",
+      "wikipedia-binary-heap",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "median",
+        "title": "Median of a stream, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Two halves",
+            "at": 1
+          },
+          {
+            "text": "Add 5 and 15",
+            "at": 2
+          },
+          {
+            "text": "Rebalance",
+            "at": 5
+          },
+          {
+            "text": "The rule",
+            "at": 8
+          },
+          {
+            "text": "Variations",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "x",
+            "kind": "cube",
+            "x": -3.8,
+            "y": 0.8,
+            "label": "5",
+            "icon": "key",
+            "tone": "orange"
+          },
+          {
+            "id": "md",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -3.8,
+            "label": "median",
+            "icon": "gauge",
+            "tone": "green"
+          },
+          {
+            "id": "lp0",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 4.0,
+            "label": "",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "lp1",
+            "kind": "cube",
+            "x": -1.2,
+            "y": 2.8,
+            "label": "",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "lp2",
+            "kind": "cube",
+            "x": -0.0,
+            "y": 1.6,
+            "label": "",
+            "icon": "plate",
+            "tone": "blue"
+          },
+          {
+            "id": "hp0",
+            "kind": "cube",
+            "x": 1.6,
+            "y": 0.0,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "hp1",
+            "kind": "cube",
+            "x": 2.8,
+            "y": -1.2,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "hp2",
+            "kind": "cube",
+            "x": 4.0,
+            "y": -2.4,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the median after every number",
+            "tag": "technique",
+            "body": [
+              "Numbers arrive one at a time, and after each one you must report the median, the middle value of everything seen so far. Keeping a sorted list costs O(n) per insert, and sorting again each time is worse.",
+              "A heap on each side of the middle does it in O(log n) per number."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "middle of the sorted numbers"
+              },
+              {
+                "k": "Sorted list",
+                "v": "insert O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Two heaps",
+                "v": "O(log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": true
+              },
+              "hp0": {
+                "hidden": true
+              },
+              "lp1": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "next",
+                "pill": null
+              },
+              "md": {
+                "label": "median",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Split the numbers into a low half and a high half",
+            "tag": "technique",
+            "body": [
+              "Keep the smaller half in a max-heap, so its largest is on top. Keep the larger half in a min-heap, so its smallest is on top. Every number in the low half is at most every number in the high half.",
+              "The median sits at the two tops: the top of the low half, or the average of both tops. The halves differ in size by at most one."
+            ],
+            "short": "Two halves",
+            "hud": [
+              {
+                "k": "Low half",
+                "v": "max-heap"
+              },
+              {
+                "k": "High half",
+                "v": "min-heap"
+              },
+              {
+                "k": "Median",
+                "v": "at the two tops"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": true
+              },
+              "hp0": {
+                "hidden": true
+              },
+              "lp1": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "next",
+                "pill": null
+              },
+              "md": {
+                "label": "median",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "5 arrives: the median is 5",
+            "tag": "solution",
+            "body": [
+              "The first number goes into the low half. Low half [5], high half [], so the median is 5.",
+              "With one number, the median is that number."
+            ],
+            "short": "5",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": true
+              },
+              "lp1": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "5",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 5",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "x",
+                  "lp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "15 arrives: the median is the average, 10",
+            "tag": "solution",
+            "body": [
+              "15 is larger than 5, so it goes to the high half. Low half [5], high half [15], so the median is 10.",
+              "With an even count, the median is the average of the two middle numbers, 5 and 15."
+            ],
+            "short": "15",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "(5 + 15) / 2 = 10",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "15",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 10",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "x",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "1 arrives: it goes low, and the median is 5",
+            "tag": "solution",
+            "body": [
+              "1 is small, so it joins the low half. Low half [5, 1], high half [15], so the median is 5.",
+              "With an odd count, the median is the top of the larger half."
+            ],
+            "short": "1",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "1",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 5",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "x",
+                  "lp1"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The low half is 5, 1 and the high half is 15. The next number is 3. Where does 3 go?",
+              "options": [
+                "The high half",
+                "The low half, then balance",
+                "Nowhere: it is ignored"
+              ],
+              "answer": 1,
+              "why": "3 is below the top of the high half, so it joins the low half. Then the halves are rebalanced if their sizes differ by more than one."
+            }
+          },
+          {
+            "title": "3 arrives: the halves shift, the median is 4",
+            "tag": "solution",
+            "body": [
+              "3 goes into the low half, and then the low half has the larger top 5, which moves to the high half to keep the sizes equal. Low half [3, 1], high half [5, 15], so the median is 4.",
+              "Moving one item between the heaps costs O(log n)."
+            ],
+            "short": "3",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "(3 + 5) / 2 = 4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "3",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 4",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "lp0",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "8 arrives: the median is 5",
+            "tag": "solution",
+            "body": [
+              "8 goes up, and the halves are rebalanced. Low half [5, 3, 1], high half [8, 15], so the median is 5.",
+              "The sizes stay equal, or the low half is one larger."
+            ],
+            "short": "8",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": true
+              },
+              "x": {
+                "label": "8",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 5",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "x",
+                  "hp1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "7 arrives: the median is 6",
+            "tag": "solution",
+            "body": [
+              "7 joins the high half. Low half [5, 3, 1], high half [7, 8, 15], so the median is 6.",
+              "After six numbers, the median is the average of the third and fourth: 5 and 7."
+            ],
+            "short": "7",
+            "hud": [
+              {
+                "k": "Median",
+                "v": "(5 + 7) / 2 = 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x": {
+                "label": "7",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 6",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "x",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The rule for each new number",
+            "tag": "technique",
+            "body": [
+              "Push the number into the low half, move the low half's top into the high half, and if the high half is now larger, move its top back to the low half. That keeps every low number at most every high number, and the sizes within one.",
+              "Reading the median is O(1). Adding a number is O(log n)."
+            ],
+            "short": "The rule",
+            "hud": [
+              {
+                "k": "add",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "median",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x": {
+                "label": "7",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 6",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "heappush(low, -x)                    # low is a max-heap",
+                "heappush(high, -heappop(low))",
+                "if len(high) > len(low):",
+                "    heappush(low, -heappop(high))"
+              ],
+              "hl": [
+                0,
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Variations",
+            "tag": "insight",
+            "body": [
+              "A sliding-window median needs the heaps to forget old numbers, which is done with lazy deletion. The k-th smallest of a stream is the same idea with a heap of size k. Balancing the sizes differently gives any percentile.",
+              "For a fixed array and one median, quickselect is simpler."
+            ],
+            "short": "Variations",
+            "hud": [
+              {
+                "k": "Sliding window",
+                "v": "lazy deletion"
+              },
+              {
+                "k": "Percentile",
+                "v": "unbalance the halves"
+              },
+              {
+                "k": "One median, fixed array",
+                "v": "quickselect"
+              }
+            ],
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x": {
+                "label": "7",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 6",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Keep the lower half in a max-heap and the upper half in a min-heap, with sizes within one. The median is the top of the larger half, or the average of both tops. Each new number costs O(log n), and the median costs O(1).",
+              "In Python, store the negated values in the low heap."
+            ],
+            "short": "Recap",
+            "set": {
+              "lp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "blue",
+                "pill": {
+                  "text": "top of the low half",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "top of the high half",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "lp1": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "lp2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x": {
+                "label": "7",
+                "pill": {
+                  "text": "new number",
+                  "tone": "orange",
+                  "icon": "bolt"
+                }
+              },
+              "md": {
+                "label": "median",
+                "pill": {
+                  "text": "median 6",
+                  "tone": "green",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 low half: max-heap",
+                "2 high half: min-heap",
+                "3 sizes differ by at most 1",
+                "4 median from the tops"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "The median of a stream is like holding the middle of a growing line of people sorted by height, with a helper on each side.",
+      "story": "People join a growing line sorted by height, and you must always point at the person in the middle. You keep two helpers, one holding the tallest of the shorter half, and one holding the shortest of the taller half. When a newcomer arrives, they go to the right half, and if one half gets too big, the helper hands one person over to the other half. The middle is always at the two helpers.",
+      "maps": [
+        [
+          "The shorter half",
+          "The max-heap"
+        ],
+        [
+          "The taller half",
+          "The min-heap"
+        ],
+        [
+          "The helpers at the middle",
+          "The two tops"
+        ],
+        [
+          "Handing a person over",
+          "Rebalancing the heaps"
+        ]
+      ],
+      "words": [
+        [
+          "median",
+          "The middle value of a sorted collection of numbers."
+        ],
+        [
+          "stream",
+          "Numbers that arrive one at a time."
+        ],
+        [
+          "max-heap",
+          "A heap with the largest item at the root."
+        ],
+        [
+          "rebalance",
+          "Move an item between the heaps so their sizes stay close."
+        ],
+        [
+          "percentile",
+          "A value below which a given share of the numbers fall."
+        ]
+      ]
+    }
   }
 ]
