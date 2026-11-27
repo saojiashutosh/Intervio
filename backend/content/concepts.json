@@ -131090,5 +131090,1589 @@
         ]
       ]
     }
+  },
+  {
+    "id": "segment-trees",
+    "n": 174,
+    "level": 14,
+    "week": "Core",
+    "title": "Segment Trees: Range Queries with Updates",
+    "tagline": "Answer range sum or minimum questions in O(log n) while the numbers change, by storing the combined value of a range in each tree node.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 3,
+    "explain": [
+      "A segment tree is a tree built over an array so that you can answer a question about any contiguous range, such as its sum or minimum, quickly, even when the array changes. The Wikipedia article says the segment tree answers a query on an associative function over a contiguous range in O(log n) time. It was invented by Jon Bentley in 1977.",
+      "## The structure",
+      "The leaves hold the array elements. Every internal node holds the combined value of its two children, so it describes the union of their ranges. For the array 2, 5, 1, 4, 9, 3, 7, 6 the node above the first two leaves holds 7, the sum of indexes 0 and 1, and the root holds 37, the sum of all. A tree over n elements has fewer than 2n nodes and height about log2 n, and it can be stored in an array.",
+      "## Building",
+      "Fill in the leaves, then compute each parent from its two children, going up. Each node is computed once, so building takes O(n).",
+      "## Querying a range",
+      "To combine indexes 2 to 6, cover the range with the largest whole nodes that fit inside it. In the example, the node for indexes 2 and 3 holds 5, the node for 4 and 5 holds 12, and the leaf at 6 holds 7. The sum is 24. At each level the query needs at most two nodes, one at each end of the range, so a query touches about 2 log2 n nodes. It costs O(log n).",
+      "## Updating one element",
+      "Change the leaf, then recompute each ancestor on the way to the root. If index 5 changes from 3 to 10, its parent becomes 9 + 10 = 19, the next becomes 19 + 13 = 32, and the root becomes 12 + 32 = 44. That is one path, so an update costs O(log n).",
+      "> A worked example: the sum of indexes 2 to 6 in 2, 5, 1, 4, 9, 3, 7, 6 is 1 + 4 + 9 + 3 + 7 = 24. The tree gets the same answer by adding three stored values: 5, 12 and 7.",
+      "## Any associative operation",
+      "The nodes can combine children with sum, minimum, maximum, product or greatest common divisor. The operation must be associative, so that pieces of a range can be grouped in any way. You change only the combining function and the value used for an empty range.",
+      "## Related ideas",
+      "Prefix sums answer sums in O(1) but need O(n) to rebuild after a change. If the array never changes, use them. A Fenwick tree, or binary indexed tree, is a shorter structure for prefix sums with updates. Lazy propagation lets a segment tree add a value to a whole range in O(log n) by postponing changes to the children until they are needed. The Wikipedia article also covers the original form over a set of intervals, with stabbing queries in O(log n + k) for k reported intervals.",
+      "## A short implementation",
+      "An iterative version keeps the leaves in positions n to 2n - 1 of a single list, and each parent at i combines the children at 2i and 2i + 1. A query walks the left and right edges of the range upwards, and an update walks from the leaf up to the root. It works for any n, and needs no recursion.",
+      "## How to talk through it",
+      "Say what each node stores and how the parent is computed. Show a query as a cover by whole nodes, and an update as a path to the root. Give O(n) build and O(log n) for each query and update, and say when prefix sums would be enough."
+    ],
+    "keyPoints": [
+      "Leaves are the array elements. Each internal node stores the combined value of its range. Fewer than 2n nodes.",
+      "Build O(n). Range query O(log n): cover the range with whole nodes. Point update O(log n): fix the path to the root.",
+      "The combining operation must be associative: sum, min, max, gcd, product.",
+      "Prefix sums are simpler for static data. A Fenwick tree is shorter for sums with updates.",
+      "Lazy propagation gives O(log n) range updates. The iterative array form stores leaves at n to 2n - 1."
+    ],
+    "sql": [
+      {
+        "title": "An iterative segment tree",
+        "lang": "py",
+        "code": "class SegTree:\n    def __init__(self, data, op=lambda a, b: a + b, identity=0):\n        self.n, self.op, self.identity = len(data), op, identity\n        self.t = [identity] * self.n + list(data)        # leaves at n .. 2n - 1\n        for i in range(self.n - 1, 0, -1):               # build parents from children: O(n)\n            self.t[i] = op(self.t[2 * i], self.t[2 * i + 1])\n\n    def update(self, i, value):                          # set a[i] = value\n        i += self.n\n        self.t[i] = value\n        while i > 1:\n            i //= 2\n            self.t[i] = self.op(self.t[2 * i], self.t[2 * i + 1])\n\n    def query(self, lo, hi):                             # combine a[lo:hi], hi exclusive\n        left = right = self.identity\n        lo += self.n\n        hi += self.n\n        while lo < hi:\n            if lo & 1:\n                left = self.op(left, self.t[lo]); lo += 1\n            if hi & 1:\n                hi -= 1; right = self.op(self.t[hi], right)\n            lo //= 2\n            hi //= 2\n        return self.op(left, right)\n\na = [2, 5, 1, 4, 9, 3, 7, 6]\nst = SegTree(a)\nassert st.query(2, 7) == 1 + 4 + 9 + 3 + 7 == 24\nassert st.query(0, 8) == 37 and st.query(3, 3) == 0 and st.query(5, 6) == 3\nst.update(5, 10)\nassert st.query(0, 8) == 44 and st.query(2, 7) == 31\n\nmn = SegTree(a, min, float(\"inf\"))\nassert mn.query(0, 8) == 1 and mn.query(4, 8) == 3 and mn.query(0, 2) == 2"
+      },
+      {
+        "title": "Check against brute force on random data",
+        "lang": "py",
+        "code": "import random\n\nclass SegTree:\n    def __init__(self, data, op=lambda a, b: a + b, identity=0):\n        self.n, self.op, self.identity = len(data), op, identity\n        self.t = [identity] * self.n + list(data)\n        for i in range(self.n - 1, 0, -1):\n            self.t[i] = op(self.t[2 * i], self.t[2 * i + 1])\n    def update(self, i, value):\n        i += self.n\n        self.t[i] = value\n        while i > 1:\n            i //= 2\n            self.t[i] = self.op(self.t[2 * i], self.t[2 * i + 1])\n    def query(self, lo, hi):\n        left = right = self.identity\n        lo += self.n; hi += self.n\n        while lo < hi:\n            if lo & 1:\n                left = self.op(left, self.t[lo]); lo += 1\n            if hi & 1:\n                hi -= 1; right = self.op(self.t[hi], right)\n            lo //= 2; hi //= 2\n        return self.op(left, right)\n\nrandom.seed(16)\nfor n in (1, 2, 7, 13, 50):                               # not only powers of two\n    data = [random.randint(-9, 9) for _ in range(n)]\n    st, mx = SegTree(data), SegTree(data, max, float(\"-inf\"))\n    for _ in range(200):\n        if random.random() < 0.4:\n            i, v = random.randrange(n), random.randint(-9, 9)\n            data[i] = v; st.update(i, v); mx.update(i, v)\n        else:\n            lo = random.randint(0, n); hi = random.randint(lo, n)\n            assert st.query(lo, hi) == sum(data[lo:hi])\n            if lo < hi:\n                assert mx.query(lo, hi) == max(data[lo:hi])"
+      },
+      {
+        "title": "Prefix sums versus a segment tree",
+        "lang": "py",
+        "code": "class SegTree:\n    def __init__(self, data):\n        self.n = len(data)\n        self.t = [0] * self.n + list(data)\n        for i in range(self.n - 1, 0, -1):\n            self.t[i] = self.t[2 * i] + self.t[2 * i + 1]\n    def update(self, i, value):\n        i += self.n\n        self.t[i] = value\n        while i > 1:\n            i //= 2\n            self.t[i] = self.t[2 * i] + self.t[2 * i + 1]\n    def query(self, lo, hi):\n        total = 0\n        lo += self.n; hi += self.n\n        while lo < hi:\n            if lo & 1:\n                total += self.t[lo]; lo += 1\n            if hi & 1:\n                hi -= 1; total += self.t[hi]\n            lo //= 2; hi //= 2\n        return total\n\ndata = [2, 5, 1, 4, 9, 3, 7, 6]\nprefix = [0]\nfor x in data:\n    prefix.append(prefix[-1] + x)\nst = SegTree(data)\nassert prefix[7] - prefix[2] == st.query(2, 7) == 24\n\ndata[5] = 10                                              # the array changes ...\nst.update(5, 10)                                          # ... the tree fixes one path: O(log n)\nstale = prefix[7] - prefix[2]                             # ... the prefix sums are now wrong until rebuilt\nassert stale == 24 and st.query(2, 7) == 31"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the iterative SegTree with sum, then change it to min and max by passing a different operation and identity. Test it on random arrays of sizes that are not powers of two, with random updates and queries, against brute force. Then write a Fenwick tree for sums and compare the two on 10,000 operations, and say when you would prefer each.",
+    "pitfalls": [
+      "Using a combining operation that is not associative. Parts of the range will give a wrong answer.",
+      "Using the wrong identity for an empty range: 0 for sums, infinity for minimums.",
+      "Mixing inclusive and exclusive range ends. Decide on [lo, hi) and stay with it.",
+      "Rebuilding the whole tree on every update instead of fixing one path.",
+      "Using a segment tree when prefix sums are enough because the data never changes."
+    ],
+    "interview": [
+      {
+        "q": "What problem does a segment tree solve?",
+        "a": "Range queries, such as the sum or minimum of any subarray, together with updates to single elements, both in O(log n). Prefix sums answer queries in O(1) but need O(n) to rebuild after a change."
+      },
+      {
+        "q": "How does a segment tree answer a range query?",
+        "a": "It covers the range with the largest whole nodes that fit inside it and combines their stored values. At each level at most two nodes are used, so a query is O(log n)."
+      },
+      {
+        "q": "How does a segment tree handle an update?",
+        "a": "Change the leaf, then recompute each ancestor from its two children up to the root. That is one path of about log2 n nodes, so it costs O(log n)."
+      },
+      {
+        "q": "What kinds of operations can a segment tree combine?",
+        "a": "Any associative one: sum, minimum, maximum, product or greatest common divisor, with a suitable identity value for empty ranges."
+      }
+    ],
+    "references": [
+      {
+        "title": "Segment tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Segment_tree",
+        "kind": "Reference"
+      },
+      {
+        "title": "Prefix sum (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Prefix_sum",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: segment trees are the standard answer to range queries with updates and appear in harder coding rounds. The O(log n) range query for an associative function, the union-of-intervals structure of a node and the origin in 1977 come from the Wikipedia segment tree article, which I read in full. The array form, the point update, lazy propagation and the build cost are standard techniques that I present from general knowledge, since that article describes the interval version, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-segment-tree",
+      "wikipedia-prefix-sum",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "segtree",
+        "title": "Segment trees, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "search or visit"
+          },
+          {
+            "kind": "write",
+            "label": "insert, change or rotate"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "The structure",
+            "at": 1
+          },
+          {
+            "text": "Query",
+            "at": 3
+          },
+          {
+            "text": "Update",
+            "at": 5
+          },
+          {
+            "text": "Other operations",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -2.1,
+            "y": -2.1,
+            "label": "37",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 1.05,
+            "label": "12",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": 1.05,
+            "y": -2.75,
+            "label": "25",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": -2.45,
+            "y": 3.25,
+            "label": "7",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s4",
+            "kind": "cube",
+            "x": -0.55,
+            "y": 1.35,
+            "label": "5",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s5",
+            "kind": "cube",
+            "x": 1.35,
+            "y": -0.55,
+            "label": "12",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s6",
+            "kind": "cube",
+            "x": 3.25,
+            "y": -2.45,
+            "label": "13",
+            "icon": "ball",
+            "tone": "purple",
+            "from": 1
+          },
+          {
+            "id": "s7",
+            "kind": "cube",
+            "x": -1.675,
+            "y": 4.975,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s8",
+            "kind": "cube",
+            "x": -0.725,
+            "y": 4.025,
+            "label": "5",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s9",
+            "kind": "cube",
+            "x": 0.225,
+            "y": 3.075,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s10",
+            "kind": "cube",
+            "x": 1.175,
+            "y": 2.125,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s11",
+            "kind": "cube",
+            "x": 2.125,
+            "y": 1.175,
+            "label": "9",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s12",
+            "kind": "cube",
+            "x": 3.075,
+            "y": 0.225,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s13",
+            "kind": "cube",
+            "x": 4.025,
+            "y": -0.725,
+            "label": "7",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "s14",
+            "kind": "cube",
+            "x": 4.975,
+            "y": -1.675,
+            "label": "6",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "s0",
+            "b": "s1",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s0",
+            "b": "s2",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s1",
+            "b": "s3",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s1",
+            "b": "s4",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s2",
+            "b": "s5",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s2",
+            "b": "s6",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s3",
+            "b": "s7",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s3",
+            "b": "s8",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s4",
+            "b": "s9",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s4",
+            "b": "s10",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s5",
+            "b": "s11",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s5",
+            "b": "s12",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s6",
+            "b": "s13",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "s6",
+            "b": "s14",
+            "dir": "none",
+            "from": 1
+          }
+        ],
+        "steps": [
+          {
+            "title": "The problem: range sums that change",
+            "tag": "technique",
+            "body": [
+              "Given 8 numbers, we must answer many questions of the form: what is the sum from index l to r? And the numbers also change, one at a time. Adding up the range each time costs O(n).",
+              "Prefix sums answer a query in O(1), but a single change forces them to be rebuilt in O(n). A segment tree makes both queries and changes O(log n)."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Naive query",
+                "v": "O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Prefix sums, with changes",
+                "v": "rebuild O(n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Segment tree",
+                "v": "O(log n) both",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Each node stores the sum of a range",
+            "tag": "technique",
+            "body": [
+              "The 8 numbers are the leaves. Every node above stores the sum of its two children, so it covers the union of their ranges. The node above the first two leaves holds 2 + 5 = 7 and covers indexes 0 to 1.",
+              "The root covers all 8 numbers: its value is 37. The Wikipedia article describes this: each internal node covers the union of its children's intervals."
+            ],
+            "short": "The structure",
+            "hud": [
+              {
+                "k": "Leaves",
+                "v": "the 8 numbers"
+              },
+              {
+                "k": "Node",
+                "v": "combines its two children"
+              },
+              {
+                "k": "Height",
+                "v": "log2 8 = 3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "37",
+                "tone": "purple",
+                "pill": {
+                  "text": "covers 0..7: 37",
+                  "tone": "purple",
+                  "icon": "box"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "covers 0..1",
+                  "tone": "purple",
+                  "icon": "box"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "13",
+                "tone": "purple",
+                "pill": {
+                  "text": "covers 6..7",
+                  "tone": "purple",
+                  "icon": "box"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Build from the bottom up in O(n)",
+            "tag": "solution",
+            "body": [
+              "Fill the leaves with the numbers, then compute each parent from its two children, level by level up to the root. There are fewer than 2n nodes in total, and each is computed once, so building costs O(n).",
+              "The tree can be stored in an array: the children of node i are at 2i + 1 and 2i + 2."
+            ],
+            "short": "Build",
+            "hud": [
+              {
+                "k": "Build",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Nodes",
+                "v": "2n - 1 = 15"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "37",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "13",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s7",
+                  "s3",
+                  "s1",
+                  "s0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Query: sum of indexes 2 to 6",
+            "tag": "solution",
+            "body": [
+              "Cover the range with the biggest whole nodes that fit inside it. Indexes 2 and 3 are one node with 5. Indexes 4 and 5 are one node with 12. Index 6 is a single leaf with 7. Add them: 5 + 12 + 7 = 24.",
+              "Check: 1 + 4 + 9 + 3 + 7 = 24. We touched 3 nodes, not 5 numbers."
+            ],
+            "short": "Query",
+            "hud": [
+              {
+                "k": "sum(2..6)",
+                "v": "5 + 12 + 7 = 24",
+                "tone": "good"
+              },
+              {
+                "k": "Nodes used",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "37",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "5",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "12",
+                "tone": "orange",
+                "pill": {
+                  "text": "12",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "13",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "orange",
+                "pill": {
+                  "text": "7",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The query covers indexes 2 to 6. Why is the node that covers indexes 4 to 7 not used?",
+              "options": [
+                "It is too small",
+                "It also includes index 7, which is outside the range",
+                "It does not exist"
+              ],
+              "answer": 1,
+              "why": "A node can be used only if its whole range lies inside the query range. Index 7 is outside 2..6."
+            }
+          },
+          {
+            "title": "Why it takes O(log n)",
+            "tag": "insight",
+            "body": [
+              "At each level of the tree, a query uses at most two nodes, one at each edge of the range. The tree has about log2 n levels, so a query touches at most about 2 log2 n nodes.",
+              "The Wikipedia article states that the segment tree answers a query on a contiguous range in O(log n) time."
+            ],
+            "short": "O(log n)",
+            "hud": [
+              {
+                "k": "Per level",
+                "v": "at most 2 nodes"
+              },
+              {
+                "k": "Levels",
+                "v": "log2 n"
+              },
+              {
+                "k": "Query",
+                "v": "O(log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "37",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "12",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "13",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Update: change one number and fix its ancestors",
+            "tag": "solution",
+            "body": [
+              "Change index 5 from 3 to 10. The leaf is updated, and then every ancestor is recomputed: 9 + 10 = 19, then 19 + 13 = 32, then 12 + 32 = 44. Only the path up to the root changes.",
+              "That path has about log2 n nodes, so an update costs O(log n)."
+            ],
+            "short": "Update",
+            "hud": [
+              {
+                "k": "Nodes changed",
+                "v": "4: the leaf and 3 ancestors"
+              },
+              {
+                "k": "Update",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "New total",
+                "v": "44",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "44",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "12",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "32",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "19",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "13",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "10",
+                "tone": "orange",
+                "pill": {
+                  "text": "3 became 10",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s12",
+                  "s5",
+                  "s2",
+                  "s0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Not only sums",
+            "tag": "technique",
+            "body": [
+              "The node can combine its children by any associative operation: minimum, maximum, greatest common divisor, product. Here the same tree stores minimums, so a range minimum query is also O(log n).",
+              "The operation must be associative, so that parts of a range can be combined in any grouping."
+            ],
+            "short": "Other operations",
+            "hud": [
+              {
+                "k": "Range minimum",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Operation",
+                "v": "must be associative"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Range updates and lazy propagation",
+            "tag": "insight",
+            "body": [
+              "To add a value to a whole range at once, a plain tree would need many leaf updates. Lazy propagation keeps a pending change on a node and passes it to its children only when needed, so range updates also cost O(log n).",
+              "This is more advanced, and mostly met in competitive programming."
+            ],
+            "short": "Lazy updates",
+            "hud": [
+              {
+                "k": "Range add",
+                "v": "O(log n) with lazy propagation"
+              },
+              {
+                "k": "Idea",
+                "v": "postpone the change until a query needs it"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Array form: size 2n and a loop",
+            "tag": "technique",
+            "body": [
+              "A simple version stores the leaves at positions n to 2n - 1 of one array, and each parent at i holds the combination of the children at 2i and 2i + 1. Queries and updates are short loops that move up the tree, with no recursion.",
+              "It works for any n, not only for powers of two."
+            ],
+            "short": "In code",
+            "hud": [
+              {
+                "k": "Storage",
+                "v": "one array of size 2n"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "t[i] = op(t[2*i], t[2*i + 1])   # parent from children",
+                "i //= 2                         # move up a level"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A segment tree answers range queries and point updates in O(log n), after an O(n) build. Each node stores the combined value of a range. Use it when the data changes, and a prefix sum would need rebuilding.",
+              "For static data, prefix sums are simpler. For sums with updates only, a Fenwick tree is shorter."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "2",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "1",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "6",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s8": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s9": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s10": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s11": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s12": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s13": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s14": {
+                "label": "6",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 leaves are the numbers",
+                "2 parents combine children",
+                "3 query: cover the range with whole nodes",
+                "4 update: fix the path to the root"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A segment tree is like a company where each manager keeps the total of their team's sales.",
+      "story": "In a company, every worker reports their sales to a manager, who adds up their team, and managers report to bigger managers, up to the director. To get the sales of a group of neighbouring workers, you ask the few managers whose teams fit inside the group instead of asking every worker. When one worker's number changes, only the managers above them must update their totals.",
+      "maps": [
+        [
+          "A worker's figure",
+          "A leaf"
+        ],
+        [
+          "A manager's team total",
+          "An internal node"
+        ],
+        [
+          "Asking a few managers",
+          "Covering a range with nodes"
+        ],
+        [
+          "Updating the managers above",
+          "Fixing the path to the root"
+        ]
+      ],
+      "words": [
+        [
+          "segment tree",
+          "A tree where each node stores a combined value for a range of the array."
+        ],
+        [
+          "range query",
+          "A question about a block of neighbouring items, such as their sum."
+        ],
+        [
+          "associative",
+          "The grouping of a combination does not change the result."
+        ],
+        [
+          "point update",
+          "Changing one element of the array."
+        ],
+        [
+          "lazy propagation",
+          "Postponing a change to the children until it is needed."
+        ]
+      ]
+    }
   }
 ]
