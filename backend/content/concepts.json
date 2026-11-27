@@ -157344,5 +157344,1065 @@
         ]
       ]
     }
+  },
+  {
+    "id": "merge-sort",
+    "n": 197,
+    "level": 14,
+    "week": "Core",
+    "title": "Merge Sort: Bottom-Up, Stable, and Counting Inversions",
+    "tagline": "Go deeper into merge sort: merge runs bottom-up without recursion, keep it stable, count inversions during the merge, and see why it suits linked lists.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Merge sort sorts by merging sorted runs. The Wikipedia article gives its time as O(n log n) in the worst and average cases, and notes that most implementations are stable. The earlier lesson on divide and conquer introduced the recursive form. Here we look at the bottom-up form, why it is stable, what it costs in memory, and a classic use: counting inversions.",
+      "## Merging two sorted runs",
+      "To merge two sorted runs, keep one index in each. Compare the two front items, take the smaller into the output, and advance that index. When one run is used up, copy the rest of the other. Every item is handled once, so a merge of n items costs O(n). To keep the merge stable, when the two fronts are equal take the one from the left run. The article describes the left run being taken when a[i] <= a[j].",
+      "## Top-down and bottom-up",
+      "The top-down version splits the array in halves recursively until single items remain, then merges on the way back. The bottom-up version needs no recursion. It treats the array as n runs of length 1, and repeatedly merges neighbouring runs into runs of double the length, as the article describes with a run width that doubles each pass. After log2 n passes there is one run. Each pass costs O(n), so the total is O(n log n). The recurrence for the top-down form is T(n) = 2T(n/2) + n.",
+      "> A worked example: 38, 27, 43, 3, 9, 82, 10, 5. Pass 1 merges pairs into 27 38 | 3 43 | 9 82 | 5 10. Pass 2 gives 3 27 38 43 | 5 9 10 82. Pass 3 gives 3 5 9 10 27 38 43 82.",
+      "## Space",
+      "Merging arrays needs a second array to build the output, so merge sort uses O(n) extra space, and does not sort in place. For linked lists, you relink the existing nodes instead of copying, so the auxiliary space is O(1) for the bottom-up version. The article gives O(n) total space with O(n) auxiliary for arrays and O(1) auxiliary for linked lists, and calls merge sort often the best choice for sorting a linked list. It is also efficient for data that can only be accessed in order, where quicksort's random access is a problem.",
+      "## Counting inversions",
+      "An inversion is a pair of positions i < j with a[i] > a[j]. The number of inversions measures how far from sorted an array is. Checking every pair takes O(n squared). During a merge, each time you take an item from the right run, it has jumped ahead of every item still waiting in the left run, and each of those pairs is an inversion. Add the number of remaining left items to a counter. The total over all merges is the number of inversions, in O(n log n).",
+      "## Natural runs and Timsort",
+      "Real data often has sorted stretches. A natural merge sort starts with those runs instead of runs of length 1. The article notes that natural merge sort is a key component of Timsort, the algorithm behind Python's sorted and list.sort. This is why Python's sort is both stable and fast on partly sorted data.",
+      "## Compared with the others",
+      "Merge sort guarantees O(n log n) and is stable, but needs extra memory for arrays. Quicksort is in place and usually faster in practice, but is not stable and has an O(n squared) worst case. Heap sort is in place with a guaranteed bound, but is not stable.",
+      "## How to talk through it",
+      "Describe the merge and say that equal items are taken from the left. Give O(n log n), explain the passes, and mention O(n) extra space. If asked for inversions, describe the counter in the merge."
+    ],
+    "keyPoints": [
+      "Merge two sorted runs in O(n). Bottom-up: merge runs of width 1, 2, 4, ... in log2 n passes. Total O(n log n) in every case.",
+      "Stable if you take the left item on ties (<=).",
+      "Arrays need O(n) extra space. Linked lists need only O(1) auxiliary space.",
+      "Inversions: when you take from the right run, add the number of left items still waiting. O(n log n).",
+      "Timsort, behind Python's sort, builds on natural merge sort: stable and good on partly sorted data."
+    ],
+    "sql": [
+      {
+        "title": "Top-down and bottom-up merge sort",
+        "lang": "py",
+        "code": "def merge(left, right):\n    out, i, j = [], 0, 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:                           # <= takes the left item on a tie: stable\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n    return out + left[i:] + right[j:]\n\ndef merge_sort_top_down(a):\n    if len(a) <= 1:\n        return list(a)\n    mid = len(a) // 2\n    return merge(merge_sort_top_down(a[:mid]), merge_sort_top_down(a[mid:]))\n\ndef merge_sort_bottom_up(a):\n    a, n, width = list(a), len(a), 1\n    while width < n:\n        for lo in range(0, n, 2 * width):\n            mid, hi = min(lo + width, n), min(lo + 2 * width, n)\n            a[lo:hi] = merge(a[lo:mid], a[mid:hi])\n        width *= 2                                        # run lengths 1, 2, 4, 8, ...\n    return a\n\ndata = [38, 27, 43, 3, 9, 82, 10, 5]\nexpected = [3, 5, 9, 10, 27, 38, 43, 82]\nassert merge_sort_top_down(data) == merge_sort_bottom_up(data) == expected\nassert merge_sort_bottom_up([]) == [] and merge_sort_bottom_up([1]) == [1]\nassert merge_sort_bottom_up([3, 1, 2, 5, 4]) == [1, 2, 3, 4, 5]          # n is not a power of two"
+      },
+      {
+        "title": "Stability and counting inversions",
+        "lang": "py",
+        "code": "def merge_count(left, right):\n    out, i, j, inversions = [], 0, 0, 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n            inversions += len(left) - i                     # the right item passed all remaining left items\n    return out + left[i:] + right[j:], inversions\n\ndef sort_count(a):\n    if len(a) <= 1:\n        return list(a), 0\n    mid = len(a) // 2\n    left, c1 = sort_count(a[:mid])\n    right, c2 = sort_count(a[mid:])\n    merged, c3 = merge_count(left, right)\n    return merged, c1 + c2 + c3\n\nassert sort_count([2, 4, 1, 3, 5])[1] == 3\nassert sort_count([5, 4, 3, 2, 1])[1] == 10 and sort_count([1, 2, 3])[1] == 0\nbrute = lambda a: sum(1 for i in range(len(a)) for j in range(i + 1, len(a)) if a[i] > a[j])\ndata = [38, 27, 43, 3, 9, 82, 10, 5]\nassert sort_count(data)[1] == brute(data)\n\ndef merge_by_key(left, right, key):\n    out, i, j = [], 0, 0\n    while i < len(left) and j < len(right):\n        if key(left[i]) <= key(right[j]):\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n    return out + left[i:] + right[j:]\n\na, b = [(1, \"left-1\"), (2, \"left-2\")], [(1, \"right-1\"), (2, \"right-2\")]\nassert [name for _, name in merge_by_key(a, b, lambda r: r[0])] == [\"left-1\", \"right-1\", \"left-2\", \"right-2\"]"
+      },
+      {
+        "title": "Merge sort on a linked list, and merging sorted streams",
+        "lang": "py",
+        "code": "import heapq\nimport random\n\nclass Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef merge_lists(a, b):\n    dummy = tail = Node(None)\n    while a and b:\n        if a.val <= b.val:\n            tail.next, a = a, a.next\n        else:\n            tail.next, b = b, b.next\n        tail = tail.next\n    tail.next = a or b\n    return dummy.next\n\ndef sort_list(head):\n    if head is None or head.next is None:\n        return head\n    slow, fast = head, head.next\n    while fast and fast.next:\n        slow, fast = slow.next, fast.next.next\n    second, slow.next = slow.next, None\n    return merge_lists(sort_list(head), sort_list(second))\n\ndef build(values):\n    dummy = cur = Node(None)\n    for v in values:\n        cur.next = Node(v); cur = cur.next\n    return dummy.next\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val); head = head.next\n    return out\n\nrandom.seed(56)\nfor _ in range(100):\n    data = [random.randint(-9, 9) for _ in range(random.randint(0, 25))]\n    assert to_list(sort_list(build(data))) == sorted(data)\n\nruns = [[1, 4, 9], [2, 3, 10], [5, 6, 7]]                  # sorted runs, for example from files on disk\nassert list(heapq.merge(*runs)) == [1, 2, 3, 4, 5, 6, 7, 9, 10]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the top-down and bottom-up merge sorts and check both against sorted on 300 random lists, including lengths that are not powers of two. Then count inversions with the merge, and check it against the O(n squared) count. Finally, show that using < instead of <= in the merge makes it unstable, with a small example.",
+    "pitfalls": [
+      "Using < instead of <= in the merge, which breaks stability.",
+      "Slicing in every recursive call and thinking the extra space is O(log n). Slices copy, so the total extra space is O(n).",
+      "Forgetting to copy the leftover of the run that is not empty after the main loop.",
+      "Computing mid with min mistakes in the bottom-up loop when n is not a power of two.",
+      "Counting inversions with the wrong number. Add the count of left items still waiting, not 1."
+    ],
+    "interview": [
+      {
+        "q": "What is the time and space complexity of merge sort?",
+        "a": "O(n log n) time in the worst, average and best cases. For arrays it needs O(n) extra space for merging. For linked lists the merging needs only O(1) auxiliary space."
+      },
+      {
+        "q": "Is merge sort stable and why?",
+        "a": "Yes, if the merge takes the item from the left run when the two front items are equal, so equal items keep the order they had in the input."
+      },
+      {
+        "q": "How do you count inversions in O(n log n)?",
+        "a": "Run merge sort. When the merge takes an item from the right run, every item still waiting in the left run forms an inversion with it. Add that count. The total is the number of inversions."
+      },
+      {
+        "q": "What is the difference between top-down and bottom-up merge sort?",
+        "a": "Top-down splits recursively to single items and merges on the way back. Bottom-up starts with runs of length 1 and merges neighbouring runs, doubling the run length each pass. Both do the same merges and cost O(n log n). Bottom-up needs no recursion."
+      }
+    ],
+    "references": [
+      {
+        "title": "Merge sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Merge_sort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Sorting techniques: stability (Python docs)",
+        "url": "https://docs.python.org/3/howto/sorting.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: merge sort is the standard stable O(n log n) sort and the base of the inversion counting question. The O(n log n) cost, the stability and the left-on-ties rule, the top-down and bottom-up forms with doubling width, the O(n) arrays versus O(1) linked list auxiliary space, the suitability for sequential access and the Timsort connection come from the Wikipedia merge sort article, which I read in part, and Python's stable sort from the Python sorting guide, which I read in full. The inversion counting method and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-merge-sort",
+      "py-sorting",
+      "wikipedia-divide-and-conquer",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "mergesort",
+        "title": "Bottom-up merge sort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or probe"
+          },
+          {
+            "kind": "write",
+            "label": "move or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Bottom-up",
+            "at": 0
+          },
+          {
+            "text": "Pass 1",
+            "at": 1
+          },
+          {
+            "text": "Pass 3",
+            "at": 3
+          },
+          {
+            "text": "Stable",
+            "at": 5
+          },
+          {
+            "text": "Inversions",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "m0",
+            "kind": "cube",
+            "x": -3.85,
+            "y": 3.85,
+            "label": "38",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m1",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 2.75,
+            "label": "27",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m2",
+            "kind": "cube",
+            "x": -1.65,
+            "y": 1.65,
+            "label": "43",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m3",
+            "kind": "cube",
+            "x": -0.55,
+            "y": 0.55,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m4",
+            "kind": "cube",
+            "x": 0.55,
+            "y": -0.55,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m5",
+            "kind": "cube",
+            "x": 1.65,
+            "y": -1.65,
+            "label": "82",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m6",
+            "kind": "cube",
+            "x": 2.75,
+            "y": -2.75,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m7",
+            "kind": "cube",
+            "x": 3.85,
+            "y": -3.85,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Merge sort from the bottom up",
+            "tag": "technique",
+            "body": [
+              "The earlier lesson on divide and conquer showed merge sort top-down. Here is the bottom-up form, which uses no recursion. Treat the array as 8 sorted runs of length 1, then merge neighbouring runs into runs of 2, then 4, then 8.",
+              "We sort 38, 27, 43, 3, 9, 82, 10, 5. The colours mark runs."
+            ],
+            "short": "Bottom-up",
+            "hud": [
+              {
+                "k": "Start",
+                "v": "8 runs of length 1"
+              },
+              {
+                "k": "Passes",
+                "v": "log2 8 = 3"
+              },
+              {
+                "k": "Each pass",
+                "v": "O(n)"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "38",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "27",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "43",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "82",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "10",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "5",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Pass 1: merge pairs into runs of 2",
+            "tag": "solution",
+            "body": [
+              "Merge each pair of neighbouring runs. 38 and 27 become 27, 38. 43 and 3 become 3, 43. 9 and 82 stay 9, 82. 10 and 5 become 5, 10. The array is 27 38 3 43 9 82 5 10.",
+              "Every run of length 2 is now sorted."
+            ],
+            "short": "Pass 1",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "27 38 3 43 9 82 5 10"
+              },
+              {
+                "k": "Run length",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "27",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "38",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "3",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "43",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "9",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "82",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "5",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "10",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m0",
+                  "m1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "m2",
+                  "m3"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "m6",
+                  "m7"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              }
+            ],
+            "predict": {
+              "question": "After pass 1 the runs of length 2 are sorted. What is the run length after pass 2?",
+              "options": [
+                "3",
+                "4",
+                "8"
+              ],
+              "answer": 1,
+              "why": "Each pass doubles the run length: 1, 2, 4, 8."
+            }
+          },
+          {
+            "title": "Pass 2: merge runs of 2 into runs of 4",
+            "tag": "solution",
+            "body": [
+              "Merge neighbouring runs of 2. The merge takes the smaller front item each time. 27, 38 and 3, 43 become 3, 27, 38, 43. 9, 82 and 5, 10 become 5, 9, 10, 82. The array is 3 27 38 43 5 9 10 82.",
+              "Each merge reads every item once, so a pass costs O(n)."
+            ],
+            "short": "Pass 2",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "3 27 38 43 5 9 10 82"
+              },
+              {
+                "k": "Run length",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "27",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "38",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "43",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "10",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m0",
+                  "m2"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "m4",
+                  "m6"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Pass 3: the last merge",
+            "tag": "solution",
+            "body": [
+              "Merge the two runs of 4 into one run of 8. The array is 3 5 9 10 27 38 43 82. Sorted.",
+              "Three passes, each O(n): O(n log n) in total."
+            ],
+            "short": "Pass 3",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "3 5 9 10 27 38 43 82",
+                "tone": "good"
+              },
+              {
+                "k": "Total",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "m0",
+                  "m4"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Top-down: the same merges, in a different order",
+            "tag": "technique",
+            "body": [
+              "The recursive version splits the array in halves down to single items, and merges on the way back. It makes the same merges as bottom-up when n is a power of two. Top-down is easier to write. Bottom-up avoids recursion and its stack.",
+              "The Wikipedia article gives both forms, and notes that the recurrence is T(n) = 2T(n/2) + n."
+            ],
+            "short": "Top-down",
+            "hud": [
+              {
+                "k": "Top-down",
+                "v": "recursive, simple"
+              },
+              {
+                "k": "Bottom-up",
+                "v": "iterative, no stack"
+              },
+              {
+                "k": "Recurrence",
+                "v": "T(n) = 2T(n/2) + n"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Stability: take from the left on ties",
+            "tag": "insight",
+            "body": [
+              "In the merge, when the front items are equal, take the one from the left run. Then equal items keep their original order, because left items came first in the input. The article describes taking the left run when a[i] <= a[j].",
+              "Using < instead of <= breaks stability. Stability lets you sort by one key after another."
+            ],
+            "short": "Stable",
+            "hud": [
+              {
+                "k": "Tie rule",
+                "v": "take the left item",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "yes, with <=",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if left[i] <= right[j]:   # <= keeps equal items in order",
+                "    out.append(left[i])"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Counting inversions while merging",
+            "tag": "technique",
+            "body": [
+              "An inversion is a pair out of order: a bigger item before a smaller one. During a merge, each time you take an item from the right run, it jumps ahead of every item still waiting in the left run. Add that number of items to a counter.",
+              "This counts all inversions in O(n log n), instead of O(n squared) by checking each pair."
+            ],
+            "short": "Inversions",
+            "hud": [
+              {
+                "k": "Right item taken",
+                "v": "adds len(left remaining)"
+              },
+              {
+                "k": "Total",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "else:",
+                "    out.append(right[j])",
+                "    inversions += len(left) - i   # it passed the rest of the left run"
+              ],
+              "hl": [
+                2
+              ]
+            }
+          },
+          {
+            "title": "Space and linked lists",
+            "tag": "insight",
+            "body": [
+              "For arrays, merging needs a second array, so merge sort uses O(n) extra space. For linked lists, you relink nodes, so the auxiliary space is O(1). The article lists O(n) total with O(1) auxiliary for linked lists, and calls merge sort often the best choice for sorting a linked list.",
+              "That is also why it suits data that can only be reached in order, such as a file on disk."
+            ],
+            "short": "Space",
+            "hud": [
+              {
+                "k": "Arrays",
+                "v": "O(n) extra space",
+                "tone": "warn"
+              },
+              {
+                "k": "Linked lists",
+                "v": "O(1) auxiliary",
+                "tone": "good"
+              },
+              {
+                "k": "Time",
+                "v": "O(n log n) always",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Natural runs and Timsort",
+            "tag": "insight",
+            "body": [
+              "Real data often contains runs that are already sorted. A natural merge sort starts from those runs instead of runs of length 1, and does less work on partly sorted data. The article notes that natural merge sort is a key component of Timsort, the sort used by Python.",
+              "So Python's sorted is a merge sort in spirit, with stability and good behaviour on partly sorted input."
+            ],
+            "short": "Timsort",
+            "hud": [
+              {
+                "k": "Natural runs",
+                "v": "start from sorted stretches"
+              },
+              {
+                "k": "Python's sort",
+                "v": "Timsort: stable, adaptive",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Merge sort merges sorted runs: O(n) per pass and log2 n passes, so O(n log n) in the worst, average and best cases. It is stable if you take from the left on ties, needs O(n) extra space for arrays and O(1) for linked lists, and can count inversions.",
+              "Choose it when you need stability and a guaranteed bound."
+            ],
+            "short": "Recap",
+            "set": {
+              "m0": {
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m1": {
+                "label": "5",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m2": {
+                "label": "9",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m3": {
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m4": {
+                "label": "27",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m5": {
+                "label": "38",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m6": {
+                "label": "43",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m7": {
+                "label": "82",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 merge two sorted runs: O(n)",
+                "2 log2 n passes: O(n log n)",
+                "3 <= on ties: stable",
+                "4 O(n) space for arrays"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Merge sort is like combining already sorted piles of exam papers into bigger and bigger sorted piles.",
+      "story": "Start with every paper in its own pile of one. Pair the piles up and merge each pair into one sorted pile, by always taking the smaller of the two top papers. Now you have piles of two. Merge those pairs, and you have piles of four. Keep going until there is one pile. Each round touches every paper once, and the number of rounds is small, because the piles double in size.",
+      "maps": [
+        [
+          "A pile of exam papers",
+          "A sorted run"
+        ],
+        [
+          "Merging two piles",
+          "The merge step"
+        ],
+        [
+          "Taking the smaller top paper",
+          "Comparing the two front items"
+        ],
+        [
+          "Piles doubling in size",
+          "The run width doubling each pass"
+        ]
+      ],
+      "words": [
+        [
+          "merge sort",
+          "A sort that merges sorted runs into longer sorted runs."
+        ],
+        [
+          "run",
+          "A stretch of items that is already in order."
+        ],
+        [
+          "inversion",
+          "A pair of items that are in the wrong order."
+        ],
+        [
+          "stable",
+          "Equal items keep the order they had before sorting."
+        ],
+        [
+          "Timsort",
+          "The stable sort used by Python, built on natural runs."
+        ]
+      ]
+    }
   }
 ]
