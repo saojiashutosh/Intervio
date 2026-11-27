@@ -193383,5 +193383,1154 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bits-and-masks",
+    "n": 217,
+    "level": 14,
+    "week": "Core",
+    "title": "Bits and Masks: Reading and Changing Single Bits",
+    "tagline": "Learn binary, the four bit operators, shifts and masks, so you can test, set, clear and toggle single bits and pack flags into one integer.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Computers store whole numbers as bits, each 0 or 1. Bit manipulation means working with those bits directly, using a few fast operations. The Wikipedia article on bitwise operations describes the operators AND, OR, XOR and NOT as acting on every bit of their operands, and shifts as multiplying or dividing by powers of two. These are used in flags, compact sets, hashing, graphics, and many interview puzzles.",
+      "## Binary",
+      "Position 0 is the rightmost bit and is worth 1. Position 1 is worth 2, position 2 is worth 4, and each position doubles the last. The number 44 is 00101100 in binary: ones at positions 5, 3 and 2, worth 32, 8 and 4. In Python, bin(44) gives '0b101100', and int('101100', 2) turns it back.",
+      "## The four operators",
+      "- AND (&) gives a 1 only where both operands have a 1. It is used to test and clear bits.\n- OR (|) gives a 1 where either has a 1. It is used to set bits.\n- XOR (^) gives a 1 where the two bits differ. It is used to toggle bits. x XOR x is 0 and x XOR 0 is x.\n- NOT (~) flips every bit.",
+      "## Masks",
+      "A mask is a number with ones only at the bits you care about. The mask for bit k is 1 << k. To test bit k, compute x & (1 << k), which is non-zero when the bit is set, or (x >> k) & 1, which is exactly 0 or 1. To set it, x | (1 << k). To clear it, x & ~(1 << k). To toggle it, x ^ (1 << k).",
+      "> A worked example: x = 44, which is 00101100. Bit 3 is set. Setting bit 0 gives 45. Clearing bit 5 of 45 gives 13. Toggling bit 2 of 13 gives 9. Shifting 44 left by one gives 88, and right by two gives 11. 44 AND 0xF gives 12.",
+      "## Shifts",
+      "x << n moves the bits n places to the left, which multiplies by 2 to the power n. x >> n moves them right, which divides by 2 to the power n and drops the remainder. The Wikipedia article describes the left shift as multiplication by 2^n and the arithmetic right shift as division by 2^n. Python raises ValueError for a negative shift count.",
+      "## Fields and flags",
+      "To take a field out of a number, shift it down and mask it: (x >> 4) & 0b11. To pack values, shift each to its place and OR them together, for example an RGB colour as (r << 16) | (g << 8) | b. Flags give each yes or no option its own bit, so a whole set of options is one integer. File permissions use READ = 1, WRITE = 2 and EXEC = 4, and the number 5 means read and execute.",
+      "## Negative numbers",
+      "The Python documentation says that integers behave as two's complement numbers with an infinite string of sign bits. So -1 has every bit set, and -1 & 0xFF is 255. ~x equals -x - 1. A right shift of a negative number keeps the sign. To work with a fixed width like 8 or 32 bits, AND with 0xFF or 0xFFFFFFFF.",
+      "## Useful methods",
+      "int.bit_length() gives the number of bits needed. int.bit_count(), from Python 3.10, gives the number of 1 bits. bin(x).count('1') works in older versions.",
+      "## How to talk through it",
+      "Say what a mask is, and give the four one-line recipes: test with AND, set with OR, clear with AND NOT, toggle with XOR. Mention shifts as powers of two and the need to mask negatives."
+    ],
+    "keyPoints": [
+      "A number is a row of bits. Position k is worth 2^k. Python: bin(x), int(s, 2).",
+      "Mask for bit k is 1 << k. Test &, set |, clear & ~, toggle ^.",
+      "x << n multiplies by 2^n. x >> n divides by 2^n and drops the remainder.",
+      "Extract a field with (x >> start) & mask. Pack with shift and OR. Flags use one bit for each option.",
+      "Python integers are unbounded, with infinite sign bits. Mask with 0xFF and similar for fixed width."
+    ],
+    "sql": [
+      {
+        "title": "Test, set, clear and toggle a bit",
+        "lang": "py",
+        "code": "def get_bit(x, k):\n    return (x >> k) & 1\n\ndef set_bit(x, k):\n    return x | (1 << k)\n\ndef clear_bit(x, k):\n    return x & ~(1 << k)\n\ndef toggle_bit(x, k):\n    return x ^ (1 << k)\n\nx = 44\nassert bin(x) == \"0b101100\" and int(\"101100\", 2) == 44\nassert get_bit(x, 3) == 1 and get_bit(x, 4) == 0\nassert set_bit(44, 0) == 45\nassert clear_bit(45, 5) == 13\nassert toggle_bit(13, 2) == 9\nassert toggle_bit(toggle_bit(13, 2), 2) == 13                  # XOR twice gives the original\nassert 44 << 1 == 88 and 44 >> 2 == 11 and 44 & 0xF == 12\nassert (44).bit_length() == 6 and (44).bit_count() == 3"
+      },
+      {
+        "title": "Pack and unpack fields, and flags",
+        "lang": "py",
+        "code": "def pack_rgb(r, g, b):\n    return (r << 16) | (g << 8) | b\n\ndef unpack_rgb(c):\n    return (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF\n\nassert pack_rgb(255, 128, 0) == 0xFF8000\nassert unpack_rgb(0xFF8000) == (255, 128, 0)\nassert unpack_rgb(pack_rgb(12, 34, 56)) == (12, 34, 56)\n\nREAD, WRITE, EXEC = 1, 2, 4\nperm = READ | EXEC\nassert perm == 5\nassert perm & READ and not perm & WRITE and perm & EXEC\nperm |= WRITE                                                   # add a flag\nassert perm == 7\nperm &= ~READ                                                   # remove a flag\nassert perm == 6 and not perm & READ\nperm ^= EXEC                                                    # toggle a flag\nassert perm == 2"
+      },
+      {
+        "title": "Negative numbers and fixed width",
+        "lang": "py",
+        "code": "assert -1 & 0xFF == 255                                         # all ones, cut to 8 bits\nassert ~5 == -6 and ~0 == -1                                    # ~x is -x - 1\nassert -8 >> 1 == -4                                            # a right shift keeps the sign\nassert (-3) & 0xFF == 253\n\ndef to_unsigned32(x):\n    return x & 0xFFFFFFFF\n\ndef to_signed32(x):\n    x &= 0xFFFFFFFF\n    return x - (1 << 32) if x & (1 << 31) else x\n\nassert to_unsigned32(-1) == 4294967295\nassert to_signed32(4294967295) == -1 and to_signed32(5) == 5\nassert to_signed32(2 ** 31) == -2 ** 31\nassert to_signed32(to_unsigned32(-12345)) == -12345\n\ntry:\n    1 << -1\n    raise AssertionError(\"a negative shift must fail\")\nexcept ValueError:\n    pass"
+      }
+    ],
+    "django": {},
+    "exercise": "Write get_bit, set_bit, clear_bit and toggle_bit and check them on 44. Pack and unpack an RGB colour. Model file permissions with flags and add, remove and toggle one. Then write to_signed32 and to_unsigned32 and check them on negative numbers and on 2**31.",
+    "pitfalls": [
+      "Using = instead of |= to set a flag, which wipes the other flags.",
+      "Forgetting that ~x is negative in Python.",
+      "Confusing & (bitwise) with and (logical), and | with or.",
+      "Shifting by a negative count, which raises ValueError.",
+      "Assuming a fixed word size in Python. Mask to get one."
+    ],
+    "interview": [
+      {
+        "q": "How do you test, set, clear and toggle bit k of x?",
+        "a": "Test: (x >> k) & 1. Set: x | (1 << k). Clear: x & ~(1 << k). Toggle: x ^ (1 << k)."
+      },
+      {
+        "q": "What does x << n do?",
+        "a": "It shifts the bits n places to the left, which multiplies x by 2^n. A right shift divides by 2^n, dropping the remainder."
+      },
+      {
+        "q": "How do you extract bits 4 to 5 of a number?",
+        "a": "Shift right by 4 and AND with 0b11: (x >> 4) & 0b11."
+      },
+      {
+        "q": "How do negative integers work in Python bit operations?",
+        "a": "Python treats integers as two's complement with infinitely many sign bits, so -1 has all bits set. AND with a mask such as 0xFF to get a fixed-width value."
+      }
+    ],
+    "references": [
+      {
+        "title": "Bitwise operation (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bitwise_operation",
+        "kind": "Reference"
+      },
+      {
+        "title": "Bitwise operations on integer types (Python docs)",
+        "url": "https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: bit operations are a standard topic and the base of many tricks. That AND, OR, XOR and NOT act on each bit, that AND with a mask tests or clears bits, OR sets them and XOR toggles them, that x XOR x is 0, and that a left shift multiplies and an arithmetic right shift divides by a power of two come from the Wikipedia bitwise operation article, which I read in part. The two's complement behaviour with infinitely many sign bits, the operators, int.bit_length, int.bit_count from 3.10 and the ValueError on a negative shift come from the Python documentation, which I read in part. The worked values and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-bitwise-operation",
+      "py-bitwise",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bitsmasks",
+        "title": "Bits and masks, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "read"
+          },
+          {
+            "kind": "write",
+            "label": "change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Binary",
+            "at": 0
+          },
+          {
+            "text": "Masks",
+            "at": 1
+          },
+          {
+            "text": "Test a bit",
+            "at": 2
+          },
+          {
+            "text": "Set a bit",
+            "at": 3
+          },
+          {
+            "text": "Shifts",
+            "at": 6
+          },
+          {
+            "text": "Flags",
+            "at": 8
+          },
+          {
+            "text": "Negatives",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "x0",
+            "kind": "cube",
+            "x": -3.062,
+            "y": 3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x1",
+            "kind": "cube",
+            "x": -2.188,
+            "y": 2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x2",
+            "kind": "cube",
+            "x": -1.312,
+            "y": 1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x3",
+            "kind": "cube",
+            "x": -0.438,
+            "y": 0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x4",
+            "kind": "cube",
+            "x": 0.438,
+            "y": -0.438,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x5",
+            "kind": "cube",
+            "x": 1.312,
+            "y": -1.312,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x6",
+            "kind": "cube",
+            "x": 2.188,
+            "y": -2.188,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x7",
+            "kind": "cube",
+            "x": 3.062,
+            "y": -3.062,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A number is a row of bits",
+            "tag": "technique",
+            "body": [
+              "Inside a computer, a number is stored as bits, each 0 or 1. Position 0 is the rightmost bit and is worth 1. Position 1 is worth 2, position 2 is worth 4, and so on, doubling each time. The number 44 is 00101100: the ones sit at positions 5, 3 and 2, which are worth 32, 8 and 4.",
+              "Bit tricks let us read and change single bits with a few fast operations."
+            ],
+            "short": "Binary",
+            "hud": [
+              {
+                "k": "Value",
+                "v": "44"
+              },
+              {
+                "k": "Binary",
+                "v": "00101100"
+              },
+              {
+                "k": "Ones at",
+                "v": "positions 5, 3, 2"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A mask picks out bits",
+            "tag": "technique",
+            "body": [
+              "A mask is a number with ones exactly at the bits we care about. The mask for bit k is 1 shifted left by k places, written 1 << k. For bit 3 it is 00001000, which is 8.",
+              "The operators work on every bit at once: AND (&) keeps a one only where both have a one, OR (|) where either has, XOR (^) where they differ, and NOT (~) flips all bits."
+            ],
+            "short": "Masks",
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "mask = 1 << 3          # 00001000",
+                "x & mask   # AND: keep only bit 3",
+                "x | mask   # OR: force bit 3 to 1",
+                "x ^ mask   # XOR: flip bit 3"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Test a bit: x & (1 << k)",
+            "tag": "technique",
+            "body": [
+              "To ask whether bit 3 is set, AND the number with its mask. 00101100 AND 00001000 = 00001000, which is not zero, so bit 3 is set. For bit 4 the mask is 00010000 and the result is 0, so it is clear.",
+              "A neat form is (x >> k) & 1, which gives exactly 0 or 1."
+            ],
+            "short": "Test a bit",
+            "hud": [
+              {
+                "k": "Bit 3",
+                "v": "1: set",
+                "tone": "good"
+              },
+              {
+                "k": "Bit 4",
+                "v": "0: clear"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Is bit 4 of 44 (00101100) set?",
+              "options": [
+                "Yes",
+                "No, it is 0",
+                "Only in negative numbers"
+              ],
+              "answer": 1,
+              "why": "The bits from the left are 0 0 1 0 1 1 0 0. Position 4 is the fourth from the left, and it holds 0."
+            }
+          },
+          {
+            "title": "Set a bit: x | (1 << k)",
+            "tag": "solution",
+            "body": [
+              "OR with the mask forces that bit to 1 and leaves the others alone. Setting bit 0 of 44 gives 00101101, which is 45.",
+              "If the bit was already 1, nothing changes."
+            ],
+            "short": "Set a bit",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "45 = 00101101",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "1",
+                "tone": "purple",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Clear a bit: x & ~(1 << k)",
+            "tag": "solution",
+            "body": [
+              "~mask has a zero at bit k and ones everywhere else. ANDing with it clears bit k and keeps the rest. Clearing bit 5 of 45 gives 00001101, which is 13.",
+              "In Python, ~ gives a negative number, but ANDing it with a positive number still works."
+            ],
+            "short": "Clear a bit",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "13 = 00001101",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "0",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Toggle a bit: x ^ (1 << k)",
+            "tag": "solution",
+            "body": [
+              "XOR flips a bit: 0 becomes 1 and 1 becomes 0. Toggling bit 2 of 13 gives 00001001, which is 9. Toggle it again and you get 13 back.",
+              "Applying XOR twice with the same value undoes it. This is why XOR appears in many tricks."
+            ],
+            "short": "Toggle a bit",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "9 = 00001001",
+                "tone": "good"
+              },
+              {
+                "k": "Twice",
+                "v": "gives the original",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "0",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Shifts: multiply and divide by 2",
+            "tag": "technique",
+            "body": [
+              "x << 1 moves every bit one place left, which doubles the number: 44 becomes 88. x >> 2 moves two places right, which divides by 4 and drops the remainder: 44 becomes 11.",
+              "In Python, integers never overflow, so a left shift just makes a bigger number."
+            ],
+            "short": "Shifts",
+            "hud": [
+              {
+                "k": "44 << 1",
+                "v": "88"
+              },
+              {
+                "k": "44 >> 2",
+                "v": "11"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Extract a field with a mask",
+            "tag": "technique",
+            "body": [
+              "To take the lowest 4 bits, AND with 00001111, which is 0xF. 44 AND 0xF = 1100, which is 12. To take bits 4 and 5, shift right by 4 first and then AND with 0b11.",
+              "Packing and unpacking values in a single integer uses exactly this: shift, then mask."
+            ],
+            "short": "Extract bits",
+            "hud": [
+              {
+                "k": "44 & 0xF",
+                "v": "12"
+              },
+              {
+                "k": "(44 >> 4) & 0b11",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "orange",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Flags: several yes or no values in one number",
+            "tag": "insight",
+            "body": [
+              "Give each option its own bit: READ = 1, WRITE = 2, EXEC = 4. A permission set is one number: 5 means READ and EXEC. Test with &, add with |, remove with & ~.",
+              "File permissions on Unix systems work like this."
+            ],
+            "short": "Flags",
+            "hud": [
+              {
+                "k": "READ",
+                "v": "1"
+              },
+              {
+                "k": "WRITE",
+                "v": "2"
+              },
+              {
+                "k": "EXEC",
+                "v": "4"
+              },
+              {
+                "k": "5",
+                "v": "READ + EXEC"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Negative numbers in Python",
+            "tag": "problem",
+            "body": [
+              "Python treats an integer as two's complement with infinitely many sign bits. So -1 is a number with all bits set: -1 & 0xFF = 255. ~x equals -x - 1. A right shift of a negative number copies the sign: -8 >> 1 = -4.",
+              "To work with fixed width values, mask with 0xFF, 0xFFFFFFFF and so on."
+            ],
+            "short": "Negative numbers",
+            "hud": [
+              {
+                "k": "-1 & 0xFF",
+                "v": "255"
+              },
+              {
+                "k": "~5",
+                "v": "-6"
+              },
+              {
+                "k": "-8 >> 1",
+                "v": "-4"
+              }
+            ],
+            "set": {
+              "x0": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Mask = 1 << k. Test with &, set with |, clear with & ~, toggle with ^. Shift left to double, right to halve. Mask and shift to extract fields. Flags pack many booleans into one integer. Python integers have no fixed width, so mask when you need one.",
+              "Next: clever tricks built from these."
+            ],
+            "short": "Recap",
+            "set": {
+              "x0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 7",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "x1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x4": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x5": {
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "x6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": {
+                  "text": "bit 0",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 mask = 1 << k",
+                "2 test &, set |, clear & ~, toggle ^",
+                "3 shift = multiply or divide by 2",
+                "4 mask to a fixed width"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Bits are like a row of light switches, and a mask is a stencil that shows only the switches you care about.",
+      "story": "A row of eight switches can be up or down. Each switch stands for a number: the first for 1, the next for 2, then 4, 8 and so on, so any number from 0 to 255 is a pattern of switches. To check one switch, you lay a stencil over the row that shows only that switch. To turn one on, you flip just that switch and leave the rest alone. To flip every switch you want at once, you use a stencil with holes in the right places.",
+      "maps": [
+        [
+          "A switch up or down",
+          "A bit, 1 or 0"
+        ],
+        [
+          "The stencil",
+          "A mask"
+        ],
+        [
+          "Checking one switch",
+          "AND with a mask"
+        ],
+        [
+          "Flipping one switch",
+          "XOR with a mask"
+        ]
+      ],
+      "words": [
+        [
+          "bit",
+          "A single 0 or 1."
+        ],
+        [
+          "mask",
+          "A number whose ones mark the bits you care about."
+        ],
+        [
+          "shift",
+          "Moving all bits left or right."
+        ],
+        [
+          "flag",
+          "One bit that stands for a yes or no option."
+        ],
+        [
+          "two's complement",
+          "The way computers store negative whole numbers in binary."
+        ]
+      ]
+    }
   }
 ]
