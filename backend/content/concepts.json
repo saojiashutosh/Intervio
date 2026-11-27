@@ -152784,5 +152784,1036 @@
         ]
       ]
     }
+  },
+  {
+    "id": "prims-algorithm",
+    "n": 193,
+    "level": 14,
+    "week": "Core",
+    "title": "Prim's Algorithm: Growing a Spanning Tree",
+    "tagline": "Build a minimum spanning tree by growing one tree from a start vertex, always adding the cheapest edge that leaves it, with a min-heap.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "Prim's algorithm finds a minimum spanning tree by growing a single tree. The Wikipedia article describes it as a greedy algorithm that starts from an arbitrary vertex and, at each step, adds the cheapest edge joining the tree to a vertex outside it. It is also called Jarnik's algorithm or the Prim-Jarnik algorithm, after Jarnik, who developed it in 1930, and Prim, who rediscovered it in 1957. Kruskal's algorithm, in the previous lesson, finds the same kind of tree by sorting edges.",
+      "## The algorithm",
+      "Pick any start vertex and put it in the tree. Keep a min-heap of the edges that leave the tree, each stored as (weight, from, to). Repeat: pop the cheapest edge. If its far end is already in the tree, skip it, because it is stale. Otherwise add that vertex to the tree, record the edge, and push all the edges from that new vertex to vertices not yet in the tree. Stop when all vertices are in the tree.",
+      "- Each step adds the cheapest edge that crosses the cut between the tree and the rest. By the cut property, that edge is safe.\n- With a binary heap and adjacency lists, the time is O(E log V).\n- The article's table gives O(V squared) for an adjacency matrix with a plain scan, and O(E + V log V) for a Fibonacci heap.",
+      "## Why it is correct",
+      "At each step, the tree is a subset of some minimum spanning tree. The cheapest edge between the tree and the other vertices is a cheapest edge across a cut, so by the cut property there is a minimum spanning tree that contains the tree and this edge. By induction, the final tree is a minimum spanning tree. The article gives this as an exchange argument.",
+      "> A worked example: edges AB 1, BC 4, AC 3, CD 2, BD 5, DE 6, CE 7, starting at A. The heap holds AB (1) and AC (3). Pop AB: add B, push BC (4) and BD (5). Pop AC (3): add C, push CD (2) and CE (7). Pop CD (2): add D, push DE (6). Pop BC (4): C is already in the tree, skip. Pop BD (5): skip. Pop DE (6): add E. The tree is AB, AC, CD, DE with total weight 12, the same as Kruskal's.",
+      "## Prim and Dijkstra",
+      "Prim's algorithm is nearly the same code as Dijkstra's. Both take the cheapest item from a priority queue. Dijkstra's key is the distance from the start through the tree, while Prim's key is only the weight of the single edge into the tree. The article notes that Dijkstra's algorithm is credited as a co-discoverer.",
+      "## Prim or Kruskal",
+      "Both produce a minimum spanning tree and both are O(E log V) with the standard structures. Prim does well on dense graphs, especially with an adjacency matrix and an O(V squared) loop, and when the graph is given implicitly. Kruskal is simpler when the edges are in a list and works with union-find, and it handles disconnected graphs directly by producing a forest. The article notes that Prim's basic form only finds a tree for a connected graph. For a disconnected graph, run it once per component.",
+      "## Common mistakes",
+      "Forgetting to skip stale heap entries, which can add a vertex twice. Pushing edges to vertices already in the tree. Treating the heap key as a distance like Dijkstra. Assuming the graph is connected without checking that you added V - 1 edges.",
+      "## How to talk through it",
+      "Say that the tree grows from one vertex, always adding the cheapest edge leaving it, using a heap. Run the example, showing a skipped stale edge. State O(E log V), and compare it with Kruskal in one sentence."
+    ],
+    "keyPoints": [
+      "Prim grows one tree from a start vertex, always adding the cheapest edge that leaves it.",
+      "Keep a min-heap of (weight, from, to). Pop the cheapest. Skip it if the far end is in the tree. Else add the vertex and push its edges.",
+      "O(E log V) with a binary heap, O(V squared) with an array, O(E + V log V) with a Fibonacci heap.",
+      "Correct by the cut property: the cheapest edge across the cut is safe.",
+      "Like Dijkstra, but the key is the edge weight. Needs a connected graph, or run once per component."
+    ],
+    "sql": [
+      {
+        "title": "Prim's algorithm with a heap",
+        "lang": "py",
+        "code": "import heapq\n\ndef prim(graph, start):\n    in_tree = {start}\n    heap = [(w, start, v) for v, w in graph[start]]\n    heapq.heapify(heap)\n    tree, total = [], 0\n    while heap and len(in_tree) < len(graph):\n        w, u, v = heapq.heappop(heap)\n        if v in in_tree:\n            continue                                      # a stale edge\n        in_tree.add(v)\n        tree.append((u, v, w))\n        total += w\n        for x, wx in graph[v]:\n            if x not in in_tree:\n                heapq.heappush(heap, (wx, v, x))\n    return tree, total\n\nedges = [(\"A\", \"B\", 1), (\"B\", \"C\", 4), (\"A\", \"C\", 3), (\"C\", \"D\", 2), (\"B\", \"D\", 5), (\"D\", \"E\", 6), (\"C\", \"E\", 7)]\ngraph = {v: [] for v in \"ABCDE\"}\nfor a, b, w in edges:\n    graph[a].append((b, w))\n    graph[b].append((a, w))\ntree, total = prim(graph, \"A\")\nassert tree == [(\"A\", \"B\", 1), (\"A\", \"C\", 3), (\"C\", \"D\", 2), (\"D\", \"E\", 6)] and total == 12\nassert prim({\"A\": []}, \"A\") == ([], 0)\ntree2, _ = prim(graph, \"E\")                                  # a different start gives the same tree\nassert sorted(tuple(sorted(e[:2])) for e in tree2) == sorted(tuple(sorted(e[:2])) for e in tree)"
+      },
+      {
+        "title": "The O(V squared) version without a heap",
+        "lang": "py",
+        "code": "def prim_matrix(w):                                           # w[i][j]: weight or None\n    n = len(w)\n    in_tree = [False] * n\n    best = [float(\"inf\")] * n                                 # the cheapest edge into the tree for each vertex\n    link = [None] * n\n    best[0] = 0\n    total, tree = 0, []\n    for _ in range(n):\n        u = min((v for v in range(n) if not in_tree[v]), key=lambda v: best[v])    # a scan: O(V)\n        in_tree[u] = True\n        total += best[u]\n        if link[u] is not None:\n            tree.append((link[u], u))\n        for v in range(n):\n            if w[u][v] is not None and not in_tree[v] and w[u][v] < best[v]:\n                best[v], link[v] = w[u][v], u\n    return tree, total\n\nN_ = None\nmatrix = [[N_, 1, 3, N_, N_],\n          [1, N_, 4, 5, N_],\n          [3, 4, N_, 2, 7],\n          [N_, 5, 2, N_, 6],\n          [N_, N_, 7, 6, N_]]\ntree, total = prim_matrix(matrix)\nassert total == 12 and sorted(tree) == [(0, 1), (0, 2), (2, 3), (3, 4)]"
+      },
+      {
+        "title": "Prim, Kruskal and brute force agree",
+        "lang": "py",
+        "code": "import heapq\nimport itertools\nimport random\n\ndef prim_weight(n, edges):\n    graph = {v: [] for v in range(n)}\n    for a, b, w in edges:\n        graph[a].append((b, w)); graph[b].append((a, w))\n    seen, heap, total = {0}, [(w, v) for v, w in graph[0]], 0\n    heapq.heapify(heap)\n    while heap:\n        w, v = heapq.heappop(heap)\n        if v in seen:\n            continue\n        seen.add(v); total += w\n        for x, wx in graph[v]:\n            if x not in seen:\n                heapq.heappush(heap, (wx, x))\n    return total\n\ndef kruskal_weight(n, edges):\n    parent = list(range(n))\n    def find(x):\n        while parent[x] != x:\n            x = parent[x]\n        return x\n    total = 0\n    for a, b, w in sorted(edges, key=lambda e: e[2]):\n        ra, rb = find(a), find(b)\n        if ra != rb:\n            parent[ra] = rb; total += w\n    return total\n\ndef brute_weight(n, edges):\n    best = None\n    for combo in itertools.combinations(edges, n - 1):\n        parent, ok = list(range(n)), True\n        for a, b, w in combo:\n            def find(x):\n                while parent[x] != x:\n                    x = parent[x]\n                return x\n            ra, rb = find(a), find(b)\n            if ra == rb:\n                ok = False; break\n            parent[ra] = rb\n        if ok:\n            s = sum(w for _, _, w in combo)\n            best = s if best is None else min(best, s)\n    return best\n\nrandom.seed(44)\nfor _ in range(100):\n    n = random.randint(2, 6)\n    edges = [(i, random.randrange(i), random.randint(1, 9)) for i in range(1, n)]\n    edges += [(a, b, random.randint(1, 9)) for a in range(n) for b in range(a) if random.random() < 0.4]\n    assert prim_weight(n, edges) == kruskal_weight(n, edges) == brute_weight(n, edges)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write Prim's algorithm with a heap and the O(V squared) matrix version, and check both against Kruskal and a brute-force search on 100 random graphs. Then start Prim from every vertex of the example and check that the total weight is always 12. Finally, change it to return a minimum spanning forest for a disconnected graph.",
+    "pitfalls": [
+      "Not skipping stale edges, so a vertex can be added twice.",
+      "Using Dijkstra's distance as the heap key. Prim's key is the single edge weight.",
+      "Pushing edges to vertices already in the tree, which wastes heap space.",
+      "Assuming the graph is connected. Check that V - 1 edges were added.",
+      "Using Prim on a directed graph. A minimum spanning tree is defined for undirected graphs."
+    ],
+    "interview": [
+      {
+        "q": "How does Prim's algorithm work?",
+        "a": "Start with one vertex in the tree. Keep a min-heap of edges leaving the tree. Repeatedly pop the cheapest edge. If its far end is already in the tree, skip it. Otherwise add that vertex, and push its edges to vertices not in the tree. Stop when all vertices are in. It takes O(E log V) with a binary heap."
+      },
+      {
+        "q": "How does Prim's algorithm differ from Kruskal's?",
+        "a": "Prim grows one tree from a start vertex using a priority queue of edges leaving the tree. Kruskal sorts all edges and uses union-find to join separate trees. Prim suits dense graphs and adjacency matrices, Kruskal suits edge lists."
+      },
+      {
+        "q": "How is Prim's algorithm related to Dijkstra's?",
+        "a": "They have almost the same code, with a priority queue and relaxation. Dijkstra keys a vertex by its distance from the start, and Prim keys it by the weight of the cheapest single edge connecting it to the tree."
+      },
+      {
+        "q": "What is its complexity with different data structures?",
+        "a": "O(V squared) with an adjacency matrix and a linear scan, O(E log V) with a binary heap, and O(E + V log V) with a Fibonacci heap."
+      }
+    ],
+    "references": [
+      {
+        "title": "Prim's algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Prim%27s_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Minimum spanning tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Minimum_spanning_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: Prim's algorithm is the standard companion to Kruskal's in coding rounds. The description of growing one tree, the history, the data-structure costs, the connected-graph requirement and the exchange argument come from the Wikipedia Prim article, which I read in full, and the cut property from the Wikipedia minimum spanning tree article, which I read in part. The comparison with Kruskal and Dijkstra and the code are my own illustration and judgment, and the code is checked by running it against Kruskal and brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-prims-algorithm",
+      "wikipedia-minimum-spanning-tree",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "prim",
+        "title": "Prim's algorithm, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "find or compare"
+          },
+          {
+            "kind": "write",
+            "label": "join or add"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "rejected: it would make a cycle"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "Start at A",
+            "at": 1
+          },
+          {
+            "text": "Add B",
+            "at": 2
+          },
+          {
+            "text": "A stale edge",
+            "at": 5
+          },
+          {
+            "text": "Cost",
+            "at": 9
+          },
+          {
+            "text": "Which one",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.6,
+            "y": -0.2,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.2,
+            "y": 2.6,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -0.8,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.6,
+            "y": -2.6,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none",
+            "label": "1",
+            "dash": true
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "none",
+            "label": "4",
+            "dash": true
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none",
+            "label": "3",
+            "dash": true
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none",
+            "label": "2",
+            "dash": true
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none",
+            "label": "5",
+            "dash": true
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none",
+            "label": "6",
+            "dash": true
+          },
+          {
+            "a": "gC",
+            "b": "gE",
+            "dir": "none",
+            "label": "7",
+            "dash": true
+          },
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none",
+            "from": 3
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none",
+            "from": 4
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none",
+            "from": 7
+          }
+        ],
+        "steps": [
+          {
+            "title": "The task: the same tree, grown from one vertex",
+            "tag": "technique",
+            "body": [
+              "Prim's algorithm finds a minimum spanning tree in a different way from Kruskal's. Instead of sorting all edges, it grows a single tree from a starting vertex, always adding the cheapest edge that connects the tree to a vertex outside it.",
+              "The Wikipedia article describes it exactly like that, and credits Jarnik (1930), Prim (1957) and Dijkstra (1959)."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Grows",
+                "v": "one tree from a start vertex"
+              },
+              {
+                "k": "Each step",
+                "v": "add the cheapest edge leaving the tree"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Start at A: the heap holds the edges leaving the tree",
+            "tag": "technique",
+            "body": [
+              "The tree is just A. Put every edge leaving A into a min-heap: AB (1), AC (3). The heap always holds the edges between the tree and the rest.",
+              "The cheapest edge in the heap is the one to add next."
+            ],
+            "short": "Start at A",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A"
+              },
+              {
+                "k": "Heap",
+                "v": "AB (1), AC (3)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "heap = [(w, 'A', v) for w, v in adj['A']]",
+                "heapify(heap)"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Add B by edge AB (1)",
+            "tag": "solution",
+            "body": [
+              "Take the cheapest edge, AB with weight 1. B is not in the tree, so add it. Then push the edges from B to vertices outside the tree.",
+              "The tree is now A B. The heap holds AC (3), BC (4), BD (5)."
+            ],
+            "short": "AB",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B"
+              },
+              {
+                "k": "Heap",
+                "v": "AC (3), BC (4), BD (5)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "candidate",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Add C by edge AC (3)",
+            "tag": "solution",
+            "body": [
+              "Take the cheapest edge, AC with weight 3. C is not in the tree, so add it. Then push the edges from C to vertices outside the tree.",
+              "The tree is now A B C. The heap holds CD (2), BC (4), BD (5), CE (7)."
+            ],
+            "short": "AC",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B C"
+              },
+              {
+                "k": "Heap",
+                "v": "CD (2), BC (4), BD (5), CE (7)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "candidate",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The tree is A and B. The heap holds AC (3), BC (4) and BD (5). Which edge is taken next?",
+              "options": [
+                "AB again",
+                "AC: the cheapest leaving the tree",
+                "BD"
+              ],
+              "answer": 1,
+              "why": "The heap gives the cheapest edge leaving the tree, which is AC with weight 3."
+            }
+          },
+          {
+            "title": "Add D by edge CD (2)",
+            "tag": "solution",
+            "body": [
+              "Take the cheapest edge, CD with weight 2. D is not in the tree, so add it. Then push the edges from D to vertices outside the tree.",
+              "The tree is now A B C D. The heap holds BC (4), BD (5), DE (6), CE (7)."
+            ],
+            "short": "CD",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B C D"
+              },
+              {
+                "k": "Heap",
+                "v": "BC (4), BD (5), DE (6), CE (7)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "candidate",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gD"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Skip BC (4): C is already in",
+            "tag": "problem",
+            "body": [
+              "The cheapest edge is BC with weight 4. But C is already in the tree, so this edge is stale. Skip it.",
+              "The heap holds BD (5), DE (6), CE (7)."
+            ],
+            "short": "BC",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B C D"
+              },
+              {
+                "k": "Heap",
+                "v": "BD (5), DE (6), CE (7)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gC"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Skip BD (5): D is already in",
+            "tag": "problem",
+            "body": [
+              "The cheapest edge is BD with weight 5. But D is already in the tree, so this edge is stale. Skip it.",
+              "The heap holds DE (6), CE (7)."
+            ],
+            "short": "BD",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B C D"
+              },
+              {
+                "k": "Heap",
+                "v": "DE (6), CE (7)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Add E by edge DE (6)",
+            "tag": "solution",
+            "body": [
+              "Take the cheapest edge, DE with weight 6. E is not in the tree, so add it. Then push the edges from E to vertices outside the tree.",
+              "The tree is now A B C D E. The heap holds CE (7)."
+            ],
+            "short": "DE",
+            "hud": [
+              {
+                "k": "Tree",
+                "v": "A B C D E"
+              },
+              {
+                "k": "Heap",
+                "v": "CE (7)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "candidate",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Done: the same tree, total weight 12",
+            "tag": "insight",
+            "body": [
+              "All 5 vertices are in the tree after 4 edges: AB, AC, CD, DE. The total is 12, the same as Kruskal found. With distinct edge weights the minimum spanning tree is unique, so both algorithms find the same tree.",
+              "The stale edges still in the heap are never used."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Tree edges",
+                "v": "AB, AC, CD, DE",
+                "tone": "good"
+              },
+              {
+                "k": "Total weight",
+                "v": "12",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost depends on the data structure",
+            "tag": "insight",
+            "body": [
+              "With an adjacency matrix and a plain scan for the minimum, Prim's algorithm takes O(V squared). With a binary heap and adjacency lists it takes O(E log V). With a Fibonacci heap it takes O(E + V log V). The Wikipedia article gives all three.",
+              "In Python, use heapq and skip stale entries, as here."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "O(V squared)"
+              },
+              {
+                "k": "Binary heap",
+                "v": "O(E log V)",
+                "tone": "good"
+              },
+              {
+                "k": "Fibonacci heap",
+                "v": "O(E + V log V)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Prim or Kruskal?",
+            "tag": "insight",
+            "body": [
+              "Prim is the better fit for dense graphs, where E is close to V squared, and when the graph is given as an adjacency matrix or grows from a point. Kruskal is simpler when the edges come as a list, and when they are already sorted. Both give an MST.",
+              "Prim needs a connected graph. For a disconnected one, run it from each component, to get a spanning forest."
+            ],
+            "short": "Which one",
+            "hud": [
+              {
+                "k": "Dense graphs",
+                "v": "Prim"
+              },
+              {
+                "k": "Edge lists, sparse",
+                "v": "Kruskal"
+              },
+              {
+                "k": "Disconnected",
+                "v": "a forest: run per component"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Prim's algorithm grows one tree. Keep a min-heap of edges leaving the tree. Take the cheapest, skip it if its far end is already in the tree, else add that vertex and push its edges. O(E log V) with a binary heap.",
+              "It is Dijkstra's algorithm with a different priority: the edge weight, not the distance from the start."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 start with one vertex in the tree",
+                "2 heap of edges leaving the tree",
+                "3 pop the cheapest, skip if stale",
+                "4 add the vertex, push its edges"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Prim's algorithm is like a cable company that starts at one house and keeps extending the network to the nearest house not yet connected.",
+      "story": "A cable company starts at one house. Each day it looks at all the cables that run from a connected house to an unconnected house, and picks the cheapest. It lays that cable and connects the new house. It never wastes a cable between two houses that are already connected. After enough days every house is connected, at the lowest total cost.",
+      "maps": [
+        [
+          "The first house",
+          "The start vertex"
+        ],
+        [
+          "The cheapest cable to a new house",
+          "The edge popped from the heap"
+        ],
+        [
+          "A cable between connected houses",
+          "A stale edge, skipped"
+        ],
+        [
+          "The finished network",
+          "The minimum spanning tree"
+        ]
+      ],
+      "words": [
+        [
+          "Prim's algorithm",
+          "Grow a spanning tree from one vertex by always adding the cheapest edge leaving it."
+        ],
+        [
+          "min-heap",
+          "A heap that always gives the smallest item first."
+        ],
+        [
+          "stale edge",
+          "A heap entry whose far end is already in the tree."
+        ],
+        [
+          "cut",
+          "A split of the vertices into two sets."
+        ],
+        [
+          "spanning forest",
+          "A tree chosen inside each component of a disconnected graph."
+        ]
+      ]
+    }
   }
 ]
