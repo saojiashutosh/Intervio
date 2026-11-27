@@ -162886,5 +162886,930 @@
         ]
       ]
     }
+  },
+  {
+    "id": "stability-and-sorting-limits",
+    "n": 201,
+    "level": 14,
+    "week": "Core",
+    "title": "Stability and the Limits of Sorting",
+    "tagline": "Know what a stable sort promises, which algorithms are stable, and why no comparison sort can be faster than about n log n.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "Two ideas complete a course on sorting: stability, and the lower bound on comparison sorts. Stability tells you what happens to records with equal keys. The lower bound tells you that O(n log n) is the best you can do when you can only compare items.",
+      "## Stability",
+      "The Wikipedia article defines it: a sorting algorithm is stable if, whenever two records R and S have the same key and R appears before S in the original list, R still appears before S in the sorted list. For plain numbers this is invisible, since equal numbers are identical. For records it matters. Sort a list of people by department, and a stable sort keeps the people of each department in the order they were in before.",
+      "## Sorting by several keys",
+      "With a stable sort you can sort by several keys in turn, starting with the least important. To order people by department and then by name within each department, sort by name first and then by department. The second sort keeps the name order inside each department, since equal departments are not reordered. The article gives this as the reason stability matters, and radix sort depends on it for each digit pass. In Python you can also sort with a tuple key, (department, name).",
+      "## Which algorithms are stable",
+      "From the article's table: insertion sort, bubble sort, merge sort and counting sort are stable. Selection sort in its usual swap form, quicksort and heap sort are not. Timsort, used by Python, is stable, and the Python sorting guide guarantees that sorts are stable. An unstable sort can be made stable by using the original position as a tie-breaker, which costs extra time and space.",
+      "## The lower bound",
+      "A comparison sort gets information only by asking whether one item is less than another, and each question has two answers. There are n factorial possible orderings of n items, and the algorithm must end in one of them for every input. Its comparisons form a binary decision tree with at least n factorial leaves. A binary tree with L leaves has height at least log2 of L, so the worst case needs at least log2 of n factorial comparisons. The article says that a comparison sort cannot perform better than O(n log n) on average, and gives the number of comparisons as at least n log n - 1.4427 n plus a lower-order term.",
+      "> A worked example: for 3 items there are 6 possible orders. Two comparisons give at most 2 times 2 = 4 outcomes, which cannot separate 6 orders. Three comparisons give 8 outcomes, enough. So 3 comparisons are needed in the worst case. For 4 items, 24 orders need 5 comparisons, since 2 to the power 5 is 32 and 2 to the power 4 is only 16.",
+      "## Escaping the bound",
+      "The bound applies only to comparison sorts. Counting sort and radix sort do not compare items. They use the key values as array indexes, and run in O(n + k) and O(d(n + k)) time. So they can beat n log n when the keys are small integers or fixed-length digits. The price is that they need that structure in the keys.",
+      "## Other properties",
+      "The article also defines in-place sorting, using O(1) extra memory, and adaptive sorting, which exploits existing order. Insertion sort is adaptive. Merge sort is stable but not in place for arrays. Quicksort is in place but not stable. Heap sort is in place and not stable. No one algorithm wins every property, so the choice depends on what you need.",
+      "## How to talk through it",
+      "Define stability with a small example, give the multi-key sort trick, and list which sorts are stable. Then give the decision tree argument in three sentences, and say what escapes it."
+    ],
+    "keyPoints": [
+      "A stable sort keeps records with equal keys in their input order.",
+      "Sort by several keys by sorting on the least important key first, with a stable sort. Python's sort is stable.",
+      "Stable: insertion, bubble, merge, counting, Timsort. Not stable: usual selection sort, quicksort, heap sort.",
+      "A comparison sort needs at least ceil(log2 n!) comparisons, about n log2 n - 1.44 n.",
+      "Counting and radix sort avoid the bound by using the key values, not comparisons."
+    ],
+    "sql": [
+      {
+        "title": "Stable multi-key sorting in Python",
+        "lang": "py",
+        "code": "people = [(\"Eve\", \"Sales\"), (\"Bob\", \"Eng\"), (\"Amy\", \"Sales\"), (\"Dan\", \"Eng\"), (\"Cat\", \"Ops\")]\n\nby_name = sorted(people, key=lambda p: p[0])\nby_dept_then = sorted(by_name, key=lambda p: p[1])                 # stable: names stay in order inside a department\nassert by_dept_then == [(\"Bob\", \"Eng\"), (\"Dan\", \"Eng\"), (\"Cat\", \"Ops\"), (\"Amy\", \"Sales\"), (\"Eve\", \"Sales\")]\n\nassert sorted(people, key=lambda p: (p[1], p[0])) == by_dept_then      # a tuple key gives the same result\nassert sorted(people, key=lambda p: p[1], reverse=True)[:2] == [(\"Eve\", \"Sales\"), (\"Amy\", \"Sales\")]   # reverse keeps equal items in input order\n\ndef make_stable(items, key):\n    # any sort becomes stable if the original index breaks ties\n    decorated = [(key(x), i, x) for i, x in enumerate(items)]\n    decorated.sort()\n    return [x for _, _, x in decorated]\n\nassert make_stable([(1, \"a\"), (0, \"b\"), (1, \"c\")], key=lambda r: r[0]) == [(0, \"b\"), (1, \"a\"), (1, \"c\")]"
+      },
+      {
+        "title": "Heap sort and selection sort are not stable",
+        "lang": "py",
+        "code": "import random\n\ndef selection_sort_by(a, key):\n    a = list(a)\n    for i in range(len(a) - 1):\n        m = min(range(i, len(a)), key=lambda k: key(a[k]))\n        a[i], a[m] = a[m], a[i]\n    return a\n\ndef heap_sort_by(a, key):\n    a, n = list(a), len(a)\n    def sift(i, size):\n        while True:\n            big, l, r = i, 2 * i + 1, 2 * i + 2\n            if l < size and key(a[l]) > key(a[big]): big = l\n            if r < size and key(a[r]) > key(a[big]): big = r\n            if big == i: return\n            a[i], a[big] = a[big], a[i]; i = big\n    for i in range(n // 2 - 1, -1, -1):\n        sift(i, n)\n    for end in range(n - 1, 0, -1):\n        a[0], a[end] = a[end], a[0]\n        sift(0, end)\n    return a\n\nfirst = lambda r: r[0]\nassert selection_sort_by([(2, \"a\"), (2, \"b\"), (1, \"c\")], first) != sorted([(2, \"a\"), (2, \"b\"), (1, \"c\")], key=first)\n\nrandom.seed(68)\nfound = False\nfor _ in range(2000):\n    items = [(random.randint(0, 2), i) for i in range(8)]\n    if heap_sort_by(items, first) != sorted(items, key=first):      # sorted() is stable\n        found = True\n        break\nassert found"
+      },
+      {
+        "title": "The lower bound: count the comparisons",
+        "lang": "py",
+        "code": "import itertools\nimport math\nfrom functools import cmp_to_key\n\ndef min_comparisons(n):\n    return math.ceil(math.log2(math.factorial(n)))\n\nassert [min_comparisons(n) for n in (1, 2, 3, 4, 5, 8, 10)] == [0, 1, 3, 5, 7, 16, 22]\nn = 100\nassert abs(math.log2(math.factorial(n)) - (n * math.log2(n) - 1.4427 * n)) < 10      # about n log2 n - 1.44 n\n\ndef comparisons_used(seq):\n    count = [0]\n    def cmp(a, b):\n        count[0] += 1\n        return (a > b) - (a < b)\n    sorted(seq, key=cmp_to_key(cmp))\n    return count[0]\n\nn = 8\ncounts = [comparisons_used(p) for p in itertools.permutations(range(n))]    # every possible input order\nassert max(counts) >= min_comparisons(n)                                    # the worst case obeys the bound\nassert sum(counts) / len(counts) >= math.log2(math.factorial(n))            # and so does the average"
+      }
+    ],
+    "django": {},
+    "exercise": "Sort a list of records by two keys with two stable passes, and then with a tuple key, and check that the results agree. Find an input where heap sort changes the order of equal keys. Then compute ceil(log2(n!)) for n up to 10, count how many comparisons Python's sort uses on all permutations of 8 items, and check that the worst case and the average are at least the bound.",
+    "pitfalls": [
+      "Sorting by the most important key first and then by the less important one. The last sort wins. Sort by the least important key first.",
+      "Assuming a sort you wrote is stable. Selection sort, quicksort and heap sort are not.",
+      "Forgetting that reverse=True in Python keeps equal items in their original order, so it is not the same as reversing the list afterwards.",
+      "Claiming that O(n log n) is a limit for all sorting. It applies only to comparison sorts.",
+      "Using counting sort on keys with a huge range, which needs a huge count array."
+    ],
+    "interview": [
+      {
+        "q": "What is a stable sort and why does it matter?",
+        "a": "A sort is stable if records with equal keys keep the order they had in the input. It matters when you sort records, and especially when you sort by several keys in turn: a stable sort keeps the earlier ordering within equal keys."
+      },
+      {
+        "q": "Which common sorts are stable?",
+        "a": "Insertion sort, bubble sort, merge sort, counting sort and Timsort, which Python uses. Selection sort in its usual form, quicksort and heap sort are not."
+      },
+      {
+        "q": "Why can't a comparison sort be faster than O(n log n)?",
+        "a": "There are n factorial possible orderings, and each comparison has two outcomes, so the decision tree needs at least n factorial leaves and height at least log2 of n factorial, which is about n log2 n. So at least that many comparisons are needed in the worst case and on average."
+      },
+      {
+        "q": "How can a sort run faster than O(n log n)?",
+        "a": "By not using only comparisons. Counting sort and radix sort use the keys as array indexes or digits, and take O(n + k) and O(d(n + k)) time when the keys are small integers or fixed-length digits."
+      }
+    ],
+    "references": [
+      {
+        "title": "Sorting algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Sorting_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Sorting techniques (Python docs)",
+        "url": "https://docs.python.org/3/howto/sorting.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: stability and the n log n lower bound are standard conceptual questions about sorting. The definition of stability, the multi-key use, the table of stable and unstable sorts, the tie-breaker idea and the lower bound with its n log n - 1.4427 n figure come from the Wikipedia sorting algorithm article, which I read in part, and Python's guaranteed stable sort from the Python sorting guide, which I read in full. The decision tree argument and the code are my own illustration and judgment, and the code is checked by running it, including an exhaustive check over all orders of 8 items. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-sorting-algorithm",
+      "py-sorting",
+      "wikipedia-counting-sort",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "stability",
+        "title": "Stability and sorting limits, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "swap or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Records",
+            "at": 0
+          },
+          {
+            "text": "Stable",
+            "at": 1
+          },
+          {
+            "text": "Unstable",
+            "at": 2
+          },
+          {
+            "text": "Which are stable",
+            "at": 4
+          },
+          {
+            "text": "The limit",
+            "at": 7
+          },
+          {
+            "text": "n log n",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "r0",
+            "kind": "cube",
+            "x": -3.125,
+            "y": 3.125,
+            "label": "3a",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r1",
+            "kind": "cube",
+            "x": -1.875,
+            "y": 1.875,
+            "label": "1b",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r2",
+            "kind": "cube",
+            "x": -0.625,
+            "y": 0.625,
+            "label": "2c",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r3",
+            "kind": "cube",
+            "x": 0.625,
+            "y": -0.625,
+            "label": "1d",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r4",
+            "kind": "cube",
+            "x": 1.875,
+            "y": -1.875,
+            "label": "3e",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "r5",
+            "kind": "cube",
+            "x": 3.125,
+            "y": -3.125,
+            "label": "2f",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Records with a key and a tag",
+            "tag": "technique",
+            "body": [
+              "Each record here has a key, the number, and a tag, the letter that shows its original position: 3a, 1b, 2c, 1d, 3e, 2f. We sort by the number. Several records share a key.",
+              "The question is what happens to records with equal keys."
+            ],
+            "short": "Records",
+            "hud": [
+              {
+                "k": "Key",
+                "v": "the number"
+              },
+              {
+                "k": "Tag",
+                "v": "the letter: original order"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A stable sort keeps equal keys in input order",
+            "tag": "solution",
+            "body": [
+              "After sorting by key, the 1s are 1b and 1d, in the order b then d, as they were in the input. The 2s are 2c then 2f. The 3s are 3a then 3e. That is a stable sort.",
+              "The Wikipedia article defines it exactly like this: if two records have the same key and R comes before S in the input, then R comes before S in the output."
+            ],
+            "short": "Stable",
+            "hud": [
+              {
+                "k": "1s",
+                "v": "b then d, as in the input",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "equal keys keep their order",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "An unstable sort may swap equal keys",
+            "tag": "problem",
+            "body": [
+              "An unstable sort gives the right key order but may reorder equal keys. Here it returned 1d, 1b, 2f, 2c, 3e, 3a. The numbers are sorted, but within each group the tags are reversed.",
+              "For plain numbers, you cannot tell. For records, it can matter a lot."
+            ],
+            "short": "Unstable",
+            "hud": [
+              {
+                "k": "Keys",
+                "v": "sorted",
+                "tone": "good"
+              },
+              {
+                "k": "Equal keys",
+                "v": "order changed",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "1d",
+                "tone": "red",
+                "pill": {
+                  "text": "d before b",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "r1": {
+                "label": "1b",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2f",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2c",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3e",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3a",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "A sort returns 1d before 1b, but the input had 1b before 1d. Is it stable?",
+              "options": [
+                "Yes",
+                "No: equal keys changed their relative order",
+                "It depends on the keys"
+              ],
+              "answer": 1,
+              "why": "A stable sort never reorders records with equal keys. Here 1b and 1d swapped."
+            }
+          },
+          {
+            "title": "Why it matters: sort by one key, then another",
+            "tag": "insight",
+            "body": [
+              "Suppose you sort a list of people by name, then by department. If the second sort is stable, people in the same department stay in name order. If it is unstable, the name order inside each department is lost.",
+              "Radix sort is built on this idea, with a stable sort per digit."
+            ],
+            "short": "Why it matters",
+            "hud": [
+              {
+                "k": "Sort by name, then by department",
+                "v": "needs a stable second sort"
+              },
+              {
+                "k": "Radix sort",
+                "v": "stable pass per digit"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Which sorts are stable",
+            "tag": "insight",
+            "body": [
+              "From the Wikipedia table: insertion sort, bubble sort, merge sort and counting sort are stable. Selection sort in its usual form, quicksort and heap sort are not. Timsort, which Python uses, is stable.",
+              "Stability usually costs something: merge sort needs extra memory, for example."
+            ],
+            "short": "Which are stable",
+            "hud": [
+              {
+                "k": "Stable",
+                "v": "insertion, bubble, merge, counting, Timsort",
+                "tone": "good"
+              },
+              {
+                "k": "Not stable",
+                "v": "selection, quicksort, heap sort",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Making any sort stable",
+            "tag": "technique",
+            "body": [
+              "Add the original position as a tie-breaker: sort by the pair (key, original index). Equal keys then differ in their second part, so their order is forced. This costs extra memory and a slower comparison, as the article notes.",
+              "That is what a stable sort does for free."
+            ],
+            "short": "A tie-breaker",
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "items = [(key, i, record) for i, record in enumerate(records)]",
+                "items.sort()   # equal keys are ordered by i"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "In Python, sorted and list.sort are stable",
+            "tag": "technique",
+            "body": [
+              "The Python sorting guide says sorts are guaranteed stable. So you can sort by several keys in turn, using the least important key first, or use a tuple as the key. Python uses Timsort.",
+              "reverse=True keeps stability too: equal items stay in their original order."
+            ],
+            "short": "Python",
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "people.sort(key=lambda p: p.name)",
+                "people.sort(key=lambda p: p.dept)   # stable: names stay in order within a department",
+                "# or: people.sort(key=lambda p: (p.dept, p.name))"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "How fast can a comparison sort be?",
+            "tag": "insight",
+            "body": [
+              "A comparison sort learns about the order only by asking whether a is less than b. Each question has two answers. For n items, there are n factorial possible orders, and the sort must be able to reach every one as an outcome.",
+              "That makes a decision tree with at least n factorial leaves."
+            ],
+            "short": "The limit",
+            "hud": [
+              {
+                "k": "Possible orders",
+                "v": "n factorial"
+              },
+              {
+                "k": "Each comparison",
+                "v": "2 outcomes"
+              },
+              {
+                "k": "Leaves needed",
+                "v": "at least n!"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Three items need at least 3 comparisons",
+            "tag": "technique",
+            "body": [
+              "For 3 items there are 6 orders. Two comparisons give at most 4 outcomes, which is not enough. Three give 8, which is enough. So any comparison sort needs at least 3 comparisons in the worst case for 3 items.",
+              "In general it needs at least ceil(log2 of n factorial) comparisons: 5 for 4 items, 7 for 5, 16 for 8."
+            ],
+            "short": "Small cases",
+            "hud": [
+              {
+                "k": "n = 3",
+                "v": "6 orders: 3 comparisons"
+              },
+              {
+                "k": "n = 4",
+                "v": "24 orders: 5"
+              },
+              {
+                "k": "n = 8",
+                "v": "40,320 orders: 16"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Bound",
+              "lines": [
+                "comparisons >= ceil(log2(n!))",
+                "2 questions: 4 outcomes < 6",
+                "3 questions: 8 outcomes >= 6"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "log2(n!) is about n log2 n",
+            "tag": "insight",
+            "body": [
+              "log2 of n factorial is about n log2 n minus 1.44 n. The Wikipedia article gives n log n minus 1.4427 n plus a lower-order term. So no comparison sort can beat O(n log n), at least on average. Merge sort and heap sort reach it.",
+              "Counting sort and radix sort escape the limit by not comparing at all."
+            ],
+            "short": "n log n",
+            "hud": [
+              {
+                "k": "Lower bound",
+                "v": "about n log2 n - 1.44 n"
+              },
+              {
+                "k": "Merge sort, heap sort",
+                "v": "reach O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Counting, radix sort",
+                "v": "avoid comparing",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "r0": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A stable sort keeps equal keys in input order, which lets you sort by several keys in turn. Merge, insertion and counting sorts are stable. Python's sort is stable. Any comparison sort needs at least log2(n!), about n log n, comparisons. Counting and radix sort beat it by using the keys.",
+              "When someone asks for a faster sort than n log n, ask what the keys are."
+            ],
+            "short": "Recap",
+            "set": {
+              "r0": {
+                "label": "1b",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r1": {
+                "label": "1d",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r2": {
+                "label": "2c",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r3": {
+                "label": "2f",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r4": {
+                "label": "3a",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "r5": {
+                "label": "3e",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 stable = equal keys keep input order",
+                "2 sort by the least important key first",
+                "3 comparison sorts need >= log2(n!) comparisons",
+                "4 beat it only with key structure"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A stable sort is like sorting a class by height without messing up the alphabetical order inside each height.",
+      "story": "A class is lined up alphabetically. The teacher asks everyone to re-line by height, but anyone of the same height must stay in alphabetical order. A stable sort does that for you. An unstable one might put two children of equal height in a different order. And just as you cannot find a name in a shuffled list with fewer than a certain number of questions, a sort that only compares has a minimum amount of work.",
+      "maps": [
+        [
+          "Equal heights stay alphabetical",
+          "A stable sort keeps equal keys in order"
+        ],
+        [
+          "Re-lining by height then by name",
+          "Sorting by several keys"
+        ],
+        [
+          "Questions like 'who is taller?'",
+          "Comparisons"
+        ],
+        [
+          "All possible line-ups",
+          "The n factorial orders"
+        ]
+      ],
+      "words": [
+        [
+          "stable sort",
+          "A sort that keeps equal items in the order they had before."
+        ],
+        [
+          "comparison sort",
+          "A sort that learns the order only by comparing two items."
+        ],
+        [
+          "tie-breaker",
+          "An extra value that decides between items with equal keys."
+        ],
+        [
+          "decision tree",
+          "A tree of yes or no questions that ends in an answer."
+        ],
+        [
+          "lower bound",
+          "The least amount of work any method must do."
+        ]
+      ]
+    }
   }
 ]
