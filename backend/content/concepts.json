@@ -147606,5 +147606,947 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bellman-ford",
+    "n": 189,
+    "level": 14,
+    "week": "Core",
+    "title": "Bellman-Ford: Shortest Paths with Negative Weights",
+    "tagline": "Relax every edge V - 1 times to find shortest paths even when some weights are negative, and detect negative cycles with one extra pass.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "Bellman-Ford computes shortest paths from one source in a weighted directed graph, and unlike Dijkstra's algorithm it allows negative edge weights. The Wikipedia article describes it as slower than Dijkstra for the same problem, but more versatile. It is also the base of distance-vector routing protocols.",
+      "## The algorithm",
+      "Set the distance of the source to 0 and all others to infinity. Then repeat V - 1 times: for every edge from u to v with weight w, if dist(u) + w is less than dist(v), set dist(v) to that value and record u as the parent of v. This is relaxing all edges. After V - 1 rounds, every shortest path is found.",
+      "## Why V - 1 rounds are enough",
+      "After round i, the distance to each vertex is at most the length of the shortest path that uses at most i edges. A shortest path in a graph with no negative cycle has no repeated vertex, so it has at most V - 1 edges. After V - 1 rounds, every shortest path has been completed. The article states this invariant and that estimates never fall below the true distance.",
+      "- Time: O(V x E), as the article gives the worst case as Theta(V E).\n- Space: O(V) for the distances and parents.\n- Early stop: if a whole round changes nothing, the result is final, so you can stop. This makes it fast on many graphs.",
+      "## Negative cycles",
+      "A negative cycle is a cycle whose total weight is negative. If one is reachable from the source, there is no cheapest path, since going round the cycle again always lowers the cost. To detect it, run one more round after V - 1. If any edge can still be relaxed, a negative cycle is reachable. The article describes following the predecessor links from the improved vertex to find a vertex on the cycle.",
+      "> A worked example: edges S to A (4), S to B (5), B to A (-2), A to C (3), B to C (6). Round 1, in that order: A becomes 4, B becomes 5, then B to A makes A 3, A to C makes C 6, B to C is worse. Round 2 changes nothing, so stop. The distances are A 3, B 5 and C 6. Dijkstra would have finished A at 4.",
+      "## Uses",
+      "Bellman-Ford is used when weights can be negative, in distance-vector routing such as RIP, and to detect arbitrage: take the negative logarithm of each exchange rate, and a negative cycle is a loop of trades that gains money. The article also lists the drawback in routing, the count-to-infinity problem.",
+      "## Improvements",
+      "A random or good vertex order for the edges can reduce the number of rounds. The queue-based variant, sometimes called the shortest path faster algorithm, relaxes only the edges out of vertices whose distance changed. All keep the O(V E) worst case.",
+      "## Common mistakes",
+      "Running fewer than V - 1 rounds without the early-stop check. Forgetting the extra round for negative cycles. Treating an undirected edge with a negative weight as a pair of directed edges, which creates a negative cycle at once.",
+      "## How to talk through it",
+      "Say that it handles negative weights by relaxing all edges V - 1 times. Explain why V - 1 is enough. Give O(V E), the early stop, and the extra round for negative cycles. Compare with Dijkstra."
+    ],
+    "keyPoints": [
+      "Relax every edge, V - 1 times. After round i, distances are at most the best path of at most i edges.",
+      "Handles negative weights. O(V x E) time, O(V) space.",
+      "Stop early if a round changes nothing.",
+      "A reachable negative cycle: an extra round still improves some edge. Then there is no cheapest path.",
+      "Used in distance-vector routing and for arbitrage detection. Dijkstra is faster when weights are non-negative."
+    ],
+    "sql": [
+      {
+        "title": "Bellman-Ford with early stop and negative cycle detection",
+        "lang": "py",
+        "code": "def bellman_ford(n, edges, source):\n    dist = [float(\"inf\")] * n\n    parent = [None] * n\n    dist[source] = 0\n    for _ in range(n - 1):\n        changed = False\n        for u, v, w in edges:\n            if dist[u] + w < dist[v]:\n                dist[v], parent[v] = dist[u] + w, u\n                changed = True\n        if not changed:\n            break                                       # nothing improved: the answer is final\n    for u, v, w in edges:                               # one more round: any improvement means a negative cycle\n        if dist[u] + w < dist[v]:\n            return None, None\n    return dist, parent\n\n# vertices S=0, A=1, B=2, C=3\nedges = [(0, 1, 4), (0, 2, 5), (2, 1, -2), (1, 3, 3), (2, 3, 6)]\ndist, parent = bellman_ford(4, edges, 0)\nassert dist == [0, 3, 5, 6] and parent[1] == 2 and parent[3] == 1\ncyc = [(0, 1, 1), (1, 2, -2), (2, 1, -1)]                # the cycle 1 -> 2 -> 1 has weight -3\nassert bellman_ford(3, cyc, 0) == (None, None)\nd, _ = bellman_ford(3, [(0, 1, 1)], 0)\nassert d == [0, 1, float(\"inf\")]                        # vertex 2 is unreachable"
+      },
+      {
+        "title": "Find the negative cycle itself",
+        "lang": "py",
+        "code": "def find_negative_cycle(n, edges):\n    dist = [0] * n                                      # start every vertex at 0 to reach all cycles\n    parent = [None] * n\n    last = None\n    for _ in range(n):\n        last = None\n        for u, v, w in edges:\n            if dist[u] + w < dist[v]:\n                dist[v], parent[v] = dist[u] + w, u\n                last = v\n    if last is None:\n        return None\n    for _ in range(n):                                  # step back n times to be sure we are inside the cycle\n        last = parent[last]\n    cycle, v = [last], parent[last]\n    while v != last:\n        cycle.append(v)\n        v = parent[v]\n    return cycle[::-1]\n\nedges = [(0, 1, 1), (1, 2, -2), (2, 1, -1), (2, 3, 4)]\ncycle = find_negative_cycle(4, edges)\nassert cycle is not None and set(cycle) == {1, 2}\nassert find_negative_cycle(3, [(0, 1, 1), (1, 2, 1)]) is None\nassert find_negative_cycle(1, []) is None"
+      },
+      {
+        "title": "Arbitrage as a negative cycle",
+        "lang": "py",
+        "code": "import math\n\ndef has_arbitrage(rates):\n    # rates[i][j]: how many units of currency j you get for one unit of currency i\n    n = len(rates)\n    edges = [(i, j, -math.log(rates[i][j])) for i in range(n) for j in range(n) if i != j and rates[i][j] > 0]\n    dist = [0.0] * n\n    for _ in range(n):\n        changed = False\n        for u, v, w in edges:\n            if dist[u] + w < dist[v] - 1e-12:\n                dist[v] = dist[u] + w\n                changed = True\n        if not changed:\n            return False\n    return True                                          # still improving after n rounds: a negative cycle\n\nfair = [[1, 2, 4], [0.5, 1, 2], [0.25, 0.5, 1]]\nassert not has_arbitrage(fair)                           # every route gives the same product of rates\nunfair = [[1, 2, 4], [0.5, 1, 2.2], [0.25, 0.5, 1]]      # 1 -> 2 -> 3 pays more than 1 -> 3\nassert has_arbitrage(unfair)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write bellman_ford with the early stop and the negative cycle check, and compare it with Dijkstra on random non-negative graphs. Then write find_negative_cycle and test it on graphs with and without one. Finally, model a currency table as a graph with negative log rates and check your arbitrage detector on a small example.",
+    "pitfalls": [
+      "Running too few rounds. You need V - 1, or stop only when a round changes nothing.",
+      "Forgetting the extra round, so a negative cycle gives silently wrong distances.",
+      "Using infinity arithmetic carelessly. Skip edges whose source is unreachable.",
+      "Treating an undirected edge with a negative weight as one edge. It forms a negative cycle.",
+      "Using Bellman-Ford when all weights are non-negative and the graph is large. Dijkstra is faster."
+    ],
+    "interview": [
+      {
+        "q": "How does Bellman-Ford work?",
+        "a": "Set the source distance to 0 and the others to infinity. Repeat V - 1 times: relax every edge, updating dist(v) if dist(u) + w is smaller. Afterwards all shortest paths are found, even with negative weights. It takes O(V x E)."
+      },
+      {
+        "q": "How does it detect a negative cycle?",
+        "a": "Run one more round after V - 1. If any edge can still be relaxed, there is a negative cycle reachable from the source."
+      },
+      {
+        "q": "Why are V - 1 rounds enough?",
+        "a": "A shortest path with no negative cycle has no repeated vertex, so it has at most V - 1 edges. After round i, every shortest path with at most i edges is correct."
+      },
+      {
+        "q": "When would you use Bellman-Ford instead of Dijkstra?",
+        "a": "When some weights can be negative, or when you need to detect negative cycles. Dijkstra is faster, but only for non-negative weights."
+      }
+    ],
+    "references": [
+      {
+        "title": "Bellman-Ford algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Dijkstra's algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: Bellman-Ford is the standard answer to shortest paths with negative weights and negative cycle detection. The relaxation of all edges V - 1 times, the O(V E) cost, the early termination, the extra pass for negative cycles, the invariant after i rounds and the routing uses come from the Wikipedia Bellman-Ford article, which I read in full. The arbitrage example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-bellman-ford",
+      "wikipedia-dijkstra",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bellman",
+        "title": "Bellman-Ford, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or relax"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "Start",
+            "at": 1
+          },
+          {
+            "text": "Negative edge",
+            "at": 3
+          },
+          {
+            "text": "Stop early",
+            "at": 5
+          },
+          {
+            "text": "Negative cycles",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gS",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 2.8,
+            "label": "S",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.1,
+            "y": -0.7,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": 0.7,
+            "y": 2.1,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 1.8,
+            "y": -1.8,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gS",
+            "b": "gA",
+            "dir": "to",
+            "label": "4"
+          },
+          {
+            "a": "gS",
+            "b": "gB",
+            "dir": "to",
+            "label": "5"
+          },
+          {
+            "a": "gB",
+            "b": "gA",
+            "dir": "to",
+            "label": "-2"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "to",
+            "label": "3"
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "to",
+            "label": "6"
+          }
+        ],
+        "steps": [
+          {
+            "title": "The task: shortest paths when a weight is negative",
+            "tag": "technique",
+            "body": [
+              "Some graphs have negative edge weights, such as a refund, a discount or a gain. Here the edge B to A has weight -2. Dijkstra's algorithm can give a wrong answer with such an edge. Bellman-Ford handles it.",
+              "The Wikipedia article calls it slower than Dijkstra for the same problem, but able to handle negative weights."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Negative edge",
+                "v": "B to A: -2"
+              },
+              {
+                "k": "Goal",
+                "v": "cheapest path from S"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Start: S is 0, everything else is infinity",
+            "tag": "technique",
+            "body": [
+              "As before, keep a distance estimate for each vertex. The source is 0 and the rest are infinity.",
+              "The algorithm does a fixed number of rounds. In each round it relaxes every edge, in any order. After V - 1 rounds, all shortest paths are found."
+            ],
+            "short": "Start",
+            "hud": [
+              {
+                "k": "Rounds",
+                "v": "up to V - 1 = 3"
+              },
+              {
+                "k": "Each round",
+                "v": "relax every edge"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for _ in range(V - 1):",
+                "    for u, v, w in edges:",
+                "        if dist[u] + w < dist[v]: dist[v] = dist[u] + w"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Round 1: S to A and S to B",
+            "tag": "solution",
+            "body": [
+              "The edges in this order: S to A (4), S to B (5), B to A (-2), A to C (3), B to C (6). First, S to A gives A the estimate 4. Then S to B gives B the estimate 5.",
+              "A path of one edge is found after one round."
+            ],
+            "short": "Round 1, first edges",
+            "hud": [
+              {
+                "k": "dist A",
+                "v": "4"
+              },
+              {
+                "k": "dist B",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 4",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gS",
+                  "gA"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "gS",
+                  "gB"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "The negative edge: B to A improves A",
+            "tag": "solution",
+            "body": [
+              "Next, B to A has weight -2. Going to A by way of B costs 5 - 2 = 3, which beats the current estimate 4. So A improves to 3, with parent B.",
+              "This is the case Dijkstra gets wrong: it would have finished A at 4 before looking at B."
+            ],
+            "short": "Relax B to A",
+            "hud": [
+              {
+                "k": "dist A",
+                "v": "5 - 2 = 3",
+                "tone": "good"
+              },
+              {
+                "k": "Was",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "dist inf",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gA"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The edge from A to C has weight 3. What does C's estimate become now?",
+              "options": [
+                "3 + 3 = 6",
+                "4 + 3 = 7",
+                "inf"
+              ],
+              "answer": 0,
+              "why": "A now has the estimate 3, so reaching C through A costs 3 + 3 = 6."
+            }
+          },
+          {
+            "title": "A to C, then B to C",
+            "tag": "solution",
+            "body": [
+              "A to C gives C the estimate 3 + 3 = 6. B to C would give 5 + 6 = 11, which is worse, so it changes nothing. Round 1 is finished.",
+              "Because the edges were in a lucky order, one round found everything."
+            ],
+            "short": "Round 1, last edges",
+            "hud": [
+              {
+                "k": "dist C",
+                "v": "6",
+                "tone": "good"
+              },
+              {
+                "k": "Round 1 changes",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Round 2: nothing changes, so stop",
+            "tag": "insight",
+            "body": [
+              "In round 2, no edge improves any estimate. If a whole round changes nothing, the answer is final, and we can stop early. In the worst case, the longest shortest path needs V - 1 rounds.",
+              "Result: A is 3, B is 5 and C is 6."
+            ],
+            "short": "Round 2: no change",
+            "hud": [
+              {
+                "k": "Result",
+                "v": "A 3, B 5, C 6",
+                "tone": "good"
+              },
+              {
+                "k": "Stopped after",
+                "v": "round 2"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Negative cycles: one more round",
+            "tag": "problem",
+            "body": [
+              "If a negative cycle is reachable, such as X to Y (1), Y to Z (-2), Z to X (-1) with total -2, going round it makes the cost lower each time, and no cheapest path exists.",
+              "To detect it, run one more round after V - 1. If any edge still improves, a negative cycle is reachable from the source. The article describes this extra pass."
+            ],
+            "short": "Negative cycles",
+            "hud": [
+              {
+                "k": "Extra round still improves",
+                "v": "negative cycle",
+                "tone": "bad"
+              },
+              {
+                "k": "No improvement",
+                "v": "answer is valid",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost: O(V x E)",
+            "tag": "insight",
+            "body": [
+              "Up to V - 1 rounds of E edges each is O(V x E) time. That is slower than Dijkstra's, but it handles negative weights. The Wikipedia article gives the worst case as Theta(V E).",
+              "Stopping early when a round changes nothing helps a lot in practice."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(V x E)",
+                "tone": "warn"
+              },
+              {
+                "k": "Dijkstra",
+                "v": "O((V + E) log V)",
+                "tone": "good"
+              },
+              {
+                "k": "Handles negatives",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Where it is used",
+            "tag": "insight",
+            "body": [
+              "Distance-vector routing protocols, such as RIP, run a distributed version of Bellman-Ford. Currency exchange graphs use negative logarithms of rates, so a negative cycle is an arbitrage chance.",
+              "The article also lists improvements that keep the worst case, such as the queue-based version."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "Routing",
+                "v": "RIP uses a distributed version"
+              },
+              {
+                "k": "Finance",
+                "v": "negative cycle = arbitrage"
+              }
+            ],
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Bellman-Ford relaxes every edge V - 1 times. It handles negative weights, stops early when a round changes nothing, and finds negative cycles with one extra round. It costs O(V x E).",
+              "Pick it when weights may be negative, Dijkstra when they cannot."
+            ],
+            "short": "Recap",
+            "set": {
+              "gS": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 0",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 3",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 5",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "dist 6",
+                  "tone": "grey",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 relax all edges, V - 1 times",
+                "2 stop early if a round changes nothing",
+                "3 one more round: still improving = negative cycle",
+                "4 O(V x E)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Bellman-Ford is like checking every deal in a list over and over until no deal can make anything cheaper.",
+      "story": "You have a list of deals between towns, and some deals even pay you back. You start with the cost to reach each town as unknown. You go through the whole list again and again, and each time you check whether a deal gives a cheaper way to reach a town. After enough rounds, nothing gets cheaper. If it still gets cheaper after that, you have found a loop of deals that pays you forever.",
+      "maps": [
+        [
+          "The list of deals",
+          "The edges"
+        ],
+        [
+          "Going through the whole list again",
+          "A round of relaxing all edges"
+        ],
+        [
+          "A deal that pays you back",
+          "A negative edge weight"
+        ],
+        [
+          "A loop that always pays",
+          "A negative cycle"
+        ]
+      ],
+      "words": [
+        [
+          "Bellman-Ford",
+          "A shortest path method that relaxes every edge V - 1 times."
+        ],
+        [
+          "negative cycle",
+          "A cycle whose edge weights add up to less than zero."
+        ],
+        [
+          "relax",
+          "Update a distance when a cheaper route is found."
+        ],
+        [
+          "round",
+          "One pass over all the edges."
+        ],
+        [
+          "predecessor",
+          "The vertex before this one on the best route found."
+        ]
+      ]
+    }
   }
 ]
