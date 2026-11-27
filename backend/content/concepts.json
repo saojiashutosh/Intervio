@@ -170333,5 +170333,1962 @@
         ]
       ]
     }
+  },
+  {
+    "id": "permutations",
+    "n": 206,
+    "level": 14,
+    "week": "Core",
+    "title": "Permutations: Every Order of a List",
+    "tagline": "List all the orderings of a list with backtracking, count them as n factorial, and handle repeated items.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A permutation is an arrangement of items in a row. The Wikipedia article on permutations says there are n factorial of them for n distinct objects, and n! / (n - k)! when you arrange k items chosen from n. Listing them is the second classic backtracking problem, after subsets.",
+      "## The decision tree",
+      "Fill the positions from left to right. For the first position, try each of the n items. For the second, try each of the items not yet used. Continue until all positions are filled, then save the row. After each recursive call, remove the item and mark it unused again so the next choice starts from a clean state.",
+      "> A worked example: the items 1, 2 and 3. First position 1, then second position 2, then third 3: the row is 123. Go back, try 3 in the second position: 132. Go back to the first position and try 2: 213 and 231. Then 3: 312 and 321. The six rows are 123, 132, 213, 231, 312 and 321.",
+      "## Two ways to write it",
+      "The first way keeps a list of chosen items and a used flag for each item. The second way works in place on one array: for position i, swap each later item into position i, recurse for i + 1, then swap back. Both visit the same permutations, in a different order. The swap method needs no extra used list.",
+      "## Counting",
+      "The count is n times (n - 1) times ... times 1. Eight items give 40,320. Ten items give 3,628,800. This grows faster than 2^n, so listing permutations is only possible for small n. Each row costs O(n) to copy, so the time is O(n times n!).",
+      "## Duplicates",
+      "If the list has equal items, such as 1, 1 and 2, the same row can come up more than once, and the true count is smaller. Sort the items first. At each position, skip an item when it equals the previous item and the previous item is unused, since that choice was already explored. For 1, 1, 2 you get 3 distinct rows, not 6.",
+      "## Pruning",
+      "Often only some rows are valid, for example rows where no item stays in its original position. Check the rule on the partial row and stop early when it is broken. This is the heart of backtracking, and the next lesson shows it with queens on a board.",
+      "## In Python",
+      "The standard library has itertools.permutations(iterable, r), which yields r-length orderings as tuples in order by position, and itertools.combinations for subsets of a size. Using the library is fine in real code. In an interview, expect to write the recursion.",
+      "## How to talk through it",
+      "Say that you fill positions one by one and try each unused item. Describe choose, explore, undo. Give n! and O(n times n!). Mention how you would skip duplicates."
+    ],
+    "keyPoints": [
+      "A permutation is an arrangement in a row. n distinct items have n! of them.",
+      "For each position try every unused item, recurse, then undo. Or swap items into position and swap back.",
+      "Time O(n x n!). Only small n is possible.",
+      "Sort and skip an item equal to the previous unused one to avoid duplicate rows.",
+      "itertools.permutations does it in the library, including r-length orderings."
+    ],
+    "sql": [
+      {
+        "title": "Permutations with a used list",
+        "lang": "py",
+        "code": "import itertools\n\ndef permutations(items):\n    result, chosen, used = [], [], [False] * len(items)\n    def go():\n        if len(chosen) == len(items):\n            result.append(list(chosen))\n            return\n        for i in range(len(items)):\n            if used[i]:\n                continue\n            used[i] = True                                  # choose\n            chosen.append(items[i])\n            go()                                            # explore\n            chosen.pop()                                    # undo\n            used[i] = False\n    go()\n    return result\n\nassert permutations([1, 2, 3]) == [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]\nassert permutations([]) == [[]] and permutations([7]) == [[7]]\nassert permutations([\"a\", \"b\", \"c\", \"d\"]) == [list(p) for p in itertools.permutations(\"abcd\")]"
+      },
+      {
+        "title": "Permutations by swapping, and with duplicates",
+        "lang": "py",
+        "code": "import itertools\nimport math\n\ndef permutations_swap(items):\n    a, result = list(items), []\n    def go(i):\n        if i == len(a):\n            result.append(list(a))\n            return\n        for j in range(i, len(a)):\n            a[i], a[j] = a[j], a[i]                         # put item j at position i\n            go(i + 1)\n            a[i], a[j] = a[j], a[i]                         # swap back\n    go(0)\n    return result\n\nassert sorted(permutations_swap([1, 2, 3])) == sorted(map(list, itertools.permutations([1, 2, 3])))\nassert len(permutations_swap(range(6))) == math.factorial(6) == 720\n\ndef unique_permutations(items):\n    items, result, chosen, used = sorted(items), [], [], [False] * len(items)\n    def go():\n        if len(chosen) == len(items):\n            result.append(list(chosen))\n            return\n        for i in range(len(items)):\n            if used[i] or (i > 0 and items[i] == items[i - 1] and not used[i - 1]):\n                continue                                    # skip a repeat that was already tried here\n            used[i] = True\n            chosen.append(items[i])\n            go()\n            chosen.pop()\n            used[i] = False\n    go()\n    return result\n\nassert unique_permutations([1, 1, 2]) == [[1, 1, 2], [1, 2, 1], [2, 1, 1]]\nassert len(unique_permutations([1, 1, 2, 2])) == 6"
+      },
+      {
+        "title": "Pruning: rows with no fixed point (derangements)",
+        "lang": "py",
+        "code": "import itertools\n\ndef derangements(n):\n    result, chosen, used = [], [], [False] * n\n    def go():\n        pos = len(chosen)\n        if pos == n:\n            result.append(list(chosen))\n            return\n        for v in range(n):\n            if used[v] or v == pos:                         # prune: item v may not stay at its own position\n                continue\n            used[v] = True\n            chosen.append(v)\n            go()\n            chosen.pop()\n            used[v] = False\n    go()\n    return result\n\nassert len(derangements(3)) == 2 and len(derangements(4)) == 9 and len(derangements(5)) == 44\nslow = [p for p in itertools.permutations(range(4)) if all(p[i] != i for i in range(4))]\nassert [tuple(d) for d in derangements(4)] == slow\nassert derangements(1) == [] and derangements(0) == [[]]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write permutations with a used list and check it against itertools.permutations. Write the swap version and compare the sorted results. Handle duplicates and check that [1, 1, 2, 2] gives 6 rows. Then write derangements with pruning and check that n = 4 gives 9 rows.",
+    "pitfalls": [
+      "Forgetting to mark the item unused again after the recursive call.",
+      "Saving the list instead of a copy of it.",
+      "Treating 1, 1, 2 as distinct items and getting repeated rows.",
+      "Trying to list permutations for n above about 10 or 11.",
+      "Mixing up permutations (order matters) and combinations (order does not)."
+    ],
+    "interview": [
+      {
+        "q": "How do you generate all permutations of a list?",
+        "a": "Fill positions one by one and try each unused item, recurse, and undo. Or swap each later item into the current position, recurse, and swap back. There are n! results."
+      },
+      {
+        "q": "What is the time complexity?",
+        "a": "O(n x n!), since there are n! permutations and each takes O(n) to copy."
+      },
+      {
+        "q": "How do you handle duplicate items?",
+        "a": "Sort the items, and skip an item that equals the previous item when that previous item is unused, so each distinct row is produced once."
+      },
+      {
+        "q": "What is the difference between permutations and combinations?",
+        "a": "In a permutation the order matters, so 12 and 21 are different. In a combination the order does not matter, so they are the same group."
+      }
+    ],
+    "references": [
+      {
+        "title": "Permutation (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Permutation",
+        "kind": "Reference"
+      },
+      {
+        "title": "itertools.permutations (Python docs)",
+        "url": "https://docs.python.org/3/library/itertools.html#itertools.permutations",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Backtracking (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Backtracking",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: permutations are a standard backtracking question and the base of many search problems. The count n!, the count n!/(n-k)! for k-permutations and the idea of a derangement come from the Wikipedia permutation article, which I read in part. The itertools.permutations behaviour, with tuples and order by position, comes from the Python itertools documentation, which I read in part. The decision tree, the worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-permutation",
+      "py-itertools",
+      "wikipedia-backtracking",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "permutations",
+        "title": "Permutations, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "try or look"
+          },
+          {
+            "kind": "write",
+            "label": "choose"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "dead end"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The goal",
+            "at": 0
+          },
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Orders",
+            "at": 2
+          },
+          {
+            "text": "Counting",
+            "at": 8
+          },
+          {
+            "text": "Duplicates",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "p",
+            "kind": "cube",
+            "x": -2.0,
+            "y": -2.0,
+            "label": "start",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p1",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 1.6,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p2",
+            "kind": "cube",
+            "x": -0.7,
+            "y": -0.7,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p3",
+            "kind": "cube",
+            "x": 1.6,
+            "y": -3.0,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p12",
+            "kind": "cube",
+            "x": -2.275,
+            "y": 3.475,
+            "label": "12",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p13",
+            "kind": "cube",
+            "x": -1.125,
+            "y": 2.325,
+            "label": "13",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p21",
+            "kind": "cube",
+            "x": 0.025,
+            "y": 1.175,
+            "label": "21",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p23",
+            "kind": "cube",
+            "x": 1.175,
+            "y": 0.025,
+            "label": "23",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p31",
+            "kind": "cube",
+            "x": 2.325,
+            "y": -1.125,
+            "label": "31",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p32",
+            "kind": "cube",
+            "x": 3.475,
+            "y": -2.275,
+            "label": "32",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p123",
+            "kind": "cube",
+            "x": -0.975,
+            "y": 4.775,
+            "label": "123",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p132",
+            "kind": "cube",
+            "x": 0.175,
+            "y": 3.625,
+            "label": "132",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p213",
+            "kind": "cube",
+            "x": 1.325,
+            "y": 2.475,
+            "label": "213",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p231",
+            "kind": "cube",
+            "x": 2.475,
+            "y": 1.325,
+            "label": "231",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p312",
+            "kind": "cube",
+            "x": 3.625,
+            "y": 0.175,
+            "label": "312",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "p321",
+            "kind": "cube",
+            "x": 4.775,
+            "y": -0.975,
+            "label": "321",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "p",
+            "b": "p1",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "p",
+            "b": "p2",
+            "dir": "none",
+            "label": "2"
+          },
+          {
+            "a": "p",
+            "b": "p3",
+            "dir": "none",
+            "label": "3"
+          },
+          {
+            "a": "p1",
+            "b": "p12",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p1",
+            "b": "p13",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p2",
+            "b": "p21",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p2",
+            "b": "p23",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p3",
+            "b": "p31",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p3",
+            "b": "p32",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p12",
+            "b": "p123",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p13",
+            "b": "p132",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p21",
+            "b": "p213",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p23",
+            "b": "p231",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p31",
+            "b": "p312",
+            "dir": "none",
+            "label": null
+          },
+          {
+            "a": "p32",
+            "b": "p321",
+            "dir": "none",
+            "label": null
+          }
+        ],
+        "steps": [
+          {
+            "title": "All the orders of three things",
+            "tag": "technique",
+            "body": [
+              "A permutation is one way to put items in a row. The three numbers 1, 2 and 3 can be arranged in 6 ways: 123, 132, 213, 231, 312, 321. Order matters here, so 123 and 321 are different.",
+              "We build each row one position at a time."
+            ],
+            "short": "The goal",
+            "hud": [
+              {
+                "k": "Items",
+                "v": "1, 2, 3"
+              },
+              {
+                "k": "Orders",
+                "v": "3! = 6"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": true
+              },
+              "p2": {
+                "hidden": true
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": true
+              },
+              "p13": {
+                "hidden": true
+              },
+              "p21": {
+                "hidden": true
+              },
+              "p23": {
+                "hidden": true
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": true
+              },
+              "p132": {
+                "hidden": true
+              },
+              "p213": {
+                "hidden": true
+              },
+              "p231": {
+                "hidden": true
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "The rule: pick any item not used yet",
+            "tag": "technique",
+            "body": [
+              "For the first position, pick any of the 3 items. For the second position, pick any of the 2 left. For the last, only 1 is left. Keep a note of which items are used, and undo the note when you go back.",
+              "The number of orders is 3 times 2 times 1 = 6, written 3 factorial."
+            ],
+            "short": "The rule",
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "orange",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p1": {
+                "hidden": true
+              },
+              "p2": {
+                "hidden": true
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": true
+              },
+              "p13": {
+                "hidden": true
+              },
+              "p21": {
+                "hidden": true
+              },
+              "p23": {
+                "hidden": true
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": true
+              },
+              "p132": {
+                "hidden": true
+              },
+              "p213": {
+                "hidden": true
+              },
+              "p231": {
+                "hidden": true
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def go():",
+                "    if len(chosen) == n: save(chosen); return",
+                "    for i in range(n):",
+                "        if used[i]: continue",
+                "        used[i] = True; chosen.append(items[i]); go(); chosen.pop(); used[i] = False"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Order 1 is 123",
+            "tag": "solution",
+            "body": [
+              "The row is 1, 2, 3. All 3 positions are filled, so save it. That is order number 1 of 6.",
+              "Then remove the last item, put it back among the unused ones, and try the next unused item for that position."
+            ],
+            "short": "Order 1",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "123"
+              },
+              {
+                "k": "Saved",
+                "v": "1 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": true
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": true
+              },
+              "p21": {
+                "hidden": true
+              },
+              "p23": {
+                "hidden": true
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p132": {
+                "hidden": true
+              },
+              "p213": {
+                "hidden": true
+              },
+              "p231": {
+                "hidden": true
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            },
+            "predict": {
+              "question": "The first order saved is 123. What is the next one?",
+              "options": [
+                "132",
+                "213",
+                "321"
+              ],
+              "answer": 0,
+              "why": "Go back to the second position and try the next unused item. That is 3, giving 132."
+            }
+          },
+          {
+            "title": "Order 2 is 132",
+            "tag": "solution",
+            "body": [
+              "The row is 1, 3, 2. All 3 positions are filled, so save it. That is order number 2 of 6.",
+              "Then remove the last item, put it back among the unused ones, and try the next unused item for that position."
+            ],
+            "short": "Order 2",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "132"
+              },
+              {
+                "k": "Saved",
+                "v": "2 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": true
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": true
+              },
+              "p23": {
+                "hidden": true
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p213": {
+                "hidden": true
+              },
+              "p231": {
+                "hidden": true
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Order 3 is 213",
+            "tag": "solution",
+            "body": [
+              "The row is 2, 1, 3. All 3 positions are filled, so save it. That is order number 3 of 6.",
+              "Then remove the last item, put it back among the unused ones, and try the next unused item for that position."
+            ],
+            "short": "Order 3",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "213"
+              },
+              {
+                "k": "Saved",
+                "v": "3 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": true
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p231": {
+                "hidden": true
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Order 4 is 231",
+            "tag": "solution",
+            "body": [
+              "The row is 2, 3, 1. All 3 positions are filled, so save it. That is order number 4 of 6.",
+              "Then remove the last item, put it back among the unused ones, and try the next unused item for that position."
+            ],
+            "short": "Order 4",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "231"
+              },
+              {
+                "k": "Saved",
+                "v": "4 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": true
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": true
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p312": {
+                "hidden": true
+              },
+              "p321": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Order 5 is 312",
+            "tag": "solution",
+            "body": [
+              "The row is 3, 1, 2. All 3 positions are filled, so save it. That is order number 5 of 6.",
+              "Then remove the last item, put it back among the unused ones, and try the next unused item for that position."
+            ],
+            "short": "Order 5",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "312"
+              },
+              {
+                "k": "Saved",
+                "v": "5 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": true
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "p321": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Order 6 is 321",
+            "tag": "solution",
+            "body": [
+              "The row is 3, 2, 1. All 3 positions are filled, so save it. That is order number 6 of 6.",
+              "Every branch has been explored. The search is finished."
+            ],
+            "short": "Order 6",
+            "hud": [
+              {
+                "k": "Row",
+                "v": "321"
+              },
+              {
+                "k": "Saved",
+                "v": "6 of 6",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": {
+                  "text": "now",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Counting: n factorial",
+            "tag": "insight",
+            "body": [
+              "There are n times (n - 1) times ... times 1 permutations of n distinct items, written n factorial. The Wikipedia article on permutations gives this. Ordering k items out of n gives n! / (n - k)!.",
+              "Eight items give 40,320 orders. Ten give 3,628,800. It grows faster than 2 to the power n."
+            ],
+            "short": "Counting",
+            "hud": [
+              {
+                "k": "3 items",
+                "v": "6"
+              },
+              {
+                "k": "8 items",
+                "v": "40,320"
+              },
+              {
+                "k": "10 items",
+                "v": "3,628,800",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Swapping instead of a used list",
+            "tag": "technique",
+            "body": [
+              "A second way builds permutations in place. For position i, swap each later item into position i, recurse on i + 1, and swap back. It needs no used list.",
+              "It gives the same set of permutations, in a different order."
+            ],
+            "short": "Swap method",
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def go(i):",
+                "    if i == n: save(a); return",
+                "    for j in range(i, n):",
+                "        a[i], a[j] = a[j], a[i]; go(i + 1); a[i], a[j] = a[j], a[i]"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Duplicates and pruning",
+            "tag": "problem",
+            "body": [
+              "With repeated items, such as 1, 1, 2, you would save the same row more than once. Sort the items, and in each position skip an item equal to the previous one that was already tried and is unused. You get 3 distinct rows instead of 6.",
+              "Pruning also applies to partial rows: stop a row as soon as it breaks a rule."
+            ],
+            "short": "Duplicates",
+            "hud": [
+              {
+                "k": "1, 1, 2",
+                "v": "3 distinct rows, not 6",
+                "tone": "good"
+              },
+              {
+                "k": "Rule",
+                "v": "skip an equal item already tried here"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python",
+            "tag": "insight",
+            "body": [
+              "itertools.permutations(items) yields the orders as tuples, in order by position. permutations(items, r) gives r-length orders, and combinations gives the subsets of a size. Write your own version when you need pruning or custom rules.",
+              "For an interview, write it yourself and mention the library."
+            ],
+            "short": "In Python",
+            "hud": [
+              {
+                "k": "itertools.permutations",
+                "v": "built in",
+                "tone": "good"
+              },
+              {
+                "k": "Your own",
+                "v": "needed for pruning"
+              }
+            ],
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "To list permutations, fill positions one at a time, trying each unused item, and undo the choice after exploring. There are n! orders, so only small n is possible. Sort and skip equal items to avoid repeats.",
+              "Same template as subsets: choose, explore, undo."
+            ],
+            "short": "Recap",
+            "set": {
+              "p": {
+                "hidden": false,
+                "label": "start",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p12": {
+                "hidden": false,
+                "label": "12",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p13": {
+                "hidden": false,
+                "label": "13",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p21": {
+                "hidden": false,
+                "label": "21",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p23": {
+                "hidden": false,
+                "label": "23",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p31": {
+                "hidden": false,
+                "label": "31",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p32": {
+                "hidden": false,
+                "label": "32",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "p123": {
+                "hidden": false,
+                "label": "123",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p132": {
+                "hidden": false,
+                "label": "132",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p213": {
+                "hidden": false,
+                "label": "213",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p231": {
+                "hidden": false,
+                "label": "231",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p312": {
+                "hidden": false,
+                "label": "312",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "p321": {
+                "hidden": false,
+                "label": "321",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 for each position, try each unused item",
+                "2 recurse, then undo",
+                "3 n! results",
+                "4 sort and skip repeats"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Listing permutations is like seating three friends on three chairs in every possible order.",
+      "story": "You have three friends and three chairs in a row. You seat anyone in the first chair. Then you seat anyone who is left in the second chair. The last friend takes the last chair. To find the next seating plan, you ask the last friend to stand up and see if somebody else can take that chair, then the second, then the first. Going back one seat at a time lets you find all six plans without missing or repeating any.",
+      "maps": [
+        [
+          "The chairs",
+          "The positions"
+        ],
+        [
+          "Friends still standing",
+          "Items not used yet"
+        ],
+        [
+          "Asking someone to stand up",
+          "The undo step"
+        ],
+        [
+          "A full seating plan",
+          "One permutation"
+        ]
+      ],
+      "words": [
+        [
+          "permutation",
+          "One way to arrange items in a row, where order matters."
+        ],
+        [
+          "factorial",
+          "The product n times (n - 1) down to 1, written n!."
+        ],
+        [
+          "derangement",
+          "A permutation where no item is in its original position."
+        ],
+        [
+          "backtracking",
+          "Building an answer step by step and undoing a step when it cannot work."
+        ],
+        [
+          "fixed point",
+          "An item that stays in its own position."
+        ]
+      ]
+    }
   }
 ]
