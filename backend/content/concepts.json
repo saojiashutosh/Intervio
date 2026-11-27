@@ -174762,5 +174762,2310 @@
         ]
       ]
     }
+  },
+  {
+    "id": "maze-solving",
+    "n": 208,
+    "level": 14,
+    "week": "Core",
+    "title": "Maze Solving: Backtracking on a Grid",
+    "tagline": "Find a path through a maze by walking until stuck and stepping back, and see how a visited set and the same template solve grid puzzles.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A maze on a grid is a good picture of backtracking. You walk forward as far as you can. When you reach a dead end, you step back to the last square that still has an unexplored direction, and go that way. The Wikipedia article on backtracking describes the method as a depth-first search of a tree of partial candidates, where a candidate is abandoned as soon as it cannot be completed.",
+      "## The model",
+      "The maze is a grid of squares. Some are walls and some are open. You start at one open square and want to reach another. From a square you may move up, down, left or right into an open square inside the grid.",
+      "## The algorithm",
+      "Keep a path list and a visited set. At a square, add it to the path and mark it visited. If it is the end, return success. Otherwise try each direction in a fixed order, and for each open, unvisited neighbour call the function. If a call returns success, return success too, with the path kept. If no direction works, remove the square from the path and return failure, which is the step back.",
+      "> A worked example: the 5 by 5 maze in the diagram, with the direction order down, right, up, left. The search walks down and right, goes into a side room, finds that it is a dead end, steps back several squares, and then tries the next direction. It finally reaches the end by the long way round, and the path list holds the successful route.",
+      "## The visited set",
+      "Without a visited set the search can loop for ever, because you can step back into the square you came from. With it, every square is entered at most once, so the time is O(rows times columns). Note that, unlike N-Queens, you do not clear the visited mark when you step back. A square that led to a dead end will still be a dead end, and clearing the mark would make the search try it again and again, which could take exponential time.",
+      "## It finds a path, not the shortest",
+      "The search stops at the first success in its direction order, so the path found depends on the order of the directions. A breadth-first search explores the squares in rings of increasing distance and finds a shortest path in a grid where each step costs the same. Use backtracking when any path will do, or when you need to try combinations of choices. Use breadth-first search for the shortest.",
+      "## The same code in other puzzles",
+      "Flood fill, counting islands, searching a word in a grid of letters, and finding all paths in a grid use the same shape: move to a neighbour, recurse, and undo. For a word search you do unmark the cell when you step back, because the same cell may be used in a different word path. Sudoku and other puzzles use it with a reject test.",
+      "## Recursion depth",
+      "Recursion goes as deep as the path is long, up to rows times columns. Python's default limit is about 1,000 calls, so a big maze can fail with a recursion error. Use an explicit stack for large grids.",
+      "## How to talk through it",
+      "Say that you walk, mark visited, try each direction, and step back from a dead end. Explain why the visited set must stay marked, say that the result is not the shortest path, and mention breadth-first search for that."
+    ],
+    "keyPoints": [
+      "Walk to an open, unvisited neighbour. At the end, succeed. Stuck: step back and try the next direction.",
+      "Keep a path list (add on entry, remove on step back) and a visited set to stop loops.",
+      "A dead end stays visited. Clearing the mark can make the search exponential.",
+      "It finds a path, not the shortest. Use breadth-first search for the shortest.",
+      "Large grids can overflow the recursion limit. Use an explicit stack."
+    ],
+    "sql": [
+      {
+        "title": "Find a path in a maze with backtracking",
+        "lang": "py",
+        "code": "MAZE = [\"..#..\",\n        \"#.#.#\",\n        \".....\",\n        \"..##.\",\n        \"...#.\"]\n\ndef find_path(maze, start, end):\n    rows, cols = len(maze), len(maze[0])\n    path, visited = [], set()\n    def go(r, c):\n        path.append((r, c))\n        visited.add((r, c))\n        if (r, c) == end:\n            return True\n        for dr, dc in ((1, 0), (0, 1), (-1, 0), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == \".\" and (nr, nc) not in visited:\n                if go(nr, nc):\n                    return True\n        path.pop()                                              # dead end: step back\n        return False\n    return path if go(*start) else None\n\nroute = find_path(MAZE, (0, 0), (4, 4))\nassert route[0] == (0, 0) and route[-1] == (4, 4)\nassert all(MAZE[r][c] == \".\" for r, c in route)                  # never through a wall\nassert all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(route, route[1:]))   # one step at a time\nassert find_path([\"..#\", \"##.\", \"...\"], (0, 0), (2, 2)) is None  # walled off\nassert find_path([\".\"], (0, 0), (0, 0)) == [(0, 0)]"
+      },
+      {
+        "title": "Shortest path with breadth-first search, and path counting",
+        "lang": "py",
+        "code": "from collections import deque\n\nMAZE = [\"..#..\",\n        \"#.#.#\",\n        \".....\",\n        \"..##.\",\n        \"...#.\"]\n\ndef shortest(maze, start, end):\n    rows, cols = len(maze), len(maze[0])\n    queue, seen = deque([(start, 0)]), {start}\n    while queue:\n        (r, c), d = queue.popleft()\n        if (r, c) == end:\n            return d\n        for dr, dc in ((1, 0), (0, 1), (-1, 0), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == \".\" and (nr, nc) not in seen:\n                seen.add((nr, nc))\n                queue.append(((nr, nc), d + 1))\n    return None\n\nassert shortest(MAZE, (0, 0), (4, 4)) == 8\n\ndef count_paths(maze, start, end):\n    # every simple path: here the visited mark IS removed when stepping back\n    rows, cols = len(maze), len(maze[0])\n    on_path, total = {start}, [0]\n    def go(r, c):\n        if (r, c) == end:\n            total[0] += 1\n            return\n        for dr, dc in ((1, 0), (0, 1), (-1, 0), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == \".\" and (nr, nc) not in on_path:\n                on_path.add((nr, nc))\n                go(nr, nc)\n                on_path.remove((nr, nc))                           # undo, so other routes can use this square\n    go(*start)\n    return total[0]\n\nassert count_paths([\"..\", \"..\"], (0, 0), (1, 1)) == 2\nassert count_paths(MAZE, (0, 0), (4, 4)) >= 1"
+      },
+      {
+        "title": "Word search in a grid: unmark on the way back",
+        "lang": "py",
+        "code": "def word_search(grid, word):\n    rows, cols = len(grid), len(grid[0])\n    def go(r, c, k, used):\n        if grid[r][c] != word[k]:\n            return False\n        if k == len(word) - 1:\n            return True\n        used.add((r, c))\n        for dr, dc in ((1, 0), (0, 1), (-1, 0), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and (nr, nc) not in used and go(nr, nc, k + 1, used):\n                used.discard((r, c))\n                return True\n        used.discard((r, c))                                       # unmark: other routes may reuse this cell\n        return False\n    return any(go(r, c, 0, set()) for r in range(rows) for c in range(cols))\n\nGRID = [\"ABCE\",\n        \"SFCS\",\n        \"ADEE\"]\nassert word_search(GRID, \"ABCCED\") is True\nassert word_search(GRID, \"SEE\") is True\nassert word_search(GRID, \"ABCB\") is False                          # would need the same B twice"
+      }
+    ],
+    "django": {},
+    "exercise": "Write find_path with the path list and visited set, and check the result is a legal walk. Change the direction order and see that the path changes. Write a breadth-first search and check that its path is never longer. Then write the word search, where the cell is unmarked on the way back, and explain why this differs from the maze.",
+    "pitfalls": [
+      "No visited set, so the search loops for ever.",
+      "Clearing the visited mark in a maze search, which can make it exponential.",
+      "Forgetting to remove the square from the path when stepping back.",
+      "Expecting the path found to be the shortest.",
+      "Recursion too deep for large grids. Use an explicit stack."
+    ],
+    "interview": [
+      {
+        "q": "How do you find a path in a maze?",
+        "a": "Use depth-first backtracking: move to an open, unvisited neighbour, mark it visited, stop at the end, and step back at a dead end. It takes O(rows x columns) time with a visited set."
+      },
+      {
+        "q": "Does backtracking find the shortest path?",
+        "a": "No, it returns the first path it finds in its direction order. Breadth-first search finds a shortest path when every step costs the same."
+      },
+      {
+        "q": "Why do you not unmark visited squares in a maze, but do in a word search?",
+        "a": "In a maze, a square that led to a dead end will always lead to one, so marking it again would only waste time. In a word search the same cell can be part of a different route for the word, so the mark is removed when you step back."
+      },
+      {
+        "q": "What goes wrong with recursion on a big maze?",
+        "a": "The depth can reach rows x columns, which can exceed Python's recursion limit. Use an explicit stack instead."
+      }
+    ],
+    "references": [
+      {
+        "title": "Backtracking (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Backtracking",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: grid path-finding and word search are common interview questions and show backtracking with a visited set. The description of backtracking as a depth-first search of partial candidates that are abandoned when they cannot be completed comes from the Wikipedia backtracking article, which I read in part. The maze, the direction order, the trace, the comparison with breadth-first search and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-backtracking",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "maze",
+        "title": "Maze solving, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "try or look"
+          },
+          {
+            "kind": "write",
+            "label": "choose"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "dead end"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The maze",
+            "at": 0
+          },
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Walking",
+            "at": 2
+          },
+          {
+            "text": "Not the shortest",
+            "at": 8
+          },
+          {
+            "text": "Visited",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "m00",
+            "kind": "cube",
+            "x": -3.9,
+            "y": -3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m01",
+            "kind": "cube",
+            "x": -1.95,
+            "y": -3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m02",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -3.9,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m03",
+            "kind": "cube",
+            "x": 1.95,
+            "y": -3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m04",
+            "kind": "cube",
+            "x": 3.9,
+            "y": -3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m10",
+            "kind": "cube",
+            "x": -3.9,
+            "y": -1.95,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m11",
+            "kind": "cube",
+            "x": -1.95,
+            "y": -1.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m12",
+            "kind": "cube",
+            "x": 0.0,
+            "y": -1.95,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m13",
+            "kind": "cube",
+            "x": 1.95,
+            "y": -1.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m14",
+            "kind": "cube",
+            "x": 3.9,
+            "y": -1.95,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m20",
+            "kind": "cube",
+            "x": -3.9,
+            "y": 0.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m21",
+            "kind": "cube",
+            "x": -1.95,
+            "y": 0.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m22",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m23",
+            "kind": "cube",
+            "x": 1.95,
+            "y": 0.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m24",
+            "kind": "cube",
+            "x": 3.9,
+            "y": 0.0,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m30",
+            "kind": "cube",
+            "x": -3.9,
+            "y": 1.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m31",
+            "kind": "cube",
+            "x": -1.95,
+            "y": 1.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m32",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 1.95,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m33",
+            "kind": "cube",
+            "x": 1.95,
+            "y": 1.95,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m34",
+            "kind": "cube",
+            "x": 3.9,
+            "y": 1.95,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m40",
+            "kind": "cube",
+            "x": -3.9,
+            "y": 3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m41",
+            "kind": "cube",
+            "x": -1.95,
+            "y": 3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m42",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "m43",
+            "kind": "cube",
+            "x": 1.95,
+            "y": 3.9,
+            "label": "#",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "m44",
+            "kind": "cube",
+            "x": 3.9,
+            "y": 3.9,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A maze made of squares",
+            "tag": "technique",
+            "body": [
+              "The maze is a 5 by 5 grid. # is a wall, . is an open square. We start at the top left, S, and want to reach the bottom right, E. We may move up, down, left or right, but not through a wall.",
+              "We will explore with backtracking: walk until stuck, then step back and try another way."
+            ],
+            "short": "The maze",
+            "hud": [
+              {
+                "k": "Start",
+                "v": "top left"
+              },
+              {
+                "k": "End",
+                "v": "bottom right"
+              },
+              {
+                "k": "Moves",
+                "v": "up, down, left, right"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m41": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m42": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The rule: try each direction in turn",
+            "tag": "technique",
+            "body": [
+              "At each square, try the directions in a fixed order: down, right, up, left. Move into a square only if it is open, inside the grid and not visited yet. If none works, this square is a dead end: step back to the square before.",
+              "Keep a path list. Add a square when you enter it, and remove it when you step back."
+            ],
+            "short": "The rule",
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m41": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m42": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def go(r, c):",
+                "    path.append((r, c)); visited.add((r, c))",
+                "    if (r, c) == end: return True",
+                "    for dr, dc in directions: ... if go(nr, nc): return True",
+                "    path.pop(); return False"
+              ],
+              "hl": [
+                4
+              ]
+            }
+          },
+          {
+            "title": "Walk to 4,2 (path length 7)",
+            "tag": "solution",
+            "body": [
+              "Move 7 squares: 0,0 then 0,1 then 1,1 then 2,1 then 3,1 then 4,1 then 4,2. Each is open and not visited.",
+              "Keep going until the end is reached or no direction works."
+            ],
+            "short": "Walk",
+            "hud": [
+              {
+                "k": "Path length",
+                "v": "7"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m41": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m42": {
+                "label": "o",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Dead end: step back from 4,2",
+            "tag": "problem",
+            "body": [
+              "From 4,2 no direction leads anywhere new. Remove it from the path and mark it as a dead end.",
+              "Then try the next direction from the square before."
+            ],
+            "short": "Backtrack",
+            "hud": [
+              {
+                "k": "Dead ends",
+                "v": "1",
+                "tone": "bad"
+              },
+              {
+                "k": "Path length",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m41": {
+                "label": "o",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The search is stuck in a corner with no new squares. What does it do?",
+              "options": [
+                "Stop and say no path exists",
+                "Step back to the square before and try another direction",
+                "Jump to the end"
+              ],
+              "answer": 1,
+              "why": "It removes the square from the path and tries the remaining directions of the square before. Only when the start has no directions left does it report no path."
+            }
+          },
+          {
+            "title": "Walk to 2,0 (path length 9)",
+            "tag": "solution",
+            "body": [
+              "Move 3 squares: 4,0 then 3,0 then 2,0. Each is open and not visited.",
+              "Keep going until the end is reached or no direction works."
+            ],
+            "short": "Walk",
+            "hud": [
+              {
+                "k": "Path length",
+                "v": "9"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "o",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m21": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m31": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m41": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Dead end: step back 5 squares",
+            "tag": "problem",
+            "body": [
+              "Squares 2,0, 3,0, 4,0, 4,1, 3,1 have no way forward. Remove them from the path one by one, marking each as a dead end.",
+              "Then try the next direction from the square before."
+            ],
+            "short": "Backtrack",
+            "hud": [
+              {
+                "k": "Dead ends",
+                "v": "6",
+                "tone": "bad"
+              },
+              {
+                "k": "Path length",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Walk to 4,4 (path length 9)",
+            "tag": "solution",
+            "body": [
+              "Move 5 squares: 2,2 then 2,3 then 2,4 then 3,4 then 4,4. Each is open and not visited.",
+              "Keep going until the end is reached or no direction works."
+            ],
+            "short": "Walk",
+            "hud": [
+              {
+                "k": "Path length",
+                "v": "9"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "o",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "o",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The end is reached",
+            "tag": "solution",
+            "body": [
+              "The search reached E at row 4, column 4. The path list now holds the way: 0,0 to 0,1 to 1,1 to 2,1 to 2,2 to 2,3 to 2,4 to 3,4 to 4,4, which is 9 squares.",
+              "The dead ends are not part of the path. They were explored and given up."
+            ],
+            "short": "Reached",
+            "hud": [
+              {
+                "k": "Path",
+                "v": "9 squares",
+                "tone": "good"
+              },
+              {
+                "k": "Dead ends",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Not the shortest way",
+            "tag": "insight",
+            "body": [
+              "Backtracking finds a path, not the shortest one. It stops at the first success in its direction order. A breadth-first search explores square by square outwards and finds a shortest path in an unweighted maze.",
+              "Use backtracking when you want any answer, or when you must try combinations of choices. Use breadth-first search for the shortest."
+            ],
+            "short": "Shortest path",
+            "hud": [
+              {
+                "k": "Backtracking",
+                "v": "any path"
+              },
+              {
+                "k": "Breadth-first search",
+                "v": "a shortest path",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The visited set",
+            "tag": "technique",
+            "body": [
+              "Without the visited set, the search can walk round in circles for ever, because you can move back into the square you came from. The set also makes sure each square is entered once, so the cost is O(rows times columns).",
+              "Unlike N-Queens, here we do not remove a square from the visited set when we step back: a dead end stays a dead end."
+            ],
+            "short": "Visited",
+            "hud": [
+              {
+                "k": "Visited set",
+                "v": "stops loops",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "O(rows x columns)"
+              }
+            ],
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Maze solving by backtracking: move to an open, unvisited neighbour, stop at the end, and step back at a dead end. It finds a path, not the shortest. It is a depth-first search, and flood fill, word search and island counting use the same code.",
+              "Choose, explore, undo, and keep a visited set."
+            ],
+            "short": "Recap",
+            "set": {
+              "m00": {
+                "label": "S",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m01": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m02": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m03": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m04": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m10": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m11": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m12": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "m14": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m20": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m21": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m22": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m23": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m24": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m30": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m31": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m32": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m33": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m34": {
+                "label": "o",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "m40": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m41": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m42": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": "dim"
+              },
+              "m43": {
+                "label": "#",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "m44": {
+                "label": "E",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 move to an open unvisited neighbour",
+                "2 at the end: success",
+                "3 stuck: step back, try the next direction",
+                "4 visited set stops loops"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Solving a maze with backtracking is like exploring a cave with a ball of string.",
+      "story": "You walk into a cave with a ball of string tied to the entrance. You walk down one passage as far as it goes. If it is a dead end, you wind the string back to the last fork and take another passage. You mark each passage you have already tried, so you never take the same one twice. When you find the exit, the string shows the way you came.",
+      "maps": [
+        [
+          "The string",
+          "The path list"
+        ],
+        [
+          "Winding the string back",
+          "Backtracking"
+        ],
+        [
+          "Marking tried passages",
+          "The visited set"
+        ],
+        [
+          "The exit",
+          "The goal"
+        ]
+      ],
+      "words": [
+        [
+          "maze",
+          "A grid of open squares and walls with a start and an end."
+        ],
+        [
+          "dead end",
+          "A square from which no new square can be reached."
+        ],
+        [
+          "visited set",
+          "The squares already entered, so the search does not repeat them."
+        ],
+        [
+          "depth-first search",
+          "Going as deep as possible before stepping back."
+        ],
+        [
+          "grid",
+          "Rows and columns of squares."
+        ]
+      ]
+    }
   }
 ]
