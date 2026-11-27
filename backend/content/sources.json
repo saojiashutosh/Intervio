@@ -2501,6 +2501,51 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "Builds an optimal prefix code from symbol weights by repeatedly merging the two lowest-weight nodes with a priority queue, in O(n log n); decoding walks the tree bit by bit; optimal among prefix codes for known symbol probabilities."
+    },
+    {
+      "key": "wikipedia-backtracking",
+      "title": "Backtracking (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Backtracking",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Builds candidates incrementally and abandons one as soon as it cannot be completed; partial candidates are nodes of a search tree explored depth-first; reject and accept tests; examples include eight queens, Sudoku and SAT solvers."
+    },
+    {
+      "key": "wikipedia-eight-queens",
+      "title": "Eight queens puzzle (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Eight_queens_puzzle",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "92 solutions for n = 8, or 12 up to rotation and reflection; solutions exist for every n except 2 and 3; brute force has 4,426,165,368 arrangements, one queen per column cuts it to 8^8 and permutations to 8!; backtracking solves it instantly."
+    },
+    {
+      "key": "wikipedia-power-set",
+      "title": "Power set (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Power_set",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The set of all subsets of a set of n elements has 2^n members; subsets correspond to n-bit binary numbers; recursive definition P(S) = P(T) union {t + e for t in P(T)}."
+    },
+    {
+      "key": "wikipedia-permutation",
+      "title": "Permutation (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Permutation",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "There are n! permutations of n distinct objects; k-permutations number n!/(n-k)!; a derangement has no fixed points."
+    },
+    {
+      "key": "py-itertools",
+      "title": "itertools: permutations, combinations and product (Python docs)",
+      "url": "https://docs.python.org/3/library/itertools.html#itertools.permutations",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "permutations(iterable, r) yields r-length orderings in lexicographic order by position; combinations(iterable, r) yields sorted subsequences; product gives the Cartesian product; counts are n!/(n-r)! and C(n, r)."
     }
   ],
   "levels": [
