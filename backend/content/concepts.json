@@ -185044,5 +185044,1736 @@
         ]
       ]
     }
+  },
+  {
+    "id": "longest-increasing-subsequence",
+    "n": 214,
+    "level": 14,
+    "week": "Core",
+    "title": "Longest Increasing Subsequence",
+    "tagline": "Find the longest rising chain in a list in O(n squared) with a table, then in O(n log n) with binary search on the smallest tails.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A subsequence of a list keeps the order of the items but may skip some. It is increasing if each item is bigger than the one before. The longest increasing subsequence, LIS, is the longest such chain. The Wikipedia article says it can be solved in O(n log n) time using binary search on the smallest tails, and gives the same problem an O(n squared) table solution.",
+      "## The table",
+      "Let best(i) be the length of the longest increasing subsequence that ends exactly at item i. Each item alone is a chain of length 1. An item can extend any earlier item j whose value is smaller, so best(i) = 1 + the largest best(j) over earlier smaller items, or 1 if there are none. The answer is the largest best(i). It is not best of the last item, because the longest chain may end earlier.",
+      "> A worked example: the list 10, 9, 2, 5, 3, 7, 101, 18. The values of best are 1, 1, 1, 2, 2, 3, 4, 4. The item 7 follows 2 and 5 or 3, and the item 101 follows 7. The longest chain has length 4, for example 2, 5, 7, 101.",
+      "## Recovering the chain",
+      "Store, for each item, the index of the earlier item that gave the best value. Start at the item with the largest best, follow the stored links back, and reverse. For our list, from 101 you get 101, 7, 5, 2, and reversed 2, 5, 7, 101. Several chains can have the same length, so any one is a valid answer.",
+      "## Cost of the table method",
+      "Each item looks at all earlier items, so the time is O(n squared), and the memory is O(n). It is enough for lists up to a few thousand items.",
+      "## The faster method: smallest tails",
+      "Keep a list called tails. tails[k] is the smallest value that can end an increasing chain of length k + 1 among the items seen so far. The list is always sorted, so you can use binary search. For each new item x, find the first position k where tails[k] is at least x. If there is none, x extends the longest chain, so append it. Otherwise replace tails[k] with x, since x is a smaller ending for chains of that length. At the end, the length of tails is the answer. Each item costs a binary search, so the time is O(n log n).",
+      "## A warning about tails",
+      "The length of tails is correct, but its contents are not necessarily a real increasing subsequence of the input. To rebuild an actual chain you must also store, for each item, a link to the item that precedes it in its chain. Many people lose marks for printing the tails list as the answer.",
+      "## Strict or not",
+      "For strictly increasing chains, find the first tail that is at least x, which is bisect_left. For non-decreasing chains, where equal items are allowed, find the first tail that is greater than x, which is bisect_right. Read the problem statement carefully.",
+      "## A link to LCS",
+      "The Wikipedia article notes that the LIS of a list equals the longest common subsequence of the list and the sorted copy of its distinct items. That gives an O(n squared) method using the LCS table, which is the next lesson.",
+      "## How to talk through it",
+      "Say what a cell means, the recurrence, and O(n squared). Then offer the tails method with binary search for O(n log n), and say how you would rebuild the chain."
+    ],
+    "keyPoints": [
+      "best(i) = longest increasing subsequence ending at item i = 1 + the largest best(j) for earlier smaller items.",
+      "The answer is the largest best(i), not the last. O(n squared) time.",
+      "Smallest-tails list plus binary search gives the length in O(n log n).",
+      "tails is not always a real chain. Store parent links to rebuild it.",
+      "bisect_left for strictly increasing, bisect_right for non-decreasing."
+    ],
+    "sql": [
+      {
+        "title": "The table method with the chain",
+        "lang": "py",
+        "code": "def lis_table(a):\n    n = len(a)\n    if n == 0:\n        return 0, []\n    best, parent = [1] * n, [None] * n\n    for i in range(n):\n        for j in range(i):\n            if a[j] < a[i] and best[j] + 1 > best[i]:\n                best[i], parent[i] = best[j] + 1, j\n    end = max(range(n), key=lambda i: best[i])                # the largest cell, not the last\n    chain = []\n    while end is not None:\n        chain.append(a[end])\n        end = parent[end]\n    return len(chain), chain[::-1]\n\nlength, chain = lis_table([10, 9, 2, 5, 3, 7, 101, 18])\nassert length == 4 and chain == [2, 5, 7, 101]\nassert all(x < y for x, y in zip(chain, chain[1:]))\nassert lis_table([]) == (0, []) and lis_table([7, 7, 7])[0] == 1 and lis_table([0, 1, 0, 3, 2, 3])[0] == 4"
+      },
+      {
+        "title": "O(n log n) with binary search, checked against the table",
+        "lang": "py",
+        "code": "import bisect\nimport random\n\ndef lis_length(a):\n    tails = []\n    for x in a:\n        k = bisect.bisect_left(tails, x)                       # first tail >= x: strictly increasing\n        if k == len(tails):\n            tails.append(x)\n        else:\n            tails[k] = x\n    return len(tails)\n\ndef lis_n2(a):\n    best = []\n    for i in range(len(a)):\n        best.append(1 + max([best[j] for j in range(i) if a[j] < a[i]], default=0))\n    return max(best, default=0)\n\nassert lis_length([10, 9, 2, 5, 3, 7, 101, 18]) == 4\nassert lis_length([]) == 0 and lis_length([7, 7, 7]) == 1\n\nrandom.seed(80)\nfor _ in range(300):\n    data = [random.randint(0, 15) for _ in range(random.randint(0, 20))]\n    assert lis_length(data) == lis_n2(data)\n\ndef non_decreasing(a):\n    tails = []\n    for x in a:\n        k = bisect.bisect_right(tails, x)                      # equal items may extend a chain\n        if k == len(tails):\n            tails.append(x)\n        else:\n            tails[k] = x\n    return len(tails)\n\nassert non_decreasing([7, 7, 7]) == 3 and non_decreasing([1, 3, 2, 2, 4]) == 4"
+      },
+      {
+        "title": "Tails are not the chain, and the LCS link",
+        "lang": "py",
+        "code": "import bisect\n\ndef tails_of(a):\n    tails = []\n    for x in a:\n        k = bisect.bisect_left(tails, x)\n        if k == len(tails):\n            tails.append(x)\n        else:\n            tails[k] = x\n    return tails\n\ntails = tails_of([1, 5, 2, 6, 0])\nassert tails == [0, 2, 6]                                       # the length, 3, is right...\nassert [x for x in [1, 5, 2, 6, 0] if x in (0, 2, 6)] == [2, 6, 0]     # ...but 0, 2, 6 is not in that order in the input\n\ndef lcs_length(x, y):\n    dp = [[0] * (len(y) + 1) for _ in range(len(x) + 1)]\n    for i in range(1, len(x) + 1):\n        for j in range(1, len(y) + 1):\n            dp[i][j] = dp[i - 1][j - 1] + 1 if x[i - 1] == y[j - 1] else max(dp[i - 1][j], dp[i][j - 1])\n    return dp[-1][-1]\n\ndata = [10, 9, 2, 5, 3, 7, 101, 18]\nassert lcs_length(data, sorted(set(data))) == len(tails_of(data)) == 4"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the O(n squared) table version and rebuild a real chain. Write the tails version with bisect and check it against the table on 300 random lists. Change it to allow equal items. Show with a small input that the tails list is not itself a subsequence of the input. Finally, check that LIS equals the LCS of the list and its sorted distinct items.",
+    "pitfalls": [
+      "Returning the last cell instead of the largest cell.",
+      "Printing the tails list as if it were the chain.",
+      "Using bisect_left when equal items are allowed, or bisect_right when they are not.",
+      "Confusing a subsequence, which may skip items, with a substring or subarray, which may not.",
+      "Writing the O(n squared) version when the input has 100,000 items."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the length of the longest increasing subsequence?",
+        "a": "Let best(i) be the longest chain ending at item i: 1 plus the largest best(j) over earlier smaller items. The answer is the largest best(i). It takes O(n squared). With a sorted tails list and binary search it takes O(n log n)."
+      },
+      {
+        "q": "How does the O(n log n) method work?",
+        "a": "Keep tails, where tails[k] is the smallest possible last item of an increasing chain of length k + 1. For each item, binary search for the first tail that is at least the item and replace it, or append if there is none. The final length of tails is the answer."
+      },
+      {
+        "q": "Is the tails list the subsequence?",
+        "a": "No. Its length is right but its contents need not be a subsequence of the input. To rebuild the chain, store a parent link for each item."
+      },
+      {
+        "q": "What is the difference between a subsequence and a subarray?",
+        "a": "A subarray is contiguous. A subsequence keeps the order but can skip items."
+      }
+    ],
+    "references": [
+      {
+        "title": "Longest increasing subsequence (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Longest_increasing_subsequence",
+        "kind": "Reference"
+      },
+      {
+        "title": "Dynamic programming (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: LIS is a standard dynamic programming question with a well-known faster follow-up. The definition, the O(n log n) solution using binary search on the smallest tails, and the link between the LIS of a sequence and the LCS of the sequence and its sorted copy come from the Wikipedia longest increasing subsequence article, which I read in part. The example list, the table and the code are my own illustration and judgment, and the code is checked by running it against two other methods. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-lis",
+      "wikipedia-lcs",
+      "py-bisect",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "lis",
+        "title": "Longest increasing subsequence, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "A cell",
+            "at": 1
+          },
+          {
+            "text": "Recurrence",
+            "at": 2
+          },
+          {
+            "text": "Items",
+            "at": 3
+          },
+          {
+            "text": "The answer",
+            "at": 11
+          },
+          {
+            "text": "Smallest tails",
+            "at": 12
+          }
+        ],
+        "nodes": [
+          {
+            "id": "s0",
+            "kind": "cube",
+            "x": -3.85,
+            "y": 3.85,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s1",
+            "kind": "cube",
+            "x": -2.75,
+            "y": 2.75,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s2",
+            "kind": "cube",
+            "x": -1.65,
+            "y": 1.65,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s3",
+            "kind": "cube",
+            "x": -0.55,
+            "y": 0.55,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s4",
+            "kind": "cube",
+            "x": 0.55,
+            "y": -0.55,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s5",
+            "kind": "cube",
+            "x": 1.65,
+            "y": -1.65,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s6",
+            "kind": "cube",
+            "x": 2.75,
+            "y": -2.75,
+            "label": "101",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "s7",
+            "kind": "cube",
+            "x": 3.85,
+            "y": -3.85,
+            "label": "18",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The longest rising chain",
+            "tag": "technique",
+            "body": [
+              "Take the list 10, 9, 2, 5, 3, 7, 101, 18. A subsequence keeps the order of the items but may skip some. An increasing subsequence rises strictly: each item is bigger than the one before. What is the length of the longest one?",
+              "For example 2, 5, 7, 101 has length 4."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "List",
+                "v": "10, 9, 2, 5, 3, 7, 101, 18"
+              },
+              {
+                "k": "Want",
+                "v": "longest rising subsequence"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "What a cell means",
+            "tag": "technique",
+            "body": [
+              "Let best(i) be the length of the longest increasing subsequence that ends exactly at item i. Every item alone is a chain of length 1. The answer is the largest best(i), not necessarily the last one.",
+              "Ending at item i makes the recurrence easy: we only need to know what can come just before."
+            ],
+            "short": "A cell",
+            "hud": [
+              {
+                "k": "best(i)",
+                "v": "longest chain ending at item i"
+              },
+              {
+                "k": "Answer",
+                "v": "the largest best(i)"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The recurrence: extend the best earlier chain",
+            "tag": "technique",
+            "body": [
+              "An item at position i can follow any earlier item j that is smaller. Then the chain ending at j grows by one. So best(i) = 1 + the largest best(j) over earlier j with a smaller value. If there is no such j, best(i) = 1.",
+              "This looks at every earlier item, so it is O(n squared) overall."
+            ],
+            "short": "Recurrence",
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "best = [1] * n",
+                "for i in range(n):",
+                "    for j in range(i):",
+                "        if a[j] < a[i]: best[i] = max(best[i], best[j] + 1)"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Item 10: chain length 1",
+            "tag": "solution",
+            "body": [
+              "No earlier item is smaller than 10, so it starts a new chain: best = 1.",
+              "It cannot extend anything."
+            ],
+            "short": "Item 10",
+            "hud": [
+              {
+                "k": "best at 10",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Item 9: chain length 1",
+            "tag": "solution",
+            "body": [
+              "No earlier item is smaller than 9, so it starts a new chain: best = 1.",
+              "It cannot extend anything."
+            ],
+            "short": "Item 9",
+            "hud": [
+              {
+                "k": "best at 9",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Item 2: chain length 1",
+            "tag": "solution",
+            "body": [
+              "No earlier item is smaller than 2, so it starts a new chain: best = 1.",
+              "It cannot extend anything."
+            ],
+            "short": "Item 2",
+            "hud": [
+              {
+                "k": "best at 2",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Item 5: chain length 2",
+            "tag": "solution",
+            "body": [
+              "Item 5 can follow the smaller earlier items 2 (chain 1). The best is chain 1 at 2, so best = 2.",
+              "Add 1 to the longest chain that can be extended."
+            ],
+            "short": "Item 5",
+            "hud": [
+              {
+                "k": "best at 5",
+                "v": "2",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s2",
+                  "s3"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Item 3: chain length 2",
+            "tag": "solution",
+            "body": [
+              "Item 3 can follow the smaller earlier items 2 (chain 1). The best is chain 1 at 2, so best = 2.",
+              "Add 1 to the longest chain that can be extended."
+            ],
+            "short": "Item 3",
+            "hud": [
+              {
+                "k": "best at 3",
+                "v": "2",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "teal",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s2",
+                  "s4"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "Item 3 comes after 10, 9, 2, 5. Which earlier items are smaller than 3?",
+              "options": [
+                "Only 2",
+                "2 and 5",
+                "All of them"
+              ],
+              "answer": 0,
+              "why": "10 and 9 are bigger, 5 is bigger. Only 2 is smaller, so the chain 2, 3 has length 2."
+            }
+          },
+          {
+            "title": "Item 7: chain length 3",
+            "tag": "solution",
+            "body": [
+              "Item 7 can follow the smaller earlier items 2 (chain 1), 5 (chain 2), 3 (chain 2). The best is chain 2 at 5, so best = 3.",
+              "Add 1 to the longest chain that can be extended."
+            ],
+            "short": "Item 7",
+            "hud": [
+              {
+                "k": "best at 7",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "teal",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s3",
+                  "s5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Item 101: chain length 4",
+            "tag": "solution",
+            "body": [
+              "Item 101 can follow the smaller earlier items 10 (chain 1), 9 (chain 1), 2 (chain 1), 5 (chain 2), 3 (chain 2), 7 (chain 3). The best is chain 3 at 7, so best = 4.",
+              "Add 1 to the longest chain that can be extended."
+            ],
+            "short": "Item 101",
+            "hud": [
+              {
+                "k": "best at 101",
+                "v": "4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "teal",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s5",
+                  "s6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Item 18: chain length 4",
+            "tag": "solution",
+            "body": [
+              "Item 18 can follow the smaller earlier items 10 (chain 1), 9 (chain 1), 2 (chain 1), 5 (chain 2), 3 (chain 2), 7 (chain 3). The best is chain 3 at 7, so best = 4.",
+              "Add 1 to the longest chain that can be extended."
+            ],
+            "short": "Item 18",
+            "hud": [
+              {
+                "k": "best at 18",
+                "v": "4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "teal",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "orange",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "s5",
+                  "s7"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The answer: 4",
+            "tag": "insight",
+            "body": [
+              "The largest value in the row is 4, at items 101 and 18. So the longest increasing subsequence has length 4. Follow the stored previous items back from 101: 101, then 7, then 5, then 2. Reversed, the chain is 2, 5, 7, 101.",
+              "A second chain of the same length is 2, 3, 7, 18."
+            ],
+            "short": "The answer",
+            "hud": [
+              {
+                "k": "Longest",
+                "v": "4",
+                "tone": "good"
+              },
+              {
+                "k": "One chain",
+                "v": "2, 5, 7, 101"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "purple",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "purple",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A faster way: smallest tails",
+            "tag": "technique",
+            "body": [
+              "Keep a list tails, where tails[k] is the smallest possible last item of a rising chain of length k + 1. For each new item, find the first tail that is not smaller than it, with binary search, and replace it. If all tails are smaller, add it to the end. After the last item, the length of tails is the answer. For our list the final tails are 2, 3, 7, 18.",
+              "Each item costs one binary search, so the total is O(n log n)."
+            ],
+            "short": "Smallest tails",
+            "hud": [
+              {
+                "k": "Tails at the end",
+                "v": "2, 3, 7, 18"
+              },
+              {
+                "k": "Time",
+                "v": "O(n log n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "k = bisect_left(tails, x)",
+                "if k == len(tails): tails.append(x)",
+                "else: tails[k] = x"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "The tails list is not the chain",
+            "tag": "problem",
+            "body": [
+              "The list tails has the right length, but it is not always a real chain. Here 2, 3, 7, 18 happens to be one, but in general the items may come in a different order in the input. To rebuild a real chain, store a parent link for each item as well.",
+              "Say this out loud in an interview: the length is right, the contents are not the answer."
+            ],
+            "short": "A warning",
+            "hud": [
+              {
+                "k": "Length of tails",
+                "v": "always right",
+                "tone": "good"
+              },
+              {
+                "k": "Contents",
+                "v": "not always a chain",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Related: LCS",
+            "tag": "insight",
+            "body": [
+              "The Wikipedia article notes that the longest increasing subsequence of a list equals the longest common subsequence of the list and its sorted copy with duplicates removed. That links this lesson to the next one, but it takes O(n squared).",
+              "The tails method is faster."
+            ],
+            "short": "Related to LCS",
+            "hud": [
+              {
+                "k": "LIS",
+                "v": "LCS of the list and its sorted copy"
+              },
+              {
+                "k": "Better",
+                "v": "tails + binary search",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "LIS: best(i) = 1 + the largest best(j) for earlier smaller items, in O(n squared). The tails list with binary search gives O(n log n) for the length. Store parents to rebuild the chain. Strictly increasing uses bisect_left; non-decreasing uses bisect_right.",
+              "The answer is the largest cell, not the last."
+            ],
+            "short": "Recap",
+            "set": {
+              "s0": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s1": {
+                "label": "9",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s2": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "len 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s3": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "len 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s5": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "len 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s6": {
+                "label": "101",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "s7": {
+                "label": "18",
+                "tone": "green",
+                "pill": {
+                  "text": "len 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 best(i) = longest chain ending at i",
+                "2 extend the best smaller earlier item",
+                "3 answer = the largest cell",
+                "4 tails + bisect for O(n log n)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "The longest increasing subsequence is like picking the longest staircase of rising stones out of a row of stones of different heights.",
+      "story": "You walk along a row of stones of different heights, and you may skip any stone, but you may not walk backwards. You want to step only onto taller and taller stones, and you want as many steps as possible. At each stone you ask how long the best staircase is that ends right here, by looking at the shorter stones behind you. The longest of those answers is your result.",
+      "maps": [
+        [
+          "A stone",
+          "An item of the list"
+        ],
+        [
+          "A staircase ending here",
+          "best(i)"
+        ],
+        [
+          "Skipping stones",
+          "A subsequence"
+        ],
+        [
+          "The longest staircase anywhere",
+          "The largest cell"
+        ]
+      ],
+      "words": [
+        [
+          "subsequence",
+          "Items taken in their original order, possibly skipping some."
+        ],
+        [
+          "increasing",
+          "Each item is bigger than the one before."
+        ],
+        [
+          "binary search",
+          "Finding a value in sorted data by halving the range."
+        ],
+        [
+          "tails",
+          "The smallest possible last item for each chain length."
+        ],
+        [
+          "strictly",
+          "Equal items do not count as increasing."
+        ]
+      ]
+    }
   }
 ]
