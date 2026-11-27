@@ -154981,5 +154981,1353 @@
         ]
       ]
     }
+  },
+  {
+    "id": "binary-search-on-the-answer",
+    "n": 195,
+    "level": 14,
+    "week": "Core",
+    "title": "Binary Search on the Answer",
+    "tagline": "Search over possible answers instead of array items, using a yes or no check that flips once, to solve minimum-capacity and maximum-speed problems.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Binary search does not need an array. It works whenever you have an ordered range of candidates and a yes or no question that is monotonic: it says no for small values and yes for all large values, or the reverse. The answer is the point where the answer flips. This lets you solve many optimisation problems by searching over the answer itself.",
+      "## The shape of the problem",
+      "Look for problems that ask for the smallest value that works, or the largest value that works. The ship problem asks for the smallest capacity that ships the packages in the given days. The monotonic property: if capacity c works, every larger capacity works too. So the checks for capacities 5 to 15 read no, yes, yes, and so on, and the answer is the first yes.",
+      "## The check function",
+      "Write feasible(x) as a plain function, a predicate, that answers yes or no for one candidate. For the ship problem, pack greedily: add each package to the current day, and start a new day when it would exceed the capacity. Count the days, and say yes if the count is at most the limit. The check usually takes O(n). Most of the thinking belongs here, and the search wrapped around it is always the same.",
+      "## The template",
+      "Choose lo and hi so that the answer is inside, for example the heaviest package and the total weight. While lo < hi, set mid = (lo + hi) // 2. If feasible(mid) is true, the answer is mid or smaller, so set hi = mid. Otherwise the answer is larger, so set lo = mid + 1. When the loop ends, lo equals hi, and it is the smallest feasible value. For a largest value that works, flip the logic and use mid + 1 rounding to avoid a loop that never ends.",
+      "> A worked example: weights 1, 2, 3, 4, 5, three days. lo = 5, hi = 15. mid = 10 ships in 2 days, yes, so hi = 10. mid = 7: 1 2 3, then 4, then 5, which is 3 days, yes, so hi = 7. mid = 6: 1 2 3, 4, 5, yes, so hi = 6. mid = 5: 1 2, 3, 4, 5 is 4 days, no, so lo = 6. lo = hi = 6, the answer.",
+      "## Other problems with this shape",
+      "- The slowest eating speed that finishes piles of bananas within h hours: more speed, fewer hours.\n- Split an array into k parts to minimise the largest part sum: a larger limit needs fewer parts.\n- The integer square root of n: the check x times x greater than n flips once.\n- The minimum time for workers or machines to finish all jobs.",
+      "## Cost",
+      "The range of possible answers might have up to 10 to the power 9 values, but binary search needs only about 30 probes. The cost is O(check x log of the range). For the ship problem that is O(n log (total weight)). This is why the technique turns many problems from hopeless brute force into a short, fast solution.",
+      "## Common mistakes",
+      "A check that is not monotonic, so the search finds nothing useful. A range that excludes the true answer. Using lo = mid when hi = mid is needed, or the reverse, which makes an infinite loop. Rounding mid down when you search for a largest value. Forgetting to handle the case where no value works.",
+      "## How to talk through it",
+      "Say that the answer is a number and that the check is monotonic, with the reason. State the range and the check function. Give the cost as O(check x log range). Run the example with the first few probes."
+    ],
+    "keyPoints": [
+      "If the answer is a number and feasible(x) flips once (no ... no yes ... yes), binary search finds the first yes.",
+      "Pick lo and hi so the answer is inside. While lo < hi: mid = (lo + hi) // 2; if feasible(mid) hi = mid else lo = mid + 1.",
+      "Most work goes into the feasibility check, usually a greedy O(n) pass.",
+      "Cost O(check x log range). A range of a billion needs about 30 probes.",
+      "Typical problems: ship capacity, eating speed, split array largest sum, integer square root."
+    ],
+    "sql": [
+      {
+        "title": "Ship packages within D days, and the template",
+        "lang": "py",
+        "code": "def days_needed(weights, capacity):\n    days, load = 1, 0\n    for w in weights:\n        if load + w > capacity:\n            days, load = days + 1, 0\n        load += w\n    return days\n\ndef ship_within_days(weights, days):\n    lo, hi = max(weights), sum(weights)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if days_needed(weights, mid) <= days:           # feasible: keep mid, look lower\n            hi = mid\n        else:\n            lo = mid + 1\n    return lo\n\nassert ship_within_days([1, 2, 3, 4, 5], 3) == 6\nassert ship_within_days([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5) == 15\nassert ship_within_days([3, 2, 2, 4, 1, 4], 3) == 6\nassert ship_within_days([7], 1) == 7\nassert ship_within_days([1, 2, 3], 3) == 3                # a day for each: the heaviest package"
+      },
+      {
+        "title": "Eating speed, split array and square root",
+        "lang": "py",
+        "code": "def min_eating_speed(piles, hours):\n    lo, hi = 1, max(piles)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        needed = sum(-(-p // mid) for p in piles)       # ceiling division\n        if needed <= hours:\n            hi = mid\n        else:\n            lo = mid + 1\n    return lo\n\nassert min_eating_speed([3, 6, 7, 11], 8) == 4\nassert min_eating_speed([30, 11, 23, 4, 20], 5) == 30\nassert min_eating_speed([30, 11, 23, 4, 20], 6) == 23\n\ndef split_array(nums, k):                                  # minimise the largest sum of k parts\n    def parts_needed(limit):\n        parts, total = 1, 0\n        for x in nums:\n            if total + x > limit:\n                parts, total = parts + 1, 0\n            total += x\n        return parts\n    lo, hi = max(nums), sum(nums)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if parts_needed(mid) <= k:\n            hi = mid\n        else:\n            lo = mid + 1\n    return lo\n\nassert split_array([7, 2, 5, 10, 8], 2) == 18\nassert split_array([1, 2, 3, 4, 5], 5) == 5\n\ndef isqrt(n):\n    lo, hi = 0, n + 1\n    while lo < hi:                                         # the first x with x * x > n, minus one\n        mid = (lo + hi) // 2\n        if mid * mid > n:\n            hi = mid\n        else:\n            lo = mid + 1\n    return lo - 1\n\nassert [isqrt(n) for n in (0, 1, 8, 9, 10, 10 ** 12)] == [0, 1, 2, 3, 3, 10 ** 6]"
+      },
+      {
+        "title": "Check against brute force, and find the largest value that works",
+        "lang": "py",
+        "code": "import random\n\ndef days_needed(weights, capacity):\n    days, load = 1, 0\n    for w in weights:\n        if load + w > capacity:\n            days, load = days + 1, 0\n        load += w\n    return days\n\ndef fast(weights, days):\n    lo, hi = max(weights), sum(weights)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if days_needed(weights, mid) <= days:\n            hi = mid\n        else:\n            lo = mid + 1\n    return lo\n\ndef brute(weights, days):\n    c = max(weights)\n    while days_needed(weights, c) > days:\n        c += 1\n    return c\n\nrandom.seed(52)\nfor _ in range(300):\n    w = [random.randint(1, 9) for _ in range(random.randint(1, 8))]\n    d = random.randint(1, len(w))\n    assert fast(w, d) == brute(w, d)\n\ndef last_true(lo, hi, pred):                                # the largest x with pred(x) True; pred is True ... True False ... False\n    while lo < hi:\n        mid = (lo + hi + 1) // 2                            # round up, or the loop never ends\n        if pred(mid):\n            lo = mid\n        else:\n            hi = mid - 1\n    return lo\n\nassert last_true(0, 100, lambda x: x * x <= 50) == 7\nassert last_true(1, 10, lambda x: True) == 10"
+      }
+    ],
+    "django": {},
+    "exercise": "Write ship_within_days, min_eating_speed, split_array and isqrt with the same template, and check ship_within_days against a brute-force search on 300 random cases. Then write last_true with the rounding-up midpoint, and use it to find the largest x such that x squared is at most n. Finally, explain why rounding mid down would loop forever there.",
+    "pitfalls": [
+      "A check that is not monotonic. Binary search then returns nonsense. Prove the flip first.",
+      "A range that does not contain the answer, for example lo below what is possible or hi too small.",
+      "Using lo = mid when searching for the first true, or hi = mid when searching for the last. Both can loop forever.",
+      "Rounding mid down when you search for the last true value. Round up.",
+      "Overflow in the check function with huge answers. Python is safe, but other languages are not."
+    ],
+    "interview": [
+      {
+        "q": "What is binary search on the answer?",
+        "a": "Instead of searching an array, you search the range of possible answers. You write a yes or no check for a candidate value that is monotonic, and binary search for the first value where it is yes. The cost is the check's cost times log of the range."
+      },
+      {
+        "q": "How do you recognise such a problem?",
+        "a": "It asks for the smallest or largest value that satisfies a condition, and if a value works then every larger one does too (or every smaller one). Examples are minimum capacity, minimum speed and minimising the largest part."
+      },
+      {
+        "q": "What goes in the feasibility check for shipping packages?",
+        "a": "Pack the packages in order, adding to the current day while the load fits, and starting a new day otherwise. Count the days. The capacity is feasible if the count is at most the allowed days."
+      },
+      {
+        "q": "Why do you set hi = mid and not hi = mid - 1?",
+        "a": "When the check holds at mid, mid itself may be the smallest working value, so it must stay in the range. We only discard values larger than mid."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_search_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "bisect: array bisection (Python docs)",
+        "url": "https://docs.python.org/3/library/bisect.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: search on the answer is one of the most useful binary search patterns in coding rounds. The binary search loop, its O(log n) cost and the leftmost-match procedure it generalises come from the Wikipedia binary search article, which I read in part, and the first-true idea from the Python bisect page recipes, which I read in full. The ship, eating speed and split array problems, the template and the pitfalls are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it against brute force. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-search",
+      "py-bisect",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bsanswer",
+        "title": "Binary search on the answer, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or probe"
+          },
+          {
+            "kind": "write",
+            "label": "move or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "Monotonic",
+            "at": 1
+          },
+          {
+            "text": "The range",
+            "at": 2
+          },
+          {
+            "text": "Try capacity 10",
+            "at": 3
+          },
+          {
+            "text": "The template",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -3.625,
+            "y": 3.625,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -2.9,
+            "y": 2.9,
+            "label": "6",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -2.175,
+            "y": 2.175,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": -1.45,
+            "y": 1.45,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": -0.725,
+            "y": 0.725,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 0.725,
+            "y": -0.725,
+            "label": "11",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c7",
+            "kind": "cube",
+            "x": 1.45,
+            "y": -1.45,
+            "label": "12",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c8",
+            "kind": "cube",
+            "x": 2.175,
+            "y": -2.175,
+            "label": "13",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c9",
+            "kind": "cube",
+            "x": 2.9,
+            "y": -2.9,
+            "label": "14",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c10",
+            "kind": "cube",
+            "x": 3.625,
+            "y": -3.625,
+            "label": "15",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the smallest capacity that works",
+            "tag": "technique",
+            "body": [
+              "Packages weigh 1, 2, 3, 4, 5 and must be shipped in the given order within 3 days. A ship carries up to a capacity each day. What is the smallest capacity that gets everything delivered in 3 days?",
+              "We do not search an array here. We search the possible answers: the capacities 5 to 15."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Weights",
+                "v": "1 2 3 4 5"
+              },
+              {
+                "k": "Days allowed",
+                "v": "3"
+              },
+              {
+                "k": "Candidates",
+                "v": "capacity 5 to 15"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A yes or no question that flips once",
+            "tag": "technique",
+            "body": [
+              "For a given capacity we can answer yes or no: can everything ship within 3 days? Pack greedily, and start a new day when the next package does not fit. If a capacity works, any larger capacity works too. So the answers read no, then yes for every larger value.",
+              "That single flip from no to yes is the shape binary search needs. The answer is the first yes."
+            ],
+            "short": "Monotonic",
+            "hud": [
+              {
+                "k": "Capacity 5",
+                "v": "needs 4 days: no",
+                "tone": "bad"
+              },
+              {
+                "k": "Capacity 6 and up",
+                "v": "3 days or fewer: yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": {
+                  "text": "F",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c3": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c4": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c5": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c6": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c7": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c8": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c9": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "c10": {
+                "tone": "blue",
+                "pill": {
+                  "text": "T",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Idea",
+              "lines": [
+                "feasible(c) is False ... False True ... True",
+                "the answer is the first True"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "The search range",
+            "tag": "technique",
+            "body": [
+              "The answer cannot be below 5, the heaviest package, since it must fit on the ship. It cannot need more than 15, the total weight, which ships everything in one day. So the range is lo = 5 to hi = 15.",
+              "A good range is part of the problem. Too wide a range only costs one or two more probes."
+            ],
+            "short": "The range",
+            "hud": [
+              {
+                "k": "lo",
+                "v": "5: the heaviest package"
+              },
+              {
+                "k": "hi",
+                "v": "15: the total weight"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Try capacity 10: yes",
+            "tag": "solution",
+            "body": [
+              "The range is 5 to 15, and mid is 10. Pack the packages greedily: that takes 2 days, which is within the 3 allowed, so the answer is yes.",
+              "Yes means the answer is mid or smaller, so keep mid and set hi = mid."
+            ],
+            "short": "Try 10",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "10"
+              },
+              {
+                "k": "Days needed",
+                "v": "2",
+                "tone": "good"
+              },
+              {
+                "k": "New range",
+                "v": "5 to 10"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "orange",
+                "pill": {
+                  "text": "T",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The range is 5 to 15 and mid is 10. Capacity 10 ships everything in 2 days. What happens to the range?",
+              "options": [
+                "hi becomes 10: keep mid, the answer may be smaller",
+                "lo becomes 11",
+                "The search stops"
+              ],
+              "answer": 0,
+              "why": "Capacity 10 works, so the smallest working capacity is 10 or less. Keep 10 and search below."
+            }
+          },
+          {
+            "title": "Try capacity 7: yes",
+            "tag": "solution",
+            "body": [
+              "The range is 5 to 10, and mid is 7. Pack the packages greedily: that takes 3 days, which is within the 3 allowed, so the answer is yes.",
+              "Yes means the answer is mid or smaller, so keep mid and set hi = mid."
+            ],
+            "short": "Try 7",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "7"
+              },
+              {
+                "k": "Days needed",
+                "v": "3",
+                "tone": "good"
+              },
+              {
+                "k": "New range",
+                "v": "5 to 7"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "T",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Try capacity 6: yes",
+            "tag": "solution",
+            "body": [
+              "The range is 5 to 7, and mid is 6. Pack the packages greedily: that takes 3 days, which is within the 3 allowed, so the answer is yes.",
+              "Yes means the answer is mid or smaller, so keep mid and set hi = mid."
+            ],
+            "short": "Try 6",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "6"
+              },
+              {
+                "k": "Days needed",
+                "v": "3",
+                "tone": "good"
+              },
+              {
+                "k": "New range",
+                "v": "5 to 6"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "orange",
+                "pill": {
+                  "text": "T",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Try capacity 5: no",
+            "tag": "solution",
+            "body": [
+              "The range is 5 to 6, and mid is 5. Pack the packages greedily: that takes 4 days, which is more than the 3 allowed, so the answer is no.",
+              "No means the answer is larger than mid, so set lo = mid + 1."
+            ],
+            "short": "Try 5",
+            "hud": [
+              {
+                "k": "Capacity",
+                "v": "5"
+              },
+              {
+                "k": "Days needed",
+                "v": "4",
+                "tone": "bad"
+              },
+              {
+                "k": "New range",
+                "v": "6 to 6"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "orange",
+                "pill": {
+                  "text": "F",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              },
+              "c1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "lo meets hi: the answer is 6",
+            "tag": "insight",
+            "body": [
+              "Now lo and hi are both 6, so the search is over. The smallest capacity that works is 6: the packages ship as 1, 2, 3, then 4, then 5.",
+              "We tried only 4 capacities out of 11."
+            ],
+            "short": "The answer",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "6",
+                "tone": "good"
+              },
+              {
+                "k": "Capacities tried",
+                "v": "4",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "green",
+                "pill": {
+                  "text": "answer",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The template: find the first true",
+            "tag": "technique",
+            "body": [
+              "The same loop solves many problems. Choose lo and hi so the answer is inside. While lo < hi, take mid. If the condition holds at mid, set hi = mid. Otherwise set lo = mid + 1. When the loop ends, lo is the first value where the condition is true.",
+              "Write the yes or no check as a separate function. Most of the thinking goes there."
+            ],
+            "short": "The template",
+            "set": {
+              "c0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "green",
+                "pill": {
+                  "text": "answer",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "while lo < hi:",
+                "    mid = (lo + hi) // 2",
+                "    if feasible(mid): hi = mid",
+                "    else: lo = mid + 1",
+                "return lo"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Other problems with the same shape",
+            "tag": "insight",
+            "body": [
+              "The slowest eating speed that finishes all the banana piles within h hours. The smallest largest-sum when splitting an array into k parts. The integer square root of n. The minimum time to complete trips. In each, the answer is a number, a check is easy, and the check flips once.",
+              "If you can phrase it as: what is the smallest X such that this is possible, think binary search on the answer."
+            ],
+            "short": "More problems",
+            "hud": [
+              {
+                "k": "Eating speed",
+                "v": "hours needed shrink as speed grows"
+              },
+              {
+                "k": "Split array",
+                "v": "parts needed shrink as the limit grows"
+              },
+              {
+                "k": "Square root",
+                "v": "x squared grows with x"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "green",
+                "pill": {
+                  "text": "answer",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost",
+            "tag": "insight",
+            "body": [
+              "The search takes about log2 of the range probes. Each probe costs one check, here O(n) to pack the packages. So the total is O(n log range). Here that is 5 items and about 4 probes.",
+              "The range is the answer's range, often huge, so log of it is small."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Probes",
+                "v": "log2 of the range",
+                "tone": "good"
+              },
+              {
+                "k": "Each probe",
+                "v": "one O(n) check"
+              },
+              {
+                "k": "Total",
+                "v": "O(n log range)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "green",
+                "pill": {
+                  "text": "answer",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Binary search on the answer: pick a range for the answer, write a yes or no check that is monotonic, and find the first yes. Use hi = mid when the check holds and lo = mid + 1 when it does not.",
+              "Prove the check is monotonic before you code it."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "tone": "green",
+                "pill": {
+                  "text": "answer",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "c2": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c9": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c10": {
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 the answer is a number in a range",
+                "2 feasible(x) is monotonic",
+                "3 the first True is the answer",
+                "4 O(check x log range)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Binary search on the answer is like finding the smallest suitcase that fits everything by trying sizes in the middle.",
+      "story": "You want the smallest suitcase that fits all your clothes. You try a medium one. If everything fits, you try a smaller one. If not, you try a bigger one. Each try cuts the sizes left to test in half. After a few tries you know the smallest suitcase that works. You never test every size, because if a size fits, every bigger size fits too.",
+      "maps": [
+        [
+          "The suitcase sizes",
+          "The range of candidate answers"
+        ],
+        [
+          "Trying a size",
+          "The feasibility check"
+        ],
+        [
+          "If it fits, try smaller",
+          "Setting hi = mid"
+        ],
+        [
+          "The smallest that fits",
+          "The first true value"
+        ]
+      ],
+      "words": [
+        [
+          "monotonic",
+          "Always changing in one direction: no first, then yes for every larger value."
+        ],
+        [
+          "feasible",
+          "Possible: the condition holds for this candidate."
+        ],
+        [
+          "capacity",
+          "How much can be carried each day."
+        ],
+        [
+          "candidate",
+          "A value we might choose as the answer."
+        ],
+        [
+          "predicate",
+          "A yes or no question about a value."
+        ]
+      ]
+    }
   }
 ]
