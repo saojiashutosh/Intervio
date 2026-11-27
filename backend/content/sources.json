@@ -2294,6 +2294,114 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "Insert, find-min, extract-min and decrease-key; unsorted array O(1) insert and O(n) extract, sorted array the reverse, binary heap O(log n) for both; used by Dijkstra, Prim and Huffman coding; Python's heapq is a binary min-heap on a list."
+    },
+    {
+      "key": "wikipedia-adjacency-list",
+      "title": "Adjacency list (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Adjacency_list",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "One neighbour list per vertex; space proportional to |V| + |E|; listing neighbours costs time proportional to the degree; an edge test is slower than in a matrix; a matrix needs space proportional to |V|^2."
+    },
+    {
+      "key": "wikipedia-adjacency-matrix",
+      "title": "Adjacency matrix (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Adjacency_matrix",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "An n x n matrix with A_ij = 1 for an edge; symmetric for undirected graphs; edge test at once; neighbour listing scans a row, time proportional to |V|; sparse graphs need less space as lists."
+    },
+    {
+      "key": "wikipedia-breadth-first-search",
+      "title": "Breadth-first search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Breadth-first_search",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "BFS explores all nodes at the current depth before the next, using a queue; marks a vertex when it is enqueued; O(|V| + |E|) time; finds shortest paths measured in edges; used to test bipartiteness."
+    },
+    {
+      "key": "wikipedia-depth-first-search",
+      "title": "Depth-first search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "DFS explores as far as possible along each branch before backtracking, using a stack; O(|V| + |E|); edges classed as tree, back, forward and cross; reverse postorder gives a topological sort; applications include components and strongly connected components."
+    },
+    {
+      "key": "wikipedia-component-graph-theory",
+      "title": "Component (graph theory) (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Component_(graph_theory)",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A component is a maximal connected subgraph; components partition the vertices; found in linear time with BFS or DFS; union-find handles incremental connectivity in amortized inverse-Ackermann time; a spanning forest has n - c edges."
+    },
+    {
+      "key": "wikipedia-topological-sorting",
+      "title": "Topological sorting (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Topological_sorting",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A linear order with every edge u -> v placing u first; exists exactly for graphs with no directed cycle; Kahn's algorithm and the DFS-based algorithm, both O(|V| + |E|); unique only when consecutive vertices are joined by an edge; used for build order and task scheduling."
+    },
+    {
+      "key": "wikipedia-strongly-connected-component",
+      "title": "Strongly connected component (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Strongly_connected_component",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Maximal sets of vertices that can all reach each other; contracting them gives a DAG; Kosaraju's two-pass algorithm and Tarjan's one-pass algorithm run in linear time; 2-SAT is unsatisfiable exactly when a variable and its negation share a component."
+    },
+    {
+      "key": "wikipedia-bellman-ford",
+      "title": "Bellman-Ford algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Relaxes every edge |V| - 1 times; handles negative weights; O(|V||E|); an extra pass that still relaxes an edge reveals a reachable negative cycle; stops early when a round changes nothing."
+    },
+    {
+      "key": "wikipedia-floyd-warshall",
+      "title": "Floyd-Warshall algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "All-pairs shortest paths in Theta(|V|^3) time and Theta(|V|^2) space; recurrence over intermediate vertices k with k as the outer loop; negative edges allowed but no negative cycles; Warshall's transitive-closure variant."
+    },
+    {
+      "key": "wikipedia-minimum-spanning-tree",
+      "title": "Minimum spanning tree (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Minimum_spanning_tree",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A spanning tree has n - 1 edges; the minimum one connects all vertices at least total weight; unique when weights are distinct; the cycle and cut properties justify the greedy algorithms of Kruskal, Prim and Boruvka."
+    },
+    {
+      "key": "wikipedia-prims-algorithm",
+      "title": "Prim's algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Prim%27s_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Grows one tree from a start vertex, always adding the cheapest edge to a vertex outside it; O(|V|^2) with an array, O(|E| log |V|) with a binary heap, O(|E| + |V| log |V|) with a Fibonacci heap; works on connected graphs."
+    },
+    {
+      "key": "wikipedia-kruskals-algorithm",
+      "title": "Kruskal's algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Kruskal%27s_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Sort edges by weight and add each edge that joins two different trees, checked with a disjoint-set structure; O(E log E) with the sort dominating; first published by Kruskal in 1956."
     }
   ],
   "levels": [
