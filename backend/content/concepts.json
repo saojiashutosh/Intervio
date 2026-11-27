@@ -159798,5 +159798,907 @@
         ]
       ]
     }
+  },
+  {
+    "id": "quickselect",
+    "n": 199,
+    "level": 14,
+    "week": "Core",
+    "title": "Quickselect: The k-th Smallest in O(n)",
+    "tagline": "Find the k-th smallest item or the median without sorting, by partitioning like quicksort but following only one side.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Quickselect finds the k-th smallest element of an unsorted array without sorting it. That item is called the k-th order statistic. The Wikipedia article calls it Hoare's selection algorithm and says it uses the same partition idea as quicksort, but recurses only into the side that contains the target. That lowers the average time from O(n log n) to O(n). It works in place, and it partly sorts the array as a side effect.",
+      "## The algorithm",
+      "Pick a pivot and partition the range, so that smaller items are on its left and larger on its right. The pivot lands at its final index p. Compare p with the index you want, k - 1 for the k-th smallest counting from 1.",
+      "- If p equals k - 1, the pivot is the answer.\n- If p is larger, the answer lies in the part to the left, so continue there.\n- If p is smaller, the answer lies in the part to the right, so continue there.",
+      "Repeat on the chosen part until the pivot lands on the target index. Because only one side is kept, you can write it as a loop with no recursion, and use O(1) extra space.",
+      "## Why it is O(n) on average",
+      "If each pivot splits the range about in half, the work is n + n/2 + n/4 + ..., a geometric sum of about 2n. Quicksort recurses on both halves, so each level costs n and there are log n levels. Quickselect follows one half, so the levels shrink. The article gives the average as O(n) and the worst case as O(n squared). Chance of much more than linear work with a random pivot is superexponentially small, so it is almost certainly linear.",
+      "> A worked example: the 3rd smallest of 7, 10, 4, 3, 20, 15. Partition around 15: the array becomes 7, 10, 4, 3, 15, 20, and 15 is at index 4. The target index is 2, which is smaller, so go left, to 7, 10, 4, 3. Partition around 3: it lands at index 0, smaller than 2, so go right, to 10, 4, 7. Partition around 7: it lands at index 2. That is the target. The answer is 7.",
+      "## The worst case and the fixes",
+      "With the first or last item as pivot on sorted data, each round removes just one item, giving O(n squared). A random pivot avoids this. The median-of-three pivot is linear on partly sorted data, but the article notes that an adversarial sequence can still beat it. For a guaranteed linear worst case, the median-of-medians algorithm chooses a good pivot deterministically, but its overhead is high, so the article says introselect combines quickselect with it as a fallback. Floyd-Rivest reaches about 1.5n comparisons on average for the median.",
+      "## The partition scheme matters",
+      "The article's pseudocode uses the Lomuto partition and says the select code works only with that scheme, because it assumes that the returned index is the pivot's final position. Hoare's scheme returns a different boundary, so the same code would be wrong. Use Lomuto or a three-way partition when you write quickselect.",
+      "## When to use it",
+      "Use quickselect for the k-th smallest or largest item, or the median, when you have all the data in memory. For a small k on a stream, a heap of size k costs O(n log k) and needs no random access. For repeated queries on the same data, sort once. The standard library offers heapq.nsmallest and sorted.",
+      "## How to talk through it",
+      "Say that it is quicksort that follows only one side. Give O(n) average and O(n squared) worst, and the random pivot. Mention median of medians as the deterministic fix, and compare it with sorting and a heap."
+    ],
+    "keyPoints": [
+      "Partition around a pivot. If its index is k - 1, done. Otherwise continue on the side that holds k - 1.",
+      "Average O(n): n + n/2 + n/4 + ... Worst case O(n squared) with bad pivots. A random pivot makes it very unlikely.",
+      "In place with a loop: O(1) extra space. It partly sorts the array.",
+      "The simple code assumes Lomuto partitioning, where the returned index is the pivot's final place.",
+      "Median of medians gives a linear worst case with a large constant. Introselect falls back to it."
+    ],
+    "sql": [
+      {
+        "title": "Quickselect with a random pivot",
+        "lang": "py",
+        "code": "import random\n\ndef quickselect(a, k):\n    # the k-th smallest item, counting from 1; works on a copy\n    a, lo, hi, target = list(a), 0, len(a) - 1, k - 1\n    while True:\n        p = random.randint(lo, hi)\n        a[p], a[hi] = a[hi], a[p]                         # a random pivot, moved to the end\n        pivot, i = a[hi], lo - 1\n        for j in range(lo, hi):\n            if a[j] < pivot:\n                i += 1\n                a[i], a[j] = a[j], a[i]\n        a[i + 1], a[hi] = a[hi], a[i + 1]\n        p = i + 1                                         # the pivot's final index\n        if p == target:\n            return a[p]\n        if p > target:\n            hi = p - 1\n        else:\n            lo = p + 1\n\nrandom.seed(62)\nassert quickselect([7, 10, 4, 3, 20, 15], 3) == 7\nassert quickselect([7, 10, 4, 3, 20, 15], 1) == 3 and quickselect([7, 10, 4, 3, 20, 15], 6) == 20\nassert quickselect([5], 1) == 5\nfor _ in range(300):\n    data = [random.randint(-9, 9) for _ in range(random.randint(1, 25))]\n    k = random.randint(1, len(data))\n    assert quickselect(data, k) == sorted(data)[k - 1]"
+      },
+      {
+        "title": "The k-th largest, the median, and the cost",
+        "lang": "py",
+        "code": "import random\n\ndef quickselect_count(a, k):\n    a, lo, hi, target, work = list(a), 0, len(a) - 1, k - 1, 0\n    while True:\n        p = random.randint(lo, hi)\n        a[p], a[hi] = a[hi], a[p]\n        pivot, i = a[hi], lo - 1\n        for j in range(lo, hi):\n            work += 1\n            if a[j] < pivot:\n                i += 1\n                a[i], a[j] = a[j], a[i]\n        a[i + 1], a[hi] = a[hi], a[i + 1]\n        p = i + 1\n        if p == target:\n            return a[p], work\n        if p > target:\n            hi = p - 1\n        else:\n            lo = p + 1\n\ndef kth_largest(a, k):\n    return quickselect_count(a, len(a) - k + 1)[0]\n\ndef median(a):\n    n = len(a)\n    if n % 2:\n        return quickselect_count(a, n // 2 + 1)[0]\n    return (quickselect_count(a, n // 2)[0] + quickselect_count(a, n // 2 + 1)[0]) / 2\n\nrandom.seed(64)\ndata = random.sample(range(10 ** 6), 2001)\nassert kth_largest(data, 1) == max(data) and kth_largest(data, 5) == sorted(data)[-5]\nassert median(data) == sorted(data)[1000]\nassert median([1, 2, 3, 4]) == 2.5\n\nvalue, work = quickselect_count(data, 1001)\nassert value == sorted(data)[1000]\nassert work < 8 * len(data)                                  # linear: a few passes' worth of comparisons"
+      },
+      {
+        "title": "A worst case with a bad pivot, and heapq as an alternative",
+        "lang": "py",
+        "code": "import heapq\n\ndef select_last_pivot(a, k):\n    a, lo, hi, target, work = list(a), 0, len(a) - 1, k - 1, 0\n    while True:\n        pivot, i = a[hi], lo - 1                          # always the last item\n        for j in range(lo, hi):\n            work += 1\n            if a[j] < pivot:\n                i += 1\n                a[i], a[j] = a[j], a[i]\n        a[i + 1], a[hi] = a[hi], a[i + 1]\n        p = i + 1\n        if p == target:\n            return a[p], work\n        if p > target:\n            hi = p - 1\n        else:\n            lo = p + 1\n\nn = 200\nordered = list(range(n))\nvalue, work = select_last_pivot(ordered, 1)               # the smallest item of sorted data\nassert value == 0 and work == n * (n - 1) // 2            # quadratic: each round removes one item\n\ndata = [7, 10, 4, 3, 20, 15]\nassert heapq.nsmallest(3, data)[-1] == 7                  # O(n log k) with a heap\nassert sorted(data)[2] == 7                               # O(n log n)"
+      }
+    ],
+    "django": {},
+    "exercise": "Write quickselect with a random pivot and check it against sorted on 300 random lists. Write kth_largest and median on top of it. Then count the comparisons on 2,001 random numbers and on sorted input with a last-item pivot, and compare them with n. Finally, change it to use the Hoare partition and find out what breaks.",
+    "pitfalls": [
+      "Using a fixed first or last pivot on sorted data. Each round removes one item, so it takes O(n squared).",
+      "Mixing 1-based k and 0-based indexes. The target index is k - 1.",
+      "Copying the array on every round. Work in place with lo and hi.",
+      "Using Hoare's return value as if it were the pivot's final index.",
+      "Sorting when you only need one item."
+    ],
+    "interview": [
+      {
+        "q": "What is quickselect and what is its complexity?",
+        "a": "An algorithm that finds the k-th smallest item by partitioning around a pivot like quicksort, then continuing on only the side that contains the target. It takes O(n) time on average and O(n squared) in the worst case."
+      },
+      {
+        "q": "Why is quickselect faster than sorting?",
+        "a": "It discards one side after each partition, so the work is n + n/2 + n/4 + ..., about 2n, instead of n at each of log n levels."
+      },
+      {
+        "q": "How do you avoid the O(n squared) worst case?",
+        "a": "Choose a random pivot, which makes the worst case extremely unlikely. For a guaranteed bound, use median of medians, or introselect, which falls back to it."
+      },
+      {
+        "q": "When would you use a heap instead?",
+        "a": "When k is small or the data is a stream, a heap of size k costs O(n log k) and needs no random access to the whole data."
+      }
+    ],
+    "references": [
+      {
+        "title": "Quickselect (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Quickselect",
+        "kind": "Reference"
+      },
+      {
+        "title": "Quicksort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Quicksort",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: finding the k-th largest element is a common interview question, and quickselect is the expected O(n) answer. The algorithm and its relation to quicksort, the O(n) average and O(n squared) worst case, the Lomuto-only note, the random pivot, the median-of-three weakness, median of medians, introselect and Floyd-Rivest come from the Wikipedia quickselect article, which I read in full. The worked trace and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-quickselect",
+      "wikipedia-quicksort",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "quickselect",
+        "title": "Quickselect, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "swap or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "The idea",
+            "at": 1
+          },
+          {
+            "text": "Round 1",
+            "at": 2
+          },
+          {
+            "text": "Average cost",
+            "at": 5
+          },
+          {
+            "text": "Alternatives",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "k0",
+            "kind": "cube",
+            "x": -3.25,
+            "y": 3.25,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "k1",
+            "kind": "cube",
+            "x": -1.95,
+            "y": 1.95,
+            "label": "10",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "k2",
+            "kind": "cube",
+            "x": -0.65,
+            "y": 0.65,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "k3",
+            "kind": "cube",
+            "x": 0.65,
+            "y": -0.65,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "k4",
+            "kind": "cube",
+            "x": 1.95,
+            "y": -1.95,
+            "label": "20",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "k5",
+            "kind": "cube",
+            "x": 3.25,
+            "y": -3.25,
+            "label": "15",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the k-th smallest without sorting",
+            "tag": "technique",
+            "body": [
+              "Given 7, 10, 4, 3, 20, 15, find the 3rd smallest item. Sorting everything costs O(n log n). We only need one item, so we can do less: O(n) on average. This is the idea behind quickselect, also called Hoare's selection algorithm.",
+              "The sorted array would be 3, 4, 7, 10, 15, 20, so the answer is 7. We will find it without sorting."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Find",
+                "v": "the 3rd smallest"
+              },
+              {
+                "k": "Sorting",
+                "v": "O(n log n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Quickselect",
+                "v": "O(n) average",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k3": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The idea: partition, then keep only one side",
+            "tag": "technique",
+            "body": [
+              "Partition around a pivot, exactly as in quicksort. The pivot lands at its final index p. If p equals the position we want, the pivot is the answer. If p is too big, the answer is on the left. If p is too small, the answer is on the right. Throw the other side away.",
+              "Quicksort recurses on both sides, but quickselect recurses on just one. That lowers the average cost from O(n log n) to O(n)."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Target index",
+                "v": "k - 1 = 2"
+              },
+              {
+                "k": "p = target",
+                "v": "found"
+              },
+              {
+                "k": "p > target",
+                "v": "go left"
+              },
+              {
+                "k": "p < target",
+                "v": "go right"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k3": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Round 1: pivot 15 lands at 4, go left",
+            "tag": "solution",
+            "body": [
+              "Partition indexes 0 to 5 around the pivot 15. The pivot lands at index 4, and the array is 7 10 4 3 15 20. The target index is 2, which is smaller than 4, so the answer is on the left.",
+              "Discard the pivot and the other side. The search continues on indexes 0 to 3."
+            ],
+            "short": "Round 1",
+            "hud": [
+              {
+                "k": "Range",
+                "v": "0 to 5"
+              },
+              {
+                "k": "Pivot",
+                "v": "15 at index 4"
+              },
+              {
+                "k": "Target index",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k3": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "The pivot 15 lands at index 4. The target index is 2. Which side has the answer?",
+              "options": [
+                "The right side",
+                "The left side",
+                "The pivot itself"
+              ],
+              "answer": 1,
+              "why": "The pivot's index 4 is larger than the target index 2, so the 3rd smallest is among the items to the left."
+            }
+          },
+          {
+            "title": "Round 2: pivot 3 lands at 0, go right",
+            "tag": "solution",
+            "body": [
+              "Partition indexes 0 to 3 around the pivot 3. The pivot lands at index 0, and the array is 3 10 4 7 15 20. The target index is 2, which is larger than 0, so the answer is on the right.",
+              "Discard the pivot and the other side. The search continues on indexes 1 to 3."
+            ],
+            "short": "Round 2",
+            "hud": [
+              {
+                "k": "Range",
+                "v": "0 to 3"
+              },
+              {
+                "k": "Pivot",
+                "v": "3 at index 0"
+              },
+              {
+                "k": "Target index",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "orange",
+                "pill": {
+                  "text": "pivot in place",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "k1": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k3": {
+                "label": "7",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "k5": {
+                "label": "20",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            }
+          },
+          {
+            "title": "Round 3: the pivot 7 lands at 2, the target",
+            "tag": "solution",
+            "body": [
+              "Partition indexes 1 to 3 around the pivot 7. The pivot lands at index 2. That is the target index 2, so the pivot 7 is the 3rd smallest item.",
+              "The answer is 7."
+            ],
+            "short": "Round 3",
+            "hud": [
+              {
+                "k": "Range",
+                "v": "1 to 3"
+              },
+              {
+                "k": "Pivot",
+                "v": "7 at index 2"
+              },
+              {
+                "k": "Target index",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "k5": {
+                "label": "20",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              }
+            }
+          },
+          {
+            "title": "Why O(n) on average",
+            "tag": "insight",
+            "body": [
+              "If each partition cuts the range roughly in half, the work is n + n/2 + n/4 + ..., which adds up to about 2n. So the average cost is O(n). The Wikipedia article gives average O(n), and says the method also partially sorts the data in place.",
+              "Quicksort's two sides add up to O(n) per level, but there are log n levels. Quickselect keeps only one side, so the levels shrink geometrically."
+            ],
+            "short": "Average cost",
+            "hud": [
+              {
+                "k": "Work",
+                "v": "n + n/2 + n/4 + ... = about 2n",
+                "tone": "good"
+              },
+              {
+                "k": "Average",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The worst case, and the fixes",
+            "tag": "problem",
+            "body": [
+              "With bad pivots, for example the first or last item on sorted data and a target at the other end, each round removes only one item. The cost is O(n squared). The article gives this worst case. A random pivot makes it vanishingly unlikely.",
+              "For a guaranteed linear worst case, the median-of-medians method picks a good pivot, but its overhead is high. Introselect combines quickselect with it as a fallback."
+            ],
+            "short": "Worst case",
+            "hud": [
+              {
+                "k": "Bad pivots",
+                "v": "O(n squared)",
+                "tone": "bad"
+              },
+              {
+                "k": "Random pivot",
+                "v": "expected O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Median of medians",
+                "v": "linear worst case, big constant"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Careful: the partition scheme",
+            "tag": "technique",
+            "body": [
+              "The Wikipedia article points out that its select code works only with the Lomuto partition, because it relies on the returned index being the pivot's final position. With Hoare's scheme the returned index is not the pivot's place, so the same code would be wrong.",
+              "Use Lomuto, as here, or a three-way partition."
+            ],
+            "short": "The partition scheme",
+            "hud": [
+              {
+                "k": "Lomuto",
+                "v": "pivot in its final place",
+                "tone": "good"
+              },
+              {
+                "k": "Hoare",
+                "v": "different return value: adapt the code",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python and in practice",
+            "tag": "insight",
+            "body": [
+              "For a small k, heapq.nsmallest(k, items) or a heap of size k costs O(n log k). Sorting and indexing is O(n log n) and simplest. Quickselect is the choice when you have all the data in memory and want the k-th item, or the median, in O(n) on average.",
+              "The median of an array is the middle item: quickselect with k = (n + 1) // 2."
+            ],
+            "short": "Alternatives",
+            "hud": [
+              {
+                "k": "Sort",
+                "v": "O(n log n), simplest"
+              },
+              {
+                "k": "Heap of size k",
+                "v": "O(n log k), streaming"
+              },
+              {
+                "k": "Quickselect",
+                "v": "O(n) average, in memory",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Quickselect finds the k-th smallest by partitioning and recursing into one side only. Average O(n), worst case O(n squared), fixed by a random pivot. It uses O(1) extra space, with a loop, and partly sorts the data.",
+              "Say that it is quicksort that keeps only the side it needs."
+            ],
+            "short": "Recap",
+            "set": {
+              "k0": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k1": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k2": {
+                "label": "7",
+                "tone": "green",
+                "pill": {
+                  "text": "the 3rd smallest",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "k3": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k4": {
+                "label": "15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "k5": {
+                "label": "20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 partition around a pivot",
+                "2 compare the pivot's index with k - 1",
+                "3 keep one side only",
+                "4 O(n) average, random pivot"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Quickselect is like finding the third shortest person in a crowd by only sorting the group that must contain them.",
+      "story": "You want the third shortest person in a crowd. You pick someone and ask everyone to stand on the shorter or the taller side. If your chosen person has only one shorter person, the third shortest must be among the taller ones, so you forget about the shorter group. You repeat with the taller group only. Each time you discard a chunk of people, until your chosen person has exactly two shorter people.",
+      "maps": [
+        [
+          "Choosing someone",
+          "The pivot"
+        ],
+        [
+          "Shorter and taller groups",
+          "The two sides of the partition"
+        ],
+        [
+          "Forgetting one group",
+          "Following only one side"
+        ],
+        [
+          "Finding the right person",
+          "The pivot lands on the target index"
+        ]
+      ],
+      "words": [
+        [
+          "quickselect",
+          "Find the k-th smallest item by partitioning and following one side."
+        ],
+        [
+          "order statistic",
+          "The k-th smallest item of a collection."
+        ],
+        [
+          "median",
+          "The middle value of a sorted collection."
+        ],
+        [
+          "pivot",
+          "The item the others are compared with when partitioning."
+        ],
+        [
+          "introselect",
+          "Quickselect that falls back to a guaranteed linear method."
+        ]
+      ]
+    }
   }
 ]
