@@ -141118,5 +141118,1265 @@
         ]
       ]
     }
+  },
+  {
+    "id": "depth-first-search",
+    "n": 183,
+    "level": 14,
+    "week": "Core",
+    "title": "Depth-First Search: Go Deep, Then Back Up",
+    "tagline": "Explore a graph by following one path as far as it goes, then backtracking, and use discovery and finish order to find cycles and structure.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Depth-first search, or DFS, explores a graph by going as deep as possible along each path before backtracking. The Wikipedia article describes it as exploring as far as possible along each branch before backtracking, and says it needs extra memory, usually a stack, to track the current path. The recursive version uses the call stack for that.",
+      "## The algorithm",
+      "To visit v: mark it as discovered, and for each neighbour w of v that is not discovered, visit w. When all neighbours have been handled, v is finished and the search backs up to the vertex that called it. To cover a graph with several parts, start a new DFS from each undiscovered vertex. The time is O(V + E) for an adjacency list, and the worst-case space is O(V). DFS does not find shortest paths in general.",
+      "## Discovery and finish order",
+      "Number the vertices in the order they are discovered, and in the order they are finished. In the ring A-B-D-F-E-C-A started at A, the discovery order is A, B, D, F, E, C and the finish order is C, E, F, D, B, A. The article names four vertex orderings, preorder, postorder and their reverses, and says reverse postorder gives a topological sort of a directed acyclic graph.",
+      "## Edge types",
+      "Relative to the DFS spanning tree, an edge is a tree edge, which leads to a newly discovered vertex, a back edge, which leads to an ancestor on the current path, a forward edge, which leads to a descendant already finished, or a cross edge, which leads to a vertex in another branch. The article lists the forward, back and cross classes. In an undirected graph every edge is a tree edge or a back edge. A back edge means a cycle.",
+      "> A worked example: from C in the ring, C's neighbours are E, which is where we came from, and A. A is discovered and still on the path, so the edge C to A is a back edge, and the cycle is A, B, D, F, E, C. C is finished. DFS backs up through E, F, D and B to A.",
+      "## Recursion and the explicit stack",
+      "The recursive code is a few lines. Python limits recursion depth to about a thousand calls, so for a long path use an explicit stack. Take care: if you push all the neighbours of a vertex onto a stack at once, the visiting order differs from recursion, because the last neighbour pushed is visited first. A stack of neighbour iterators reproduces the recursive order exactly. The article also notes that the iterative version checks the discovered mark when a vertex is popped.",
+      "## What DFS is used for",
+      "Connected components, cycle detection, topological sorting, strongly connected components, bridges and articulation points, solving mazes and puzzles, and every backtracking search. It is the natural choice when you must explore all possibilities, or reason about the structure of the graph. BFS is the choice for shortest paths in unweighted graphs.",
+      "## Common mistakes",
+      "Forgetting to mark vertices, which loops forever in a cycle. Exceeding Python's recursion limit on a long path. Treating the edge back to the parent as a cycle in an undirected graph. Expecting DFS to find shortest paths.",
+      "## How to talk through it",
+      "Say that DFS goes deep and backs up, state O(V + E), and show the discovery and finish orders on a small graph. Mention back edges for cycles and finish order for topological sort."
+    ],
+    "keyPoints": [
+      "DFS follows a path to the end, then backtracks, using a stack or recursion. Time O(V + E), space O(V).",
+      "Record discovery and finish order. Reverse postorder of a DAG is a topological sort.",
+      "Edge types: tree, back (to an ancestor on the path), forward and cross. A back edge means a cycle.",
+      "Recursion depth can reach V. Use an explicit stack for long paths. A stack of neighbour iterators reproduces recursive order.",
+      "DFS does not find shortest paths. It is the tool for components, cycles, topological order and backtracking."
+    ],
+    "sql": [
+      {
+        "title": "Recursive and iterative DFS, with the same order",
+        "lang": "py",
+        "code": "graph = {\"A\": [\"B\", \"C\"], \"B\": [\"A\", \"D\"], \"C\": [\"A\", \"E\"], \"D\": [\"B\", \"F\"], \"E\": [\"C\", \"F\"], \"F\": [\"D\", \"E\"]}\n\ndef dfs_recursive(graph, start):\n    order, seen = [], set()\n    def visit(v):\n        seen.add(v)\n        order.append(v)\n        for w in graph[v]:\n            if w not in seen:\n                visit(w)\n    visit(start)\n    return order\n\ndef dfs_iterative(graph, start):\n    order, seen = [start], {start}\n    stack = [iter(graph[start])]                       # a stack of neighbour iterators\n    while stack:\n        for w in stack[-1]:\n            if w not in seen:\n                seen.add(w)\n                order.append(w)\n                stack.append(iter(graph[w]))\n                break\n        else:\n            stack.pop()                                # this vertex is finished: back up\n    return order\n\nassert dfs_recursive(graph, \"A\") == [\"A\", \"B\", \"D\", \"F\", \"E\", \"C\"]\nassert dfs_iterative(graph, \"A\") == dfs_recursive(graph, \"A\")\nlong_path = {i: [i + 1] if i < 5000 else [] for i in range(5001)}\nassert len(dfs_iterative(long_path, 0)) == 5001           # no recursion limit problem"
+      },
+      {
+        "title": "Discovery and finish times, and a cycle in an undirected graph",
+        "lang": "py",
+        "code": "graph = {\"A\": [\"B\", \"C\"], \"B\": [\"A\", \"D\"], \"C\": [\"A\", \"E\"], \"D\": [\"B\", \"F\"], \"E\": [\"C\", \"F\"], \"F\": [\"D\", \"E\"]}\n\ndef dfs_times(graph, start):\n    disc, fin, clock = {}, {}, [0]\n    def visit(v):\n        clock[0] += 1\n        disc[v] = clock[0]\n        for w in graph[v]:\n            if w not in disc:\n                visit(w)\n        clock[0] += 1\n        fin[v] = clock[0]\n    visit(start)\n    return disc, fin\n\ndisc, fin = dfs_times(graph, \"A\")\nassert disc[\"A\"] == 1 and fin[\"A\"] == 12\nassert sorted(disc, key=disc.get) == [\"A\", \"B\", \"D\", \"F\", \"E\", \"C\"]\nassert sorted(fin, key=fin.get) == [\"C\", \"E\", \"F\", \"D\", \"B\", \"A\"]\n\ndef has_cycle_undirected(graph):\n    seen = set()\n    def visit(v, parent):\n        seen.add(v)\n        for w in graph[v]:\n            if w not in seen:\n                if visit(w, v):\n                    return True\n            elif w != parent:                          # an edge to an already discovered vertex\n                return True\n        return False\n    return any(visit(v, None) for v in graph if v not in seen)\n\nassert has_cycle_undirected(graph)\nassert not has_cycle_undirected({1: [2], 2: [1, 3], 3: [2]})"
+      },
+      {
+        "title": "Path finding, and classifying edges in a directed graph",
+        "lang": "py",
+        "code": "def find_path(graph, start, goal):\n    seen = set()\n    def visit(v, path):\n        if v == goal:\n            return path\n        seen.add(v)\n        for w in graph.get(v, []):\n            if w not in seen:\n                found = visit(w, path + [w])\n                if found:\n                    return found\n        return None\n    return visit(start, [start])\n\ng = {\"A\": [\"B\", \"C\"], \"B\": [\"D\"], \"C\": [\"D\"], \"D\": []}\nassert find_path(g, \"A\", \"D\") == [\"A\", \"B\", \"D\"]\nassert find_path(g, \"D\", \"A\") is None\n\ndef classify_edges(graph):\n    disc, fin, kinds, clock = {}, {}, {}, [0]\n    def visit(v):\n        clock[0] += 1\n        disc[v] = clock[0]\n        for w in graph.get(v, []):\n            if w not in disc:\n                kinds[(v, w)] = \"tree\"\n                visit(w)\n            elif w not in fin:\n                kinds[(v, w)] = \"back\"                  # to an ancestor still on the path\n            elif disc[v] < disc[w]:\n                kinds[(v, w)] = \"forward\"\n            else:\n                kinds[(v, w)] = \"cross\"\n        clock[0] += 1\n        fin[v] = clock[0]\n    for v in graph:\n        if v not in disc:\n            visit(v)\n    return kinds\n\nkinds = classify_edges({\"A\": [\"B\", \"C\"], \"B\": [\"C\"], \"C\": [\"A\"], \"D\": [\"A\"]})\nassert kinds[(\"A\", \"B\")] == \"tree\" and kinds[(\"B\", \"C\")] == \"tree\"\nassert kinds[(\"C\", \"A\")] == \"back\" and kinds[(\"A\", \"C\")] == \"forward\"\nassert kinds[(\"D\", \"A\")] == \"cross\""
+      }
+    ],
+    "django": {},
+    "exercise": "Write the recursive and the iterative DFS and check they give the same order. Then record discovery and finish times, detect a cycle in an undirected graph, find a path, and classify the edges of a directed graph. Finally, write DFS for a grid that counts islands, and say why recursion might fail on a large grid.",
+    "pitfalls": [
+      "Not marking vertices as discovered, so DFS loops forever on a cycle.",
+      "Treating the edge back to the parent as a cycle in an undirected graph.",
+      "Hitting Python's recursion limit on a long path. Use an explicit stack.",
+      "Pushing all neighbours onto a stack and expecting the recursive order.",
+      "Expecting DFS to find shortest paths."
+    ],
+    "interview": [
+      {
+        "q": "How does DFS work and what does it cost?",
+        "a": "It follows a path as deep as it can, marking vertices, and backs up when stuck. It uses a stack or recursion. It takes O(V + E) time and O(V) space."
+      },
+      {
+        "q": "What is a back edge and why does it matter?",
+        "a": "An edge to an ancestor that is still on the current DFS path. It means the graph has a cycle, so detecting back edges is how DFS finds cycles."
+      },
+      {
+        "q": "How is DFS different from BFS?",
+        "a": "DFS goes deep using a stack and does not find shortest paths. BFS goes level by level using a queue and finds shortest paths in unweighted graphs. Both are O(V + E)."
+      },
+      {
+        "q": "How do you avoid recursion limits in DFS?",
+        "a": "Use an explicit stack. To keep the same visiting order as recursion, push iterators over the neighbours instead of all the neighbours at once."
+      }
+    ],
+    "references": [
+      {
+        "title": "Depth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Depth-first_search",
+        "kind": "Reference"
+      },
+      {
+        "title": "Breadth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Breadth-first_search",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: DFS is the other core traversal and the base of cycle detection, topological sort and components. The idea of exploring as far as possible before backtracking, the O(V + E) cost, the forward, back and cross edge classes, the four vertex orderings with reverse postorder, and the difference between recursive and stack-based order come from the Wikipedia depth-first search article, which I read in part. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-depth-first-search",
+      "wikipedia-breadth-first-search",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "dfs",
+        "title": "Depth-first search, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or explore"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "back edge or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Deep first",
+            "at": 0
+          },
+          {
+            "text": "Visit",
+            "at": 1
+          },
+          {
+            "text": "Back edge",
+            "at": 7
+          },
+          {
+            "text": "Backtrack",
+            "at": 8
+          },
+          {
+            "text": "Uses",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 2.7,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.6,
+            "y": -0.2,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.2,
+            "y": 2.6,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": -0.8,
+            "y": -2.0,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.0,
+            "y": 0.8,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gF",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -2.3,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none"
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none"
+          },
+          {
+            "a": "gC",
+            "b": "gE",
+            "dir": "none"
+          },
+          {
+            "a": "gD",
+            "b": "gF",
+            "dir": "none"
+          },
+          {
+            "a": "gE",
+            "b": "gF",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Go as deep as you can, then back up",
+            "tag": "technique",
+            "body": [
+              "Depth-first search, or DFS, follows one path as far as it can go. When it gets stuck, it backs up to the last vertex that still has an unexplored neighbour, and tries that. It uses a stack, or recursion, which is the call stack.",
+              "The Wikipedia article says DFS explores as far as possible along each branch before backtracking."
+            ],
+            "short": "Deep first",
+            "hud": [
+              {
+                "k": "Uses a",
+                "v": "stack, or recursion"
+              },
+              {
+                "k": "Time",
+                "v": "O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Shortest path?",
+                "v": "not guaranteed",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Visit A (the start)",
+            "tag": "solution",
+            "body": [
+              "Go to A, and mark it as discovered number 1. Its neighbours are B, C. Pick the first one that is not discovered yet.",
+              "The vertices on the current path are the ones DFS would back up to, and they form the stack."
+            ],
+            "short": "Visit A",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A"
+              },
+              {
+                "k": "Discovered",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Visit B",
+            "tag": "solution",
+            "body": [
+              "Go to B, and mark it as discovered number 2. Its neighbours are A, D. Pick the first one that is not discovered yet.",
+              "The stack, from bottom to top: A B."
+            ],
+            "short": "Visit B",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A B"
+              },
+              {
+                "k": "Discovered",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Visit D",
+            "tag": "solution",
+            "body": [
+              "Go to D, and mark it as discovered number 3. Its neighbours are B, F. Pick the first one that is not discovered yet.",
+              "The stack, from bottom to top: A B D."
+            ],
+            "short": "Visit D",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A B D"
+              },
+              {
+                "k": "Discovered",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "DFS is at D, coming from B. D's neighbours are B and F. Where does it go next?",
+              "options": [
+                "Back to B",
+                "To F: it is undiscovered",
+                "It stops"
+              ],
+              "answer": 1,
+              "why": "B is where we came from. F is undiscovered, so DFS goes deeper, to F."
+            }
+          },
+          {
+            "title": "Visit F",
+            "tag": "solution",
+            "body": [
+              "Go to F, and mark it as discovered number 4. Its neighbours are D, E. Pick the first one that is not discovered yet.",
+              "The stack, from bottom to top: A B D F."
+            ],
+            "short": "Visit F",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A B D F"
+              },
+              {
+                "k": "Discovered",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gF"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Visit E",
+            "tag": "solution",
+            "body": [
+              "Go to E, and mark it as discovered number 5. Its neighbours are C, F. Pick the first one that is not discovered yet.",
+              "The stack, from bottom to top: A B D F E."
+            ],
+            "short": "Visit E",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A B D F E"
+              },
+              {
+                "k": "Discovered",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gF",
+                  "gE"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Visit C",
+            "tag": "solution",
+            "body": [
+              "Go to C, and mark it as discovered number 6. Its neighbours are A, E. Its neighbour A is already on the current path, so there is nothing new to go to.",
+              "The stack, from bottom to top: A B D F E C."
+            ],
+            "short": "Visit C",
+            "hud": [
+              {
+                "k": "Stack",
+                "v": "A B D F E C"
+              },
+              {
+                "k": "Discovered",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 6",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gE",
+                  "gC"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "C finds A: a back edge",
+            "tag": "problem",
+            "body": [
+              "At C, the neighbours are A and E. E is the vertex we came from. A is already discovered, and it is still on the current path. An edge to a vertex on the current path is a back edge, and it means there is a cycle: A, B, D, F, E, C and back to A.",
+              "Finding a back edge is how DFS detects cycles."
+            ],
+            "short": "Back edge",
+            "hud": [
+              {
+                "k": "Edge C to A",
+                "v": "back edge: a cycle",
+                "tone": "bad"
+              },
+              {
+                "k": "Edge types",
+                "v": "tree, back (forward, cross if directed)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "found 6",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gA"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Back up and finish each vertex in turn",
+            "tag": "insight",
+            "body": [
+              "C has no more neighbours, so it is finished, and DFS backs up to E, then F, D, B and finally A. The order of finishing is C, E, F, D, B, A. That is the reverse of the order of discovery here.",
+              "The finish order is the key to topological sort and strongly connected components, in later lessons."
+            ],
+            "short": "Backtrack",
+            "hud": [
+              {
+                "k": "Discovery order",
+                "v": "A B D F E C"
+              },
+              {
+                "k": "Finish order",
+                "v": "C E F D B A"
+              },
+              {
+                "k": "Reverse postorder",
+                "v": "gives a topological sort of a DAG"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 6",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 5",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 1",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 4",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 2",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "finished 3",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recursion or an explicit stack",
+            "tag": "technique",
+            "body": [
+              "The recursive version is shortest: visit v, then call itself on each undiscovered neighbour. The iterative version keeps a stack. Take care: pushing all the neighbours at once gives a different visiting order from recursion. A stack of neighbour iterators gives exactly the recursive order.",
+              "The Wikipedia article notes this difference, and that an iterative DFS checks the discovered mark when a vertex is popped, where BFS marks on entry."
+            ],
+            "short": "Stack or recursion",
+            "hud": [
+              {
+                "k": "Recursion depth",
+                "v": "up to V: mind the limit",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 6",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def dfs(v):",
+                "    seen.add(v)",
+                "    for w in adj[v]:",
+                "        if w not in seen:",
+                "            dfs(w)"
+              ],
+              "hl": [
+                1,
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Cost and uses",
+            "tag": "insight",
+            "body": [
+              "DFS takes O(V + E) time, and O(V) space for the marks and the stack. It does not find shortest paths in general.",
+              "Uses: connected components, cycle detection, topological sorting, finding strongly connected components and bridges, solving mazes, and backtracking search."
+            ],
+            "short": "Cost and uses",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(V)"
+              },
+              {
+                "k": "Uses",
+                "v": "components, cycles, topological sort, SCC"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 6",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "DFS goes deep before wide, backing up when stuck. Mark vertices as discovered, and watch for edges to vertices that are still on the path: back edges mean cycles. Record finish times for topological order. It costs O(V + E).",
+              "Pick BFS for shortest paths and DFS for structure."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 2",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 6",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 3",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 5",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "found 4",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 discover, recurse into neighbours, finish",
+                "2 edge to the current path = back edge = cycle",
+                "3 finish order drives topological sort",
+                "4 O(V + E)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Depth-first search is like exploring a maze by following one corridor to its end before trying another.",
+      "story": "In a maze, you pick a corridor and keep going until you hit a dead end. Then you walk back to the last junction that had an unexplored corridor, and try that one. You leave a chalk mark at each place so you know you have been there. If you ever reach a place with a chalk mark that is still on the way you came, you have gone round in a circle.",
+      "maps": [
+        [
+          "A corridor to its end",
+          "Going deep along a path"
+        ],
+        [
+          "Walking back to a junction",
+          "Backtracking"
+        ],
+        [
+          "Chalk marks",
+          "Marking vertices as discovered"
+        ],
+        [
+          "Going round in a circle",
+          "A back edge: a cycle"
+        ]
+      ],
+      "words": [
+        [
+          "depth-first search",
+          "Explore as far as possible along each path before backing up."
+        ],
+        [
+          "backtrack",
+          "Return to the previous vertex to try another path."
+        ],
+        [
+          "back edge",
+          "An edge to a vertex that is still on the current path, which shows a cycle."
+        ],
+        [
+          "postorder",
+          "The order in which vertices are finished."
+        ],
+        [
+          "stack",
+          "A pile where you only add and remove at the top."
+        ]
+      ]
+    }
   }
 ]
