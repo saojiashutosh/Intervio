@@ -165338,5 +165338,1585 @@
         ]
       ]
     }
+  },
+  {
+    "id": "huffman-coding",
+    "n": 203,
+    "level": 14,
+    "week": "Core",
+    "title": "Huffman Coding: Greedy Compression",
+    "tagline": "Build the best prefix code by repeatedly merging the two lightest trees, and see how a priority queue turns the greedy idea into code.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "Huffman coding compresses data by giving short codes to common symbols and long codes to rare ones. The Wikipedia article says it builds an optimal prefix code from the symbol weights by repeatedly merging the two lowest-weight nodes with a priority queue, in O(n log n) time. A prefix code is one where no code is the start of another code, so a stream of bits can be decoded without any separator.",
+      "## Fixed length versus variable length",
+      "A fixed length code uses the same number of bits for every symbol. With six symbols that is 3 bits each. If one symbol makes up 40 percent of the text, it wastes bits. A variable length code gives that symbol a 1-bit code, and the rare symbols 4-bit codes, and the average drops.",
+      "## Building the tree",
+      "Start with one leaf for each symbol, weighted by its count. Put all the trees in a min priority queue by weight. Repeat: take out the two lightest trees, join them under a new parent with the sum of their weights, and put the parent back. When one tree is left, it is the Huffman tree. Label every left branch 0 and every right branch 1. The code for a symbol is the labels on the path from the root down to its leaf.",
+      "> A worked example: counts a 40, b 20, c 15, d 10, e 10, f 5. Merge f 5 and d 10 into 15. Then merge e 10 and c 15 into 25. Then merge the 15 and b 20 into 35. Then merge the 25 and the 35 into 60. Finally merge a 40 and the 60 into 100. The code lengths are a = 1, b = 3, c = 3, d = 4, e = 3, f = 4. The total is 235 bits for 100 symbols, against 300 bits with a fixed 3-bit code.",
+      "## Decoding",
+      "Because every symbol is a leaf, the path to one symbol never goes through another. To decode, start at the root and follow the bits: 0 goes left and 1 goes right. At a leaf, output its symbol and go back to the root. The decoder needs the same tree, so the tree, or the counts that build it, is stored with the compressed data.",
+      "## Why the greedy rule is correct",
+      "In a best tree, the two rarest symbols can be siblings at the deepest level. If a rarer symbol were higher up than a more common one, swapping them would reduce the total cost, which is a contradiction. So merging the two lightest first is safe, and what remains is the same problem with one fewer symbol. This is an exchange argument. The Wikipedia article states that the result is optimal among prefix codes for known symbol probabilities.",
+      "## Cost",
+      "With a binary heap each of the n - 1 merges costs O(log n), so the tree takes O(n log n) to build. The tree has 2n - 1 nodes. Encoding and decoding take time proportional to the length of the output.",
+      "## Limits",
+      "Huffman coding assumes the symbol counts are known and the symbols are coded one at a time, so it cannot exploit patterns across symbols. Real formats combine it with other steps. If a symbol has probability close to one, a whole bit per symbol is still wasteful, and methods such as arithmetic coding do better.",
+      "## How to talk through it",
+      "Say frequent symbols get short codes. Describe the loop: merge the two lightest with a heap. Say it makes a prefix code, so decoding is unambiguous, and say why the greedy step is safe. Give O(n log n)."
+    ],
+    "keyPoints": [
+      "Frequent symbols get short codes and rare symbols long ones, so the total bit count falls.",
+      "Prefix code: no code is the start of another, so bits decode without separators.",
+      "Build: put leaves in a min-heap, merge the two lightest into a parent, repeat until one tree is left.",
+      "Code of a symbol = left 0 and right 1 labels on the path from the root to its leaf.",
+      "O(n log n) with a heap. Optimal among prefix codes, by an exchange argument."
+    ],
+    "sql": [
+      {
+        "title": "Build the Huffman codes",
+        "lang": "py",
+        "code": "import heapq\nfrom collections import Counter\n\ndef huffman_codes(counts):\n    heap = [(w, i, sym) for i, (sym, w) in enumerate(sorted(counts.items()))]   # i breaks ties\n    heapq.heapify(heap)\n    if len(heap) == 1:\n        return {heap[0][2]: \"0\"}                                  # one symbol still needs a bit\n    tie = len(heap)\n    while len(heap) > 1:\n        w1, _, left = heapq.heappop(heap)                         # the two lightest trees\n        w2, _, right = heapq.heappop(heap)\n        heapq.heappush(heap, (w1 + w2, tie, (left, right)))\n        tie += 1\n    codes = {}\n    def walk(node, prefix):\n        if isinstance(node, tuple):\n            walk(node[0], prefix + \"0\")\n            walk(node[1], prefix + \"1\")\n        else:\n            codes[node] = prefix\n    walk(heap[0][2], \"\")\n    return codes\n\ncounts = {\"a\": 40, \"b\": 20, \"c\": 15, \"d\": 10, \"e\": 10, \"f\": 5}\ncodes = huffman_codes(counts)\ntotal = sum(counts[s] * len(codes[s]) for s in counts)\nassert total == 235                                                # better than a fixed 3-bit code, which costs 300\nassert len(codes[\"a\"]) == 1 and max(len(c) for c in codes.values()) == 4\nassert all(not b.startswith(a) for a in codes.values() for b in codes.values() if a is not b)   # a prefix code\nassert huffman_codes({\"x\": 7}) == {\"x\": \"0\"}"
+      },
+      {
+        "title": "Encode and decode",
+        "lang": "py",
+        "code": "import heapq\n\ndef huffman_tree(counts):\n    heap = [(w, i, s) for i, (s, w) in enumerate(sorted(counts.items()))]\n    heapq.heapify(heap)\n    tie = len(heap)\n    while len(heap) > 1:\n        w1, _, a = heapq.heappop(heap)\n        w2, _, b = heapq.heappop(heap)\n        heapq.heappush(heap, (w1 + w2, tie, (a, b)))\n        tie += 1\n    return heap[0][2]\n\ndef make_codes(tree, prefix=\"\", out=None):\n    out = {} if out is None else out\n    if isinstance(tree, tuple):\n        make_codes(tree[0], prefix + \"0\", out)\n        make_codes(tree[1], prefix + \"1\", out)\n    else:\n        out[tree] = prefix or \"0\"\n    return out\n\ndef encode(text, codes):\n    return \"\".join(codes[ch] for ch in text)\n\ndef decode(bits, tree):\n    out, node = [], tree\n    for bit in bits:\n        node = node[int(bit)]                                      # 0 = left, 1 = right\n        if not isinstance(node, tuple):                            # reached a leaf\n            out.append(node)\n            node = tree                                            # restart at the root\n    return \"\".join(out)\n\ntext = \"abracadabra\"\ncounts = {ch: text.count(ch) for ch in set(text)}\ntree = huffman_tree(counts)\ncodes = make_codes(tree)\nbits = encode(text, codes)\nassert decode(bits, tree) == text\nassert len(bits) < 8 * len(text)                                  # smaller than 8 bits for each character\nassert len(codes[\"a\"]) <= len(codes[\"c\"])                         # the commonest letter has a short code"
+      },
+      {
+        "title": "The cost is optimal: compare with every other full tree",
+        "lang": "py",
+        "code": "import heapq\nimport itertools\nimport random\n\ndef huffman_cost(weights):\n    heap = list(weights)\n    heapq.heapify(heap)\n    cost = 0\n    while len(heap) > 1:\n        a, b = heapq.heappop(heap), heapq.heappop(heap)\n        cost += a + b                                             # each merge adds one bit to every leaf below it\n        heapq.heappush(heap, a + b)\n    return cost\n\ndef best_cost(weights):\n    # try every way of repeatedly merging any two trees\n    best = float(\"inf\")\n    def go(items, cost):\n        nonlocal best\n        if len(items) == 1:\n            best = min(best, cost)\n            return\n        for i, j in itertools.combinations(range(len(items)), 2):\n            rest = [x for k, x in enumerate(items) if k not in (i, j)]\n            go(rest + [items[i] + items[j]], cost + items[i] + items[j])\n    go(list(weights), 0)\n    return best\n\nassert huffman_cost([40, 20, 15, 10, 10, 5]) == 235               # the bit total from the lesson\nrandom.seed(72)\nfor _ in range(60):\n    weights = [random.randint(1, 30) for _ in range(random.randint(2, 6))]\n    assert huffman_cost(weights) == best_cost(weights)            # greedy equals the best of all merge orders"
+      }
+    ],
+    "django": {},
+    "exercise": "Build the Huffman codes for a text such as abracadabra, encode it, and decode it back. Check that no code is a prefix of another. Compute the bit total against 8 bits per character. Then check the greedy cost against brute force over all merge orders on small random weights.",
+    "pitfalls": [
+      "Merging the heaviest trees, or any two, instead of the two lightest.",
+      "Forgetting a tie-breaker in the heap, so tuples compare a tree with a symbol and crash.",
+      "A single-symbol input: the code would be empty, so give it one bit.",
+      "Decoding without restarting at the root after a leaf.",
+      "Forgetting that the decoder needs the tree or the counts."
+    ],
+    "interview": [
+      {
+        "q": "How does Huffman coding work?",
+        "a": "Put one leaf per symbol in a min-heap weighted by count. Repeatedly merge the two lightest trees into a parent with their total weight, until one tree remains. Left branches are 0, right branches are 1, and a symbol's code is the path from the root to its leaf."
+      },
+      {
+        "q": "Why can the bits be decoded without separators?",
+        "a": "It is a prefix code: every symbol is a leaf, so no code is the start of another. Walk down from the root on each bit and restart at the root when you reach a leaf."
+      },
+      {
+        "q": "What is its complexity?",
+        "a": "O(n log n) to build the tree with a heap, for n symbols. Encoding and decoding are linear in the output."
+      },
+      {
+        "q": "Why is the greedy choice safe?",
+        "a": "In an optimal tree the two rarest symbols can be siblings at the deepest level, since swapping a rarer symbol up above a more common one would only increase the cost. So merging the two lightest first never loses."
+      }
+    ],
+    "references": [
+      {
+        "title": "Huffman coding (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Huffman_coding",
+        "kind": "Reference"
+      },
+      {
+        "title": "Greedy algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Greedy_algorithm",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: Huffman coding is the standard example of a greedy algorithm that uses a priority queue, and it is common in interviews. The method of merging the two lowest-weight nodes with a priority queue, the O(n log n) cost, the decoding walk and the optimality among prefix codes come from the Wikipedia Huffman coding article, which I read in part. The counts, the worked merge order and the code are my own illustration and judgment, and the code is checked by running it, including a brute-force check of the optimal cost on small inputs. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-huffman-coding",
+      "wikipedia-greedy-algorithm",
+      "py-heapq",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "huffman",
+        "title": "Huffman coding, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "pick or merge"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "The rule",
+            "at": 1
+          },
+          {
+            "text": "Merging",
+            "at": 2
+          },
+          {
+            "text": "The codes",
+            "at": 7
+          },
+          {
+            "text": "The saving",
+            "at": 9
+          },
+          {
+            "text": "Why it works",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a",
+            "kind": "cube",
+            "x": -1.625,
+            "y": 4.625,
+            "label": "a 40",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b",
+            "kind": "cube",
+            "x": 4.625,
+            "y": -1.625,
+            "label": "b 20",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "c",
+            "kind": "cube",
+            "x": 0.875,
+            "y": 2.125,
+            "label": "c 15",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "d",
+            "kind": "cube",
+            "x": 3.375,
+            "y": -0.375,
+            "label": "d 10",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "e",
+            "kind": "cube",
+            "x": -0.375,
+            "y": 3.375,
+            "label": "e 10",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "f",
+            "kind": "cube",
+            "x": 2.125,
+            "y": 0.875,
+            "label": "f 5",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": 1.7,
+            "y": -0.8,
+            "label": "15",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": -0.8,
+            "y": 1.7,
+            "label": "25",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": 1.587,
+            "y": -2.788,
+            "label": "35",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "n4",
+            "kind": "cube",
+            "x": -1.181,
+            "y": -2.119,
+            "label": "60",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "n5",
+            "kind": "cube",
+            "x": -4.028,
+            "y": -1.372,
+            "label": "100",
+            "icon": "cell",
+            "tone": "purple"
+          }
+        ],
+        "links": [
+          {
+            "a": "n1",
+            "b": "f",
+            "dir": "none",
+            "label": "0"
+          },
+          {
+            "a": "n1",
+            "b": "d",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "n2",
+            "b": "e",
+            "dir": "none",
+            "label": "0"
+          },
+          {
+            "a": "n2",
+            "b": "c",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "n3",
+            "b": "n1",
+            "dir": "none",
+            "label": "0"
+          },
+          {
+            "a": "n3",
+            "b": "b",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "n4",
+            "b": "n2",
+            "dir": "none",
+            "label": "0"
+          },
+          {
+            "a": "n4",
+            "b": "n3",
+            "dir": "none",
+            "label": "1"
+          },
+          {
+            "a": "n5",
+            "b": "a",
+            "dir": "none",
+            "label": "0"
+          },
+          {
+            "a": "n5",
+            "b": "n4",
+            "dir": "none",
+            "label": "1"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Short codes for common letters",
+            "tag": "technique",
+            "body": [
+              "A file of text uses six symbols with these counts per 100: a 40, b 20, c 15, d 10, e 10, f 5. A fixed code spends 3 bits on every symbol, so 100 symbols cost 300 bits. Huffman coding gives frequent symbols short codes and rare ones long codes.",
+              "The result is the best possible prefix code for these counts: no code is the start of another."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Fixed code",
+                "v": "300 bits for 100 symbols"
+              },
+              {
+                "k": "Goal",
+                "v": "fewer bits"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": true
+              },
+              "n2": {
+                "hidden": true
+              },
+              "n3": {
+                "hidden": true
+              },
+              "n4": {
+                "hidden": true
+              },
+              "n5": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "The greedy rule: merge the two lightest",
+            "tag": "technique",
+            "body": [
+              "Keep a priority queue of trees, starting with one leaf for each symbol, weighted by its count. Repeatedly remove the two lightest trees and join them under a new parent whose weight is their sum. Put the parent back. Stop when only one tree remains.",
+              "Each merge pushes the two rarest symbols one level deeper, which is where they belong."
+            ],
+            "short": "The rule",
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": true
+              },
+              "n2": {
+                "hidden": true
+              },
+              "n3": {
+                "hidden": true
+              },
+              "n4": {
+                "hidden": true
+              },
+              "n5": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "heap = [(count, i, symbol) ...]; heapify",
+                "while len(heap) > 1:",
+                "    a = heappop(heap); b = heappop(heap)",
+                "    heappush(heap, (a[0] + b[0], ..., (a, b)))"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "Merge f and d into 15",
+            "tag": "solution",
+            "body": [
+              "The two lightest trees are f with weight 5 and d with weight 10. Join them under a new node of weight 15. The left branch is labelled 0 and the right branch 1.",
+              "The queue now holds 5 trees."
+            ],
+            "short": "Merge 1",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "5 + 10 = 15"
+              },
+              {
+                "k": "Trees left",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": true
+              },
+              "n3": {
+                "hidden": true
+              },
+              "n4": {
+                "hidden": true
+              },
+              "n5": {
+                "hidden": true
+              }
+            },
+            "predict": {
+              "question": "The queue holds weights 40, 20, 15, 10, 10 and 5. Which two are merged first?",
+              "options": [
+                "40 and 20",
+                "5 and 10",
+                "10 and 10"
+              ],
+              "answer": 1,
+              "why": "Always the two lightest. Those are 5 and a 10."
+            }
+          },
+          {
+            "title": "Merge e and c into 25",
+            "tag": "solution",
+            "body": [
+              "The two lightest trees are e with weight 10 and c with weight 15. Join them under a new node of weight 25. The left branch is labelled 0 and the right branch 1.",
+              "The queue now holds 4 trees."
+            ],
+            "short": "Merge 2",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "10 + 15 = 25"
+              },
+              {
+                "k": "Trees left",
+                "v": "4"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": true
+              },
+              "n4": {
+                "hidden": true
+              },
+              "n5": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Merge n1 and b into 35",
+            "tag": "solution",
+            "body": [
+              "The two lightest trees are n1 with weight 15 and b with weight 20. Join them under a new node of weight 35. The left branch is labelled 0 and the right branch 1.",
+              "The queue now holds 3 trees."
+            ],
+            "short": "Merge 3",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "15 + 20 = 35"
+              },
+              {
+                "k": "Trees left",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": true
+              },
+              "n5": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Merge n2 and n3 into 60",
+            "tag": "solution",
+            "body": [
+              "The two lightest trees are n2 with weight 25 and n3 with weight 35. Join them under a new node of weight 60. The left branch is labelled 0 and the right branch 1.",
+              "The queue now holds 2 trees."
+            ],
+            "short": "Merge 4",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "25 + 35 = 60"
+              },
+              {
+                "k": "Trees left",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Merge a and n4 into 100",
+            "tag": "solution",
+            "body": [
+              "The two lightest trees are a with weight 40 and n4 with weight 60. Join them under a new node of weight 100. The left branch is labelled 0 and the right branch 1.",
+              "The queue now holds 1 tree."
+            ],
+            "short": "Merge 5",
+            "hud": [
+              {
+                "k": "Merged",
+                "v": "40 + 60 = 100"
+              },
+              {
+                "k": "Trees left",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Read the codes off the tree",
+            "tag": "insight",
+            "body": [
+              "The code of a symbol is the list of branch labels on the path from the root down to its leaf. a = 0, b = 111, c = 101, d = 1101, e = 100, f = 1100.",
+              "Frequent a has the shortest code. Rare f has the longest."
+            ],
+            "short": "The codes",
+            "hud": [
+              {
+                "k": "a",
+                "v": "0"
+              },
+              {
+                "k": "b",
+                "v": "111"
+              },
+              {
+                "k": "c",
+                "v": "101"
+              },
+              {
+                "k": "d",
+                "v": "1101"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why it is a prefix code",
+            "tag": "technique",
+            "body": [
+              "Every symbol is a leaf. The path to a leaf never passes through another leaf, so no code is the start of another. That lets you decode a stream of bits without separators: walk down the tree bit by bit, and at a leaf output the symbol and go back to the root.",
+              "Decoding never needs to look ahead."
+            ],
+            "short": "Prefix property",
+            "hud": [
+              {
+                "k": "Prefix code",
+                "v": "no code starts another",
+                "tone": "good"
+              },
+              {
+                "k": "Decode",
+                "v": "walk the tree, restart at a leaf"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The saving",
+            "tag": "insight",
+            "body": [
+              "The cost is the sum of count times code length: 40x1 + 20x3 + 15x3 + 10x4 + 10x3 + 5x4 = 235 bits per 100 symbols, against 300 for the fixed code. That is 22 percent smaller.",
+              "No other prefix code does better for these counts."
+            ],
+            "short": "The saving",
+            "hud": [
+              {
+                "k": "Huffman",
+                "v": "235 bits",
+                "tone": "good"
+              },
+              {
+                "k": "Fixed",
+                "v": "300 bits",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why the greedy rule is right",
+            "tag": "insight",
+            "body": [
+              "In a best tree the two rarest symbols can be placed as siblings at the deepest level: if a rarer symbol sat higher than a more common one, swapping them would shorten the total. So merging the two lightest first is safe, and the rest is the same problem with one fewer symbol.",
+              "This is an exchange argument, like the one for interval scheduling."
+            ],
+            "short": "Why it works",
+            "hud": [
+              {
+                "k": "Proof",
+                "v": "exchange argument"
+              },
+              {
+                "k": "Merge the two lightest",
+                "v": "is always safe",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost",
+            "tag": "insight",
+            "body": [
+              "With a heap, each of the n - 1 merges costs O(log n), so building the tree is O(n log n). Encoding and decoding take time proportional to the output.",
+              "The decoder needs the tree, or the counts, so it must be sent with the data."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Build",
+                "v": "O(n log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Also send",
+                "v": "the tree or the counts",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Huffman coding repeatedly merges the two lightest trees with a priority queue, then reads codes off the tree. Frequent symbols get short codes, and the result is the best prefix code. It is a classic greedy algorithm with an exchange-argument proof.",
+              "It is the idea inside compression formats such as ZIP and JPEG."
+            ],
+            "short": "Recap",
+            "set": {
+              "a": {
+                "hidden": false,
+                "label": "a 40 0",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b": {
+                "hidden": false,
+                "label": "b 20 111",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c": {
+                "hidden": false,
+                "label": "c 15 101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "d": {
+                "hidden": false,
+                "label": "d 10 1101",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "e": {
+                "hidden": false,
+                "label": "e 10 100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "f": {
+                "hidden": false,
+                "label": "f 5 1100",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "hidden": false,
+                "label": "15",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "hidden": false,
+                "label": "25",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n3": {
+                "hidden": false,
+                "label": "35",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n4": {
+                "hidden": false,
+                "label": "60",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "n5": {
+                "hidden": false,
+                "label": "100",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 one leaf per symbol, weighted by count",
+                "2 merge the two lightest, until one tree",
+                "3 left = 0, right = 1; code = path from the root",
+                "4 O(n log n); best prefix code"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Huffman coding is like giving short nicknames to the people you talk about most.",
+      "story": "In a group chat you mention some people all the time and others almost never. You would use a one-letter nickname for the person you mention constantly, and keep the full long name for the person you almost never mention. Your messages get shorter overall. Huffman coding picks the nicknames in the best possible way, by pairing up the two rarest names first and giving them the longest nicknames.",
+      "maps": [
+        [
+          "Nicknames",
+          "The codes"
+        ],
+        [
+          "Often-used names get short nicknames",
+          "Frequent symbols get short codes"
+        ],
+        [
+          "Pairing the rarest names first",
+          "Merging the two lightest trees"
+        ],
+        [
+          "No nickname starts another",
+          "A prefix code"
+        ]
+      ],
+      "words": [
+        [
+          "Huffman coding",
+          "A way to compress data with short codes for common symbols."
+        ],
+        [
+          "prefix code",
+          "A set of codes where none is the start of another."
+        ],
+        [
+          "priority queue",
+          "A queue that always gives back the smallest item first."
+        ],
+        [
+          "leaf",
+          "A tree node with no children."
+        ],
+        [
+          "compress",
+          "Make data take fewer bits."
+        ]
+      ]
+    }
   }
 ]
