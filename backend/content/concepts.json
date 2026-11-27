@@ -129965,5 +129965,1130 @@
         ]
       ]
     }
+  },
+  {
+    "id": "tries",
+    "n": 173,
+    "level": 14,
+    "week": "Core",
+    "title": "Tries: Prefix Trees for Words and Autocomplete",
+    "tagline": "Store words letter by letter so that insert, search and prefix queries cost time proportional to the word, not to the number of words.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A trie, or prefix tree, is a tree for storing strings. The root stands for the empty string, each edge carries one character, and the path from the root to a node spells a prefix. Words with a common beginning share the first part of their path. The Wikipedia article on tries describes search as proportional to the length of the key and names autocomplete as a use. Interviews ask about it for word search, autocomplete and prefix problems.",
+      "## The node",
+      "Each node holds a map from a letter to a child node, and a flag saying whether a word ends here. The flag matters: after inserting car and cart, the node for r ends a word and also has a child. Without the flag you could not tell car from the prefix ca of cart.",
+      "## The operations",
+      "- Insert a word of length L: walk from the root, creating a child for each letter that is missing, then set the end flag on the last node. O(L).\n- Search: walk down the letters. If a letter is missing, the word is absent. At the end, the word is present only if the flag is set. O(L).\n- Starts with a prefix: walk down the letters. If you reach the end of the prefix, the answer is True, whether or not the flag is set. O(L).\n- Autocomplete: walk to the prefix node, then collect every word below it. O(L) plus the size of the answer.",
+      "## Cost compared with a hash set",
+      "A hash set also finds an exact word in O(L) on average, since hashing a word reads all its letters. The trie's edge is the prefix queries. A hash set cannot list the words that start with ca without scanning all of them. The price of a trie is memory: every node stores its children, which can be large. A compressed trie, or radix tree, merges chains of nodes that have a single child.",
+      "> A worked example: insert cat, car, cart and dog. The path c, a is shared by the first three, so only the letters t, r and then t add nodes under it, and dog starts a new branch. search('car') reaches a node marked as a word end, so it is True. search('ca') reaches a node that is not marked, so it is False. A prefix query for ca collects cat, car and cart.",
+      "## Counting and deleting",
+      "To count how many words start with a prefix, keep a counter on every node: increase it for every node on the path when you insert. To delete a word, clear the end flag, and then remove nodes from the bottom up while they have no children and no flag. If you skip that clean-up, the trie keeps dead branches.",
+      "## Where tries are used",
+      "Autocomplete and search suggestions, spell checkers, IP routing tables, and word games such as finding all dictionary words in a letter grid, where a trie lets you stop a search as soon as no word has the current prefix. Python has no built-in trie, so you write one with a dictionary of dictionaries.",
+      "## How to talk through it",
+      "Say what a node holds and what the end flag is for. Insert two words with a shared prefix, show a search and a prefix search, and state O(L). Mention the memory cost and the alternative of a hash set for exact words."
+    ],
+    "keyPoints": [
+      "A trie stores strings as paths of letters from the root. Words with a common prefix share their start.",
+      "Each node has a map of children and an end-of-word flag. A prefix is not always a word.",
+      "Insert, search and starts_with take O(L) for a word of length L, not depending on how many words are stored.",
+      "Autocomplete: walk to the prefix node, then collect all the words below it.",
+      "Memory is the drawback. Use a hash set for exact lookups, a trie for prefix queries."
+    ],
+    "sql": [
+      {
+        "title": "A trie with insert, search and prefix search",
+        "lang": "py",
+        "code": "class TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_word = False\n        self.count = 0                                   # how many inserted words pass through here\n\nclass Trie:\n    def __init__(self):\n        self.root = TrieNode()\n\n    def insert(self, word):\n        node = self.root\n        for ch in word:\n            node = node.children.setdefault(ch, TrieNode())\n            node.count += 1\n        node.is_word = True\n\n    def _walk(self, prefix):\n        node = self.root\n        for ch in prefix:\n            node = node.children.get(ch)\n            if node is None:\n                return None\n        return node\n\n    def search(self, word):\n        node = self._walk(word)\n        return node is not None and node.is_word\n\n    def starts_with(self, prefix):\n        return self._walk(prefix) is not None\n\n    def count_prefix(self, prefix):\n        node = self._walk(prefix)\n        return node.count if node else 0\n\n    def words_with_prefix(self, prefix):\n        node, out = self._walk(prefix), []\n        if node is None:\n            return out\n        def collect(n, path):\n            if n.is_word:\n                out.append(path)\n            for ch in sorted(n.children):\n                collect(n.children[ch], path + ch)\n        collect(node, prefix)\n        return out\n\nt = Trie()\nfor w in (\"cat\", \"car\", \"cart\", \"dog\"):\n    t.insert(w)\nassert t.search(\"car\") and not t.search(\"ca\") and t.search(\"cart\") and not t.search(\"cow\")\nassert t.starts_with(\"ca\") and not t.starts_with(\"cb\")\nassert t.words_with_prefix(\"ca\") == [\"car\", \"cart\", \"cat\"]\nassert t.count_prefix(\"ca\") == 3 and t.count_prefix(\"d\") == 1 and t.count_prefix(\"x\") == 0\nassert t.words_with_prefix(\"\") == [\"car\", \"cart\", \"cat\", \"dog\"]"
+      },
+      {
+        "title": "Delete a word and prune dead branches",
+        "lang": "py",
+        "code": "class TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_word = False\n\ndef insert(root, word):\n    node = root\n    for ch in word:\n        node = node.children.setdefault(ch, TrieNode())\n    node.is_word = True\n\ndef search(root, word):\n    node = root\n    for ch in word:\n        node = node.children.get(ch)\n        if node is None:\n            return False\n    return node.is_word\n\ndef delete(root, word):\n    path = [root]\n    for ch in word:\n        nxt = path[-1].children.get(ch)\n        if nxt is None:\n            return False\n        path.append(nxt)\n    if not path[-1].is_word:\n        return False\n    path[-1].is_word = False\n    for i in range(len(word), 0, -1):                    # prune from the bottom while a node is useless\n        node = path[i]\n        if node.is_word or node.children:\n            break\n        del path[i - 1].children[word[i - 1]]\n    return True\n\ndef size(node):\n    return 1 + sum(size(c) for c in node.children.values())\n\nroot = TrieNode()\nfor w in (\"cat\", \"car\", \"cart\"):\n    insert(root, w)\nassert size(root) == 6                                    # root, c, a, t, r, t\nassert delete(root, \"cart\") and size(root) == 5           # the last t is pruned; r still ends car\nassert search(root, \"car\") and not search(root, \"cart\")\nassert delete(root, \"cat\") and search(root, \"car\")        # t is pruned, c and a are kept for car\nassert not delete(root, \"dog\") and not delete(root, \"ca\")"
+      },
+      {
+        "title": "Compare with a set on prefix queries",
+        "lang": "py",
+        "code": "import random\nimport string\n\nclass TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_word = False\n\nrandom.seed(5)\nwords = {\"\".join(random.choice(\"abc\") for _ in range(random.randint(1, 6))) for _ in range(300)}\n\nroot = TrieNode()\nfor w in words:\n    node = root\n    for ch in w:\n        node = node.children.setdefault(ch, TrieNode())\n    node.is_word = True\n\ndef trie_prefix_words(prefix):\n    node = root\n    for ch in prefix:\n        node = node.children.get(ch)\n        if node is None:\n            return []\n    out = []\n    stack = [(node, prefix)]\n    while stack:\n        n, path = stack.pop()\n        if n.is_word:\n            out.append(path)\n        for ch, child in n.children.items():\n            stack.append((child, path + ch))\n    return sorted(out)\n\nfor prefix in (\"a\", \"ab\", \"abc\", \"ca\", \"cc\", \"bbb\", \"zz\"):\n    expected = sorted(w for w in words if w.startswith(prefix))      # a set needs a full scan for this\n    assert trie_prefix_words(prefix) == expected"
+      }
+    ],
+    "django": {},
+    "exercise": "Write a Trie with insert, search, starts_with, count_prefix and words_with_prefix. Add delete that removes dead branches, and test that size shrinks. Then write a function that returns the longest common prefix of a list of words using a trie, and another that finds all words from a dictionary in a 3 by 3 letter grid, pruning when no word has the current prefix.",
+    "pitfalls": [
+      "Forgetting the end-of-word flag, so every prefix looks like a word.",
+      "Returning True from search when you reach the end of the letters but the node is not a word end.",
+      "Deleting a word by clearing only the flag and leaving a chain of unused nodes.",
+      "Building a trie with a list of 26 children per node for a big alphabet, which wastes memory. Use a dictionary.",
+      "Using a trie when a hash set would do. If you never ask about prefixes, a set is simpler."
+    ],
+    "interview": [
+      {
+        "q": "What is a trie and what is it good for?",
+        "a": "A tree where each edge is a letter and a path from the root spells a prefix. It stores words that share a beginning compactly. It supports insert, search and prefix queries in O(L), and is the standard tool for autocomplete."
+      },
+      {
+        "q": "Why does a trie node need an end-of-word flag?",
+        "a": "A word can be a prefix of another, such as car and cart. The flag tells you that the path to this node is a complete word, and not just a prefix."
+      },
+      {
+        "q": "What are the time and space costs of a trie?",
+        "a": "Insert, search and prefix check are O(L), where L is the word length, independent of the number of words. The space is proportional to the total number of characters in the worst case, with the overhead of the child maps."
+      },
+      {
+        "q": "When would you use a hash set instead of a trie?",
+        "a": "When you only need exact word lookups. A hash set is simpler and uses less memory. A trie wins for prefix questions such as autocomplete or listing all words with a prefix."
+      }
+    ],
+    "references": [
+      {
+        "title": "Trie (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Trie",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: tries are a standard coding-round structure for prefix problems and autocomplete. The definition, the search time in proportion to the key length, the autocomplete use and the space cost come from the Wikipedia trie article, which I read in an earlier lesson. The word-end flag, the counting and deleting techniques and the interview advice are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-trie",
+      "amazon-topics",
+      "meta-swe-prep",
+      "ms-tech-interview"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "trie",
+        "title": "Tries, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "search or visit"
+          },
+          {
+            "kind": "write",
+            "label": "insert, change or rotate"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Insert",
+            "at": 1
+          },
+          {
+            "text": "Search",
+            "at": 5
+          },
+          {
+            "text": "Autocomplete",
+            "at": 6
+          },
+          {
+            "text": "Trie or set",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "pr",
+            "kind": "cube",
+            "x": -1.9,
+            "y": -1.9,
+            "label": "*",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "pc",
+            "kind": "cube",
+            "x": -2.4,
+            "y": 1.0,
+            "label": "c",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "pd",
+            "kind": "cube",
+            "x": 1.2,
+            "y": -2.6,
+            "label": "d",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 4
+          },
+          {
+            "id": "pa",
+            "kind": "cube",
+            "x": -1.2,
+            "y": 2.2,
+            "label": "a",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "po",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -1.4,
+            "label": "o",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 4
+          },
+          {
+            "id": "pt1",
+            "kind": "cube",
+            "x": -1.1,
+            "y": 4.5,
+            "label": "t",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 1
+          },
+          {
+            "id": "pr1",
+            "kind": "cube",
+            "x": 0.9,
+            "y": 2.5,
+            "label": "r",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 2
+          },
+          {
+            "id": "pg",
+            "kind": "cube",
+            "x": 3.6,
+            "y": -0.2,
+            "label": "g",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 4
+          },
+          {
+            "id": "pt2",
+            "kind": "cube",
+            "x": 2.1,
+            "y": 3.7,
+            "label": "t",
+            "icon": "ball",
+            "tone": "blue",
+            "from": 3
+          }
+        ],
+        "links": [
+          {
+            "a": "pr",
+            "b": "pc",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "pc",
+            "b": "pa",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "pa",
+            "b": "pt1",
+            "dir": "none",
+            "from": 1
+          },
+          {
+            "a": "pa",
+            "b": "pr1",
+            "dir": "none",
+            "from": 2
+          },
+          {
+            "a": "pr1",
+            "b": "pt2",
+            "dir": "none",
+            "from": 3
+          },
+          {
+            "a": "pr",
+            "b": "pd",
+            "dir": "none",
+            "from": 4
+          },
+          {
+            "a": "pd",
+            "b": "po",
+            "dir": "none",
+            "from": 4
+          },
+          {
+            "a": "po",
+            "b": "pg",
+            "dir": "none",
+            "from": 4
+          }
+        ],
+        "steps": [
+          {
+            "title": "A tree where each edge is a letter",
+            "tag": "technique",
+            "body": [
+              "A trie, also called a prefix tree, stores words letter by letter. The root stands for the empty prefix. Every edge carries one letter, and the path from the root to a node spells a prefix.",
+              "A node can be marked as the end of a word. Words that share a beginning share the first part of their path."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Root",
+                "v": "the empty prefix"
+              },
+              {
+                "k": "Each edge",
+                "v": "one letter"
+              },
+              {
+                "k": "A path",
+                "v": "spells a prefix"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": {
+                  "text": "root: empty prefix",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Insert cat",
+            "tag": "solution",
+            "body": [
+              "To insert cat, start at the root and follow or create an edge for c, then a, then t. Mark the last node as the end of a word.",
+              "Insertion costs one step per letter, so O(L) for a word of length L."
+            ],
+            "short": "Insert cat",
+            "hud": [
+              {
+                "k": "Insert",
+                "v": "O(L) for L letters",
+                "tone": "good"
+              },
+              {
+                "k": "Nodes added",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pc",
+                  "pa",
+                  "pt1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert car: it shares c and a with cat",
+            "tag": "solution",
+            "body": [
+              "car starts with c and a, which already exist, so they are reused. Only the new letter r needs a new node. Then mark it as a word end.",
+              "That sharing of prefixes is what makes a trie compact for words with common beginnings."
+            ],
+            "short": "Insert car",
+            "hud": [
+              {
+                "k": "Nodes added",
+                "v": "1 (c and a reused)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pc",
+                  "pa",
+                  "pr1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert cart: extend the car path",
+            "tag": "solution",
+            "body": [
+              "cart is car with a t on the end. Follow c, a, r, then add one node for t. Now r is a word end for car, and the new t is a word end for cart. A word end can have children.",
+              "That is why a trie marks word ends and does not assume leaves are words."
+            ],
+            "short": "Insert cart",
+            "hud": [
+              {
+                "k": "car",
+                "v": "still a word",
+                "tone": "good"
+              },
+              {
+                "k": "cart",
+                "v": "a longer word"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pc",
+                  "pa",
+                  "pr1",
+                  "pt2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert dog: a new branch",
+            "tag": "solution",
+            "body": [
+              "dog shares nothing with the others, so it starts a new branch from the root: d, o, g.",
+              "The trie now holds four words in nine nodes below the root."
+            ],
+            "short": "Insert dog",
+            "hud": [
+              {
+                "k": "Words",
+                "v": "cat car cart dog"
+              },
+              {
+                "k": "Nodes",
+                "v": "9 including the root"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pd",
+                  "po",
+                  "pg"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Search: follow the letters and check the word mark",
+            "tag": "technique",
+            "body": [
+              "To find car, follow c, a, r. You reach a node that is marked as a word end, so car is in the trie. To find ca, follow c, a. The node exists, but it is not marked, so ca is a prefix but not a word.",
+              "Search costs O(L), no matter how many words are stored."
+            ],
+            "short": "Search",
+            "hud": [
+              {
+                "k": "search('car')",
+                "v": "True",
+                "tone": "good"
+              },
+              {
+                "k": "search('ca')",
+                "v": "False: not marked",
+                "tone": "warn"
+              },
+              {
+                "k": "Cost",
+                "v": "O(L)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "orange",
+                "pill": {
+                  "text": "ca: a prefix, not a word",
+                  "tone": "orange",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "car: a word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pc",
+                  "pa",
+                  "pr1"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "The trie holds cat, car, cart and dog. What does search of the word ca return?",
+              "options": [
+                "True",
+                "False: the node exists but is not marked as a word end",
+                "An error"
+              ],
+              "answer": 1,
+              "why": "ca is only a prefix of cat, car and cart. The node is not marked as a word end."
+            }
+          },
+          {
+            "title": "Prefix search: collect everything under a node",
+            "tag": "solution",
+            "body": [
+              "Autocomplete is the strength of a trie. Walk to the node for the prefix ca, then collect every word below it: cat, car and cart. The cost is O(L) to reach the node, plus the size of the answer.",
+              "A hash set cannot do this without checking every word."
+            ],
+            "short": "Autocomplete",
+            "hud": [
+              {
+                "k": "Prefix 'ca'",
+                "v": "cat, car, cart",
+                "tone": "good"
+              },
+              {
+                "k": "Cost",
+                "v": "O(L + answer size)"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "orange",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "orange",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "orange",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "pr",
+                  "pc",
+                  "pa"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "pa",
+                  "pt1"
+                ],
+                "kind": "response",
+                "delay": 0.4
+              },
+              {
+                "path": [
+                  "pa",
+                  "pr1",
+                  "pt2"
+                ],
+                "kind": "response",
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "Cost: independent of the number of words",
+            "tag": "insight",
+            "body": [
+              "Insert, search and prefix check take O(L), the length of the word, and not the number of words stored. The cost is memory: each node holds a map or an array of children, which can be large for big alphabets.",
+              "The Wikipedia article gives the search time as proportional to the key length, and lists the space cost as the main drawback."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(L)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "nodes x children",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Trie or hash set?",
+            "tag": "insight",
+            "body": [
+              "Use a hash set to ask whether an exact word exists. Use a trie when you need prefixes: autocomplete, spell check, longest common prefix, or finding words in a grid by prefix pruning.",
+              "Compressed versions, called radix trees, merge chains of single-child nodes to save space."
+            ],
+            "short": "Which to use",
+            "hud": [
+              {
+                "k": "Exact word only",
+                "v": "hash set"
+              },
+              {
+                "k": "Prefix questions",
+                "v": "trie",
+                "tone": "good"
+              },
+              {
+                "k": "Less memory",
+                "v": "compressed trie"
+              }
+            ],
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A trie stores words along paths of letters, shares prefixes, and marks word ends. Insert, search and prefix queries cost O(L). It is the tool for autocomplete and prefix matching.",
+              "Remember the word-end flag: a prefix is not always a word."
+            ],
+            "short": "Recap",
+            "set": {
+              "pr": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pc": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pd": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pa": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "po": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "pt1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pr1": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pg": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "pt2": {
+                "tone": "green",
+                "pill": {
+                  "text": "word",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 one edge per letter",
+                "2 mark word ends",
+                "3 O(L) insert and search",
+                "4 prefix search = walk then collect"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A trie is like a signpost tree where each fork asks for the next letter of the word.",
+      "story": "At a signpost you pick the first letter of the word you want, and the path leads to a second signpost for the next letter. Words that start the same way follow the same road for a while. Where they differ, the road forks. A flag on a signpost says a word ends right here. If you are told only the first few letters, you can walk to that signpost and see every road that leads on.",
+      "maps": [
+        [
+          "A fork in the road",
+          "A node"
+        ],
+        [
+          "The next letter",
+          "An edge"
+        ],
+        [
+          "A flag on a signpost",
+          "The end-of-word mark"
+        ],
+        [
+          "Walking part of the way",
+          "A prefix search"
+        ]
+      ],
+      "words": [
+        [
+          "trie",
+          "A tree that stores words one letter per edge, sharing common beginnings."
+        ],
+        [
+          "prefix",
+          "The first few letters of a word."
+        ],
+        [
+          "autocomplete",
+          "Suggesting words from the first letters typed."
+        ],
+        [
+          "end-of-word flag",
+          "A mark on a node saying a complete word ends here."
+        ],
+        [
+          "radix tree",
+          "A trie that merges chains of single-child nodes to save space."
+        ]
+      ]
+    }
   }
 ]
