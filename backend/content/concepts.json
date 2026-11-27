@@ -139852,5 +139852,1271 @@
         ]
       ]
     }
+  },
+  {
+    "id": "breadth-first-search",
+    "n": 182,
+    "level": 14,
+    "week": "Core",
+    "title": "Breadth-First Search: Shortest Paths by Rings",
+    "tagline": "Visit a graph level by level with a queue, record distances and parents, and read off fewest-edge paths in O(V + E).",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Breadth-first search, or BFS, explores a graph outwards from a starting vertex. It visits all the neighbours of the start, then all their neighbours, and so on, so that vertices are visited in order of their distance from the start, counted in edges. The Wikipedia article states that BFS explores all nodes at the current depth before moving on, and needs a queue to hold the discovered but not yet explored vertices.",
+      "## The algorithm",
+      "Mark the start as discovered, with distance 0 and no parent, and put it in the queue. While the queue is not empty, take a vertex v from the front. For each neighbour w of v that has not been discovered, mark it, set its distance to the distance of v plus 1, set its parent to v, and add it to the back of the queue. The parent links trace the shortest paths back to the start.",
+      "- Mark vertices when you add them to the queue, not when you remove them. The article points out this difference from the stack-based depth-first search.\n- Time is O(V + E), since each vertex is queued once and each edge is looked at a constant number of times.\n- Extra space is O(V) for the marks and the queue.",
+      "## Shortest paths",
+      "Because BFS reaches closer vertices before farther ones, the first time it reaches a vertex is along a path with the fewest edges. So BFS finds shortest paths in an unweighted graph, where every edge counts the same. The article lists this as an advantage over depth-first search, which is not guaranteed to find the shortest path. If the edges have different weights, use Dijkstra's algorithm.",
+      "> A worked example: the graph is a ring A-B-D-F-E-C-A. Start at A. The queue is A. Take A: queue B and C with distance 1. Take B: queue D with distance 2. Take C: queue E with distance 2. Take D: queue F with distance 3. Take E: F is already marked. Take F. The parent chain F, D, B, A gives the path A, B, D, F.",
+      "## What BFS is used for",
+      "The article lists many uses. The common ones in interviews are: the fewest steps between two states, such as in a maze, a word ladder or a puzzle; visiting a tree level by level; finding all vertices within a given distance; finding connected components; and testing whether a graph is bipartite, by colouring vertices alternately as you go.",
+      "## Variations",
+      "Multi-source BFS starts with several vertices in the queue at once, to find the distance to the nearest of a set of sources, as in the rotting oranges or walls and gates problems. Bidirectional BFS searches from both ends and meets in the middle. 0-1 BFS uses a deque when edge weights are only 0 or 1. On a grid, the neighbours are the four or eight adjacent cells.",
+      "## Common mistakes",
+      "Marking vertices when they leave the queue, which lets duplicates in. Using a list with pop(0) as the queue, which is O(n) per pop. Use collections.deque. Forgetting to check the bounds on a grid. Using BFS for a weighted graph and expecting the cheapest path.",
+      "## How to talk through it",
+      "Say that BFS uses a queue and a visited set, and that you mark on enqueue. Give O(V + E). Run it by hand on a small graph and show the distances. State that it gives shortest paths only when edges are unweighted."
+    ],
+    "keyPoints": [
+      "BFS uses a queue: visit the start, then its neighbours, then theirs. Vertices come out in order of distance.",
+      "Mark a vertex when it is queued. Record distance and parent when you discover it.",
+      "O(V + E) time, O(V) space. Gives fewest-edge paths in unweighted graphs.",
+      "Follow parent links backwards to reconstruct a path.",
+      "Variations: multi-source BFS, bidirectional BFS, 0-1 BFS with a deque, and bipartite testing."
+    ],
+    "sql": [
+      {
+        "title": "BFS distances and a shortest path",
+        "lang": "py",
+        "code": "from collections import deque\n\ngraph = {\"A\": [\"B\", \"C\"], \"B\": [\"A\", \"D\"], \"C\": [\"A\", \"E\"], \"D\": [\"B\", \"F\"], \"E\": [\"C\", \"F\"], \"F\": [\"D\", \"E\"]}\n\ndef bfs(graph, start):\n    dist, parent = {start: 0}, {start: None}\n    q = deque([start])\n    while q:\n        v = q.popleft()\n        for w in graph[v]:\n            if w not in dist:                          # mark when queued\n                dist[w], parent[w] = dist[v] + 1, v\n                q.append(w)\n    return dist, parent\n\ndef path_to(parent, target):\n    out = []\n    while target is not None:\n        out.append(target)\n        target = parent[target]\n    return out[::-1]\n\ndist, parent = bfs(graph, \"A\")\nassert dist == {\"A\": 0, \"B\": 1, \"C\": 1, \"D\": 2, \"E\": 2, \"F\": 3}\nassert path_to(parent, \"F\") == [\"A\", \"B\", \"D\", \"F\"]\nassert path_to(parent, \"A\") == [\"A\"]\nisolated = {\"X\": [], \"Y\": []}\nassert bfs(isolated, \"X\")[0] == {\"X\": 0}                # unreachable vertices are simply absent"
+      },
+      {
+        "title": "Fewest steps on a grid, and a bipartite test",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef shortest_path_grid(grid, start, goal):\n    rows, cols = len(grid), len(grid[0])\n    q, seen = deque([(start, 0)]), {start}\n    while q:\n        (r, c), d = q.popleft()\n        if (r, c) == goal:\n            return d\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 0 and (nr, nc) not in seen:\n                seen.add((nr, nc))\n                q.append(((nr, nc), d + 1))\n    return -1\n\nmaze = [[0, 0, 0],\n        [1, 1, 0],\n        [0, 0, 0]]\nassert shortest_path_grid(maze, (0, 0), (2, 0)) == 6\nassert shortest_path_grid(maze, (0, 0), (0, 0)) == 0\nassert shortest_path_grid([[0, 1, 0]], (0, 0), (0, 2)) == -1\n\ndef is_bipartite(graph):\n    color = {}\n    for s in graph:\n        if s in color:\n            continue\n        color[s] = 0\n        q = deque([s])\n        while q:\n            v = q.popleft()\n            for w in graph[v]:\n                if w not in color:\n                    color[w] = 1 - color[v]            # alternate colours level by level\n                    q.append(w)\n                elif color[w] == color[v]:\n                    return False\n    return True\n\nsquare = {1: [2, 4], 2: [1, 3], 3: [2, 4], 4: [3, 1]}\ntriangle = {1: [2, 3], 2: [1, 3], 3: [1, 2]}\nassert is_bipartite(square) and not is_bipartite(triangle)"
+      },
+      {
+        "title": "Levels of a tree, and multi-source BFS",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef levels(graph, start):\n    out, seen, q = [], {start}, deque([start])\n    while q:\n        out.append(list(q))\n        for _ in range(len(q)):                        # exactly one level\n            v = q.popleft()\n            for w in graph[v]:\n                if w not in seen:\n                    seen.add(w)\n                    q.append(w)\n    return out\n\ntree = {1: [2, 3], 2: [1, 4, 5], 3: [1], 4: [2], 5: [2]}\nassert levels(tree, 1) == [[1], [2, 3], [4, 5]]\n\ndef distance_to_nearest_zero(grid):\n    rows, cols = len(grid), len(grid[0])\n    dist = [[-1] * cols for _ in range(rows)]\n    q = deque()\n    for r in range(rows):\n        for c in range(cols):\n            if grid[r][c] == 0:\n                dist[r][c] = 0\n                q.append((r, c))                       # every source starts in the queue\n    while q:\n        r, c = q.popleft()\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < rows and 0 <= nc < cols and dist[nr][nc] == -1:\n                dist[nr][nc] = dist[r][c] + 1\n                q.append((nr, nc))\n    return dist\n\nassert distance_to_nearest_zero([[0, 1, 1], [1, 1, 1], [1, 1, 0]]) == [[0, 1, 2], [1, 2, 1], [2, 1, 0]]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write bfs with distances and parents, and path_to. Then solve the grid shortest-path, the bipartite test, level order and multi-source distance. Finally, write the word ladder: the fewest one-letter changes from one word to another through a word list, and say why BFS fits.",
+    "pitfalls": [
+      "Marking a vertex as visited only when it is dequeued. Duplicates fill the queue.",
+      "Using list.pop(0) as the queue. It is O(n). Use collections.deque.",
+      "Using BFS on a weighted graph and expecting the cheapest path. It finds the fewest edges.",
+      "Forgetting to mark the start vertex before the loop, so it can be queued again.",
+      "On a grid, forgetting the bounds checks or the walls."
+    ],
+    "interview": [
+      {
+        "q": "How does BFS work and what is its complexity?",
+        "a": "It uses a queue. Mark the start, then repeatedly take a vertex from the front and add its undiscovered neighbours to the back, marking them as you add. It takes O(V + E) time and O(V) space."
+      },
+      {
+        "q": "Why does BFS find the shortest path in an unweighted graph?",
+        "a": "It visits vertices in order of their distance from the start, so the first time it reaches a vertex is along a path with the fewest edges."
+      },
+      {
+        "q": "What is the difference between BFS and DFS?",
+        "a": "BFS uses a queue and explores level by level, finding shortest paths in unweighted graphs. DFS uses a stack or recursion and explores as deep as possible first, using less memory on wide graphs and suiting problems like cycle detection and topological sort."
+      },
+      {
+        "q": "How would you use BFS to test whether a graph is bipartite?",
+        "a": "Colour the start 0, and give each newly discovered neighbour the opposite colour. If you find an edge between two vertices of the same colour, the graph is not bipartite."
+      }
+    ],
+    "references": [
+      {
+        "title": "Breadth-first search (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Breadth-first_search",
+        "kind": "Reference"
+      },
+      {
+        "title": "collections: deque (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: BFS is the most common graph algorithm in coding rounds. The algorithm with its queue, the marking on enqueue, the O(V + E) cost, the shortest-path property and the listed uses come from the Wikipedia breadth-first search article, which I read in full, and the deque costs from the Python collections page, which I read in part. The worked example, the variations and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-breadth-first-search",
+      "py-deque",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bfs",
+        "title": "Breadth-first search, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or explore"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "back edge or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Ripples",
+            "at": 0
+          },
+          {
+            "text": "Start",
+            "at": 1
+          },
+          {
+            "text": "Take B",
+            "at": 3
+          },
+          {
+            "text": "Shortest path",
+            "at": 8
+          },
+          {
+            "text": "Cost and uses",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 2.7,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.6,
+            "y": -0.2,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.2,
+            "y": 2.6,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": -0.8,
+            "y": -2.0,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.0,
+            "y": 0.8,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gF",
+            "kind": "cube",
+            "x": 2.3,
+            "y": -2.3,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none"
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none"
+          },
+          {
+            "a": "gC",
+            "b": "gE",
+            "dir": "none"
+          },
+          {
+            "a": "gD",
+            "b": "gF",
+            "dir": "none"
+          },
+          {
+            "a": "gE",
+            "b": "gF",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Explore outwards, one ring at a time",
+            "tag": "technique",
+            "body": [
+              "Breadth-first search, or BFS, starts at one vertex and visits all its neighbours first, then their neighbours, then theirs. It spreads out like ripples on a pond. It uses a queue to remember which vertices to visit next.",
+              "The Wikipedia article says BFS explores all nodes at the current depth before moving to the next."
+            ],
+            "short": "Ripples",
+            "hud": [
+              {
+                "k": "Uses a",
+                "v": "queue (FIFO)"
+              },
+              {
+                "k": "Time",
+                "v": "O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Finds",
+                "v": "fewest-edge paths",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Start at A: mark it and put it in the queue",
+            "tag": "technique",
+            "body": [
+              "Mark A as discovered with distance 0 and put it in the queue. The queue is now A. From here, repeat: take a vertex from the front, look at its neighbours, and add each undiscovered one to the back, with a distance one larger.",
+              "Marking happens when a vertex is added to the queue, not when it is taken out."
+            ],
+            "short": "Start",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "A"
+              },
+              {
+                "k": "Distances",
+                "v": "A = 0"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Take A: add B, C",
+            "tag": "solution",
+            "body": [
+              "Take A from the front. Its neighbours are B, C. New vertices, now marked and queued: B, C.",
+              "The queue is now B C."
+            ],
+            "short": "Take A",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "B C"
+              },
+              {
+                "k": "Distance of A",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              },
+              {
+                "path": [
+                  "gA",
+                  "gC"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              }
+            ]
+          },
+          {
+            "title": "Take B: add D",
+            "tag": "solution",
+            "body": [
+              "Take B from the front. Its neighbours are A, D. New vertices, now marked and queued: D.",
+              "The queue is now C D."
+            ],
+            "short": "Take B",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "C D"
+              },
+              {
+                "k": "Distance of B",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gB",
+                  "gD"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ],
+            "predict": {
+              "question": "B's neighbours are A and D. A already has a distance. What is added to the queue?",
+              "options": [
+                "A and D",
+                "Only D",
+                "Nothing"
+              ],
+              "answer": 1,
+              "why": "A was already discovered, so only D is new. Each vertex is queued once."
+            }
+          },
+          {
+            "title": "Take C: add E",
+            "tag": "solution",
+            "body": [
+              "Take C from the front. Its neighbours are A, E. New vertices, now marked and queued: E.",
+              "The queue is now D E."
+            ],
+            "short": "Take C",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "D E"
+              },
+              {
+                "k": "Distance of C",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gC",
+                  "gE"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take D: add F",
+            "tag": "solution",
+            "body": [
+              "Take D from the front. Its neighbours are B, F. New vertices, now marked and queued: F.",
+              "The queue is now E F."
+            ],
+            "short": "Take D",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "E F"
+              },
+              {
+                "k": "Distance of D",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gF"
+                ],
+                "kind": "request",
+                "delay": 0.0
+              }
+            ]
+          },
+          {
+            "title": "Take E: nothing new",
+            "tag": "solution",
+            "body": [
+              "Take E from the front. Its neighbours are C, F. All of them were already discovered, so nothing is added.",
+              "The queue is now F."
+            ],
+            "short": "Take E",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "F"
+              },
+              {
+                "k": "Distance of E",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "purple",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Take F: nothing new",
+            "tag": "solution",
+            "body": [
+              "Take F from the front. Its neighbours are D, E. All of them were already discovered, so nothing is added.",
+              "The queue is now empty."
+            ],
+            "short": "Take F",
+            "hud": [
+              {
+                "k": "Queue",
+                "v": "empty"
+              },
+              {
+                "k": "Distance of F",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Shortest paths come from the parent links",
+            "tag": "insight",
+            "body": [
+              "Each vertex remembers the vertex that discovered it. To find the path to F, follow the parents backwards: F came from D, D from B, B from A. The path is A, B, D, F, with 3 edges.",
+              "BFS finds a path with the fewest edges, because it reaches closer vertices before farther ones. The article lists this as an advantage over depth-first search."
+            ],
+            "short": "Shortest path",
+            "hud": [
+              {
+                "k": "Path to F",
+                "v": "A B D F",
+                "tone": "good"
+              },
+              {
+                "k": "Edges",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB",
+                  "gD",
+                  "gF"
+                ],
+                "kind": "response"
+              }
+            ]
+          },
+          {
+            "title": "Why you mark a vertex when you queue it",
+            "tag": "problem",
+            "body": [
+              "If you marked vertices only when you take them out, a vertex could be added to the queue many times, once by each neighbour that reaches it first. Marking on entry means each vertex is queued once.",
+              "Here F has two neighbours, D and E. Only D queues it, and E finds it already marked."
+            ],
+            "short": "Mark early",
+            "hud": [
+              {
+                "k": "Mark on enqueue",
+                "v": "each vertex queued once",
+                "tone": "good"
+              },
+              {
+                "k": "Mark on dequeue",
+                "v": "duplicates in the queue",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost and uses",
+            "tag": "insight",
+            "body": [
+              "Each vertex is queued once and each edge is looked at once from each end, so BFS takes O(V + E) time with an adjacency list, and O(V) extra space for the queue and the marks.",
+              "Uses: shortest path in an unweighted graph, levels of a tree, the fewest steps in a maze or a word ladder, finding connected components, and testing whether a graph is bipartite."
+            ],
+            "short": "Cost and uses",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(V)"
+              },
+              {
+                "k": "Uses",
+                "v": "shortest unweighted path, bipartite test"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "BFS visits in rings using a queue. Mark vertices as they are queued, record a parent and a distance, and read off shortest paths by following parents. It costs O(V + E).",
+              "For weighted graphs you need Dijkstra's algorithm instead."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 1",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 2",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "d = 3",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 queue + a visited map",
+                "2 mark on enqueue",
+                "3 distance = parent's distance + 1",
+                "4 O(V + E)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Breadth-first search is like a rumour that spreads to all your friends first, then their friends, then theirs.",
+      "story": "A rumour starts with one person. In the first round, they tell all their friends. In the next round, each of those friends tells their own friends who have not heard it. The rumour reaches people in rings, closest first. The number of rounds it takes to reach someone is how many steps they are from the start, and a queue of people waiting to pass it on keeps the order.",
+      "maps": [
+        [
+          "The person who starts the rumour",
+          "The start vertex"
+        ],
+        [
+          "People waiting to tell their friends",
+          "The queue"
+        ],
+        [
+          "Rounds of telling",
+          "Levels, or distance"
+        ],
+        [
+          "Who told you",
+          "The parent link"
+        ]
+      ],
+      "words": [
+        [
+          "breadth-first search",
+          "Visit a graph in rings, closest vertices first, using a queue."
+        ],
+        [
+          "queue",
+          "A line where the first item added is the first one taken out."
+        ],
+        [
+          "distance",
+          "The number of edges on the shortest path."
+        ],
+        [
+          "parent",
+          "The vertex that first discovered a given vertex."
+        ],
+        [
+          "bipartite",
+          "A graph whose vertices can be split into two groups with every edge between the groups."
+        ]
+      ]
+    }
   }
 ]
