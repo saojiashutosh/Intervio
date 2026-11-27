@@ -119677,5 +119677,937 @@
         ]
       ]
     }
+  },
+  {
+    "id": "collision-handling",
+    "n": 163,
+    "level": 14,
+    "week": "Core",
+    "title": "Collision Handling: Chaining and Open Addressing",
+    "tagline": "Learn the two ways a hash table handles two keys in one bucket, and the traps of clustering and deletion.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A collision happens when two different keys hash to the same bucket. Collisions are unavoidable, because a table has fewer buckets than there are possible keys. A hash table is only as good as its collision plan. There are two main families: separate chaining and open addressing.",
+      "## Separate chaining",
+      "Each bucket holds a small collection, usually a linked list, of every pair that hashed there. Insert adds the pair to the list in its bucket, lookup walks that list comparing keys, and delete removes the pair from the list. The cost is the length of the chain, so with a low load factor chains are short. The Wikipedia article says the best maximum load factor for chaining is typically between 1 and 3, and that the load factor can go above 1.",
+      "## Open addressing",
+      "Here every bucket holds at most one item. If the bucket you want is taken, you probe: you try another bucket, and another, until you find a free one or the key you want. The article also calls this closed hashing. The probe pattern gives the three common versions.",
+      "- Linear probing: step by a fixed amount, often 1. Best cache performance, but the most sensitive to clustering, where runs of full buckets grow longer.\n- Quadratic probing: the step grows with each attempt. It sits in between on both clustering and cache use.\n- Double hashing: a second hash function sets the step for each key. It has almost no clustering but poor cache performance.",
+      "## Load limits",
+      "An open-addressing table cannot hold more items than buckets, so its load factor is at most 1. The article says acceptable maximum load factors range around 0.6 to 0.75, and that even with good hash functions the load is normally limited to about 80 percent. As the table gets nearly full, probe counts rise dramatically, and a full table may make probing fail to terminate.",
+      "## Deleting in open addressing",
+      "You cannot just empty a slot, because other keys may have probed past it. A lookup would hit the empty slot and stop too early. Two fixes exist: mark the slot as deleted, so probing continues, or shift later items of the cluster back to close the gap. The article notes that marking slots as deleted eventually requires rebuilding the table.",
+      "> A worked example: keys A, B, C and D hash to buckets 2, 2, 3 and 2 in a table of 6. With chaining, bucket 2 holds A, B and D and bucket 3 holds C. With linear probing, A goes to 2, B to 3, C to 4 and D to 5. A lookup for D probes buckets 2, 3, 4 and 5.",
+      "## Which one to choose",
+      "Chaining is simple, tolerates a high load and makes deletion easy, but stores extra pointers. Open addressing keeps data in one array, which is good for the cache, but needs a lower load factor and careful deletion. Python's dict uses open addressing, but you do not need to know the details to use it.",
+      "## How to talk through it",
+      "Draw six buckets, insert four colliding keys by each method and show the lookup. Mention clustering and the deleted-marker problem, and say what happens to the cost as the load factor grows."
+    ],
+    "keyPoints": [
+      "Collisions are unavoidable. Chaining keeps a list per bucket. Open addressing probes for another free bucket.",
+      "Chaining cost is the chain length. It works with a load factor above 1 (typically 1 to 3 is best).",
+      "Open addressing: load factor at most 1, normally kept around 0.6 to 0.75. Probes rise sharply when nearly full.",
+      "Linear probing is cache friendly but clusters. Double hashing barely clusters but is cache unfriendly.",
+      "Never just empty a slot in open addressing. Use a deleted marker or shift the cluster back."
+    ],
+    "sql": [
+      {
+        "title": "Separate chaining",
+        "lang": "py",
+        "code": "class ChainedTable:\n    def __init__(self, buckets=8, hash_fn=hash):\n        self.buckets = [[] for _ in range(buckets)]\n        self.hash_fn = hash_fn\n        self.size = 0\n\n    def _chain(self, key):\n        return self.buckets[self.hash_fn(key) % len(self.buckets)]\n\n    def put(self, key, value):\n        chain = self._chain(key)\n        for i, (k, _) in enumerate(chain):\n            if k == key:\n                chain[i] = (key, value)\n                return\n        chain.append((key, value))\n        self.size += 1\n\n    def get(self, key, default=None):\n        for k, v in self._chain(key):\n            if k == key:\n                return v\n        return default\n\n    def delete(self, key):\n        chain = self._chain(key)\n        for i, (k, _) in enumerate(chain):\n            if k == key:\n                chain.pop(i)\n                self.size -= 1\n                return True\n        return False\n\nbad_hash = lambda key: 0                          # every key collides into bucket 0\nt = ChainedTable(buckets=4, hash_fn=bad_hash)\nfor k in \"ABCD\":\n    t.put(k, k.lower())\nassert len(t.buckets[0]) == 4                     # one long chain: O(n) lookups\nassert t.get(\"D\") == \"d\" and t.delete(\"B\") and t.get(\"B\") is None\nassert t.get(\"C\") == \"c\" and t.size == 3"
+      },
+      {
+        "title": "Open addressing with linear probing and deleted markers",
+        "lang": "py",
+        "code": "EMPTY, DELETED = object(), object()\n\nclass ProbingTable:\n    def __init__(self, capacity=8, hash_fn=hash):\n        self.slots = [EMPTY] * capacity\n        self.hash_fn = hash_fn\n        self.size = 0\n\n    def _probe(self, key):\n        n = len(self.slots)\n        start = self.hash_fn(key) % n\n        for i in range(n):\n            yield (start + i) % n                       # linear probing: step by 1\n\n    def put(self, key, value):\n        first_free = None\n        for i in self._probe(key):\n            slot = self.slots[i]\n            if slot is EMPTY:\n                if first_free is None:\n                    first_free = i\n                break\n            if slot is DELETED:\n                if first_free is None:\n                    first_free = i\n            elif slot[0] == key:\n                self.slots[i] = (key, value)\n                return\n        if first_free is None:\n            raise OverflowError(\"table is full\")\n        self.slots[first_free] = (key, value)\n        self.size += 1\n\n    def get(self, key, default=None):\n        for i in self._probe(key):\n            slot = self.slots[i]\n            if slot is EMPTY:\n                return default                          # a never-used slot ends the search\n            if slot is not DELETED and slot[0] == key:\n                return slot[1]\n        return default\n\n    def delete(self, key):\n        for i in self._probe(key):\n            slot = self.slots[i]\n            if slot is EMPTY:\n                return False\n            if slot is not DELETED and slot[0] == key:\n                self.slots[i] = DELETED                 # keep later probes going\n                self.size -= 1\n                return True\n        return False\n\nh = {\"A\": 2, \"B\": 2, \"C\": 3, \"D\": 2, \"E\": 2}\nt = ProbingTable(6, hash_fn=lambda k: h[k])\nfor k in \"ABCD\":\n    t.put(k, k.lower())\nassert [s[0] if s not in (EMPTY, DELETED) else \".\" for s in t.slots] == [\".\", \".\", \"A\", \"B\", \"C\", \"D\"]\nassert t.delete(\"B\") is True\nassert t.get(\"D\") == \"d\"                                 # still found, past the deleted marker\nt.put(\"E\", \"e\")                                           # reuses the deleted slot's place\nassert t.get(\"E\") == \"e\" and t.size == 4"
+      },
+      {
+        "title": "Probes per lookup grow with the load factor",
+        "lang": "py",
+        "code": "import random\n\ndef average_probes(capacity, items, seed=1):\n    random.seed(seed)\n    slots = [None] * capacity\n    keys = random.sample(range(10 ** 6), items)\n    for k in keys:\n        i = k % capacity\n        while slots[i] is not None:\n            i = (i + 1) % capacity\n        slots[i] = k\n    total = 0\n    for k in keys:\n        i, n = k % capacity, 1\n        while slots[i] != k:\n            i = (i + 1) % capacity\n            n += 1\n        total += n\n    return total / items\n\nlow = average_probes(1000, 300)       # load factor 0.3\nhigh = average_probes(1000, 900)      # load factor 0.9\nassert low < 2.0\nassert high > low * 1.5               # probes rise sharply as the table fills"
+      }
+    ],
+    "django": {},
+    "exercise": "Write ChainedTable and ProbingTable with a custom hash_fn so you can force collisions in tests. For ProbingTable, test delete followed by a lookup of a key that probed past the deleted slot. Then measure the average probes for load factors 0.3, 0.6 and 0.9, and write down where the curve starts to rise sharply.",
+    "pitfalls": [
+      "Emptying a slot on delete in open addressing, which breaks lookups for keys that probed past it.",
+      "Letting an open-addressing table become completely full. Probing may never end.",
+      "Forgetting to compare keys, not just hashes, when walking a chain or probing. Two keys can share a hash.",
+      "Using a hash function that maps most keys to the same bucket, so the table is one long list.",
+      "Forgetting to wrap the probe index around the end of the array."
+    ],
+    "interview": [
+      {
+        "q": "What is a hash collision and how do you handle it?",
+        "a": "Two keys hashing to the same bucket. In separate chaining each bucket holds a list of pairs. In open addressing you probe for another free bucket, such as the next one with linear probing."
+      },
+      {
+        "q": "What is the difference between chaining and open addressing?",
+        "a": "Chaining stores colliding items in a list inside the bucket and works with a load factor above 1. Open addressing stores one item per bucket and probes to other buckets, so the load factor is at most 1 and should be kept lower, around 0.6 to 0.75."
+      },
+      {
+        "q": "Why is deletion hard in open addressing?",
+        "a": "Other keys may have probed past the deleted slot. If you empty it, a lookup stops there and misses them. You use a deleted marker, or shift the cluster back."
+      },
+      {
+        "q": "What is clustering?",
+        "a": "In linear probing, runs of full buckets grow, because keys that land in a run must probe to its end and extend it. Quadratic probing and double hashing reduce it."
+      }
+    ],
+    "references": [
+      {
+        "title": "Open addressing (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Open_addressing",
+        "kind": "Reference"
+      },
+      {
+        "title": "Hash table (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hash_table",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: collision handling is the standard follow-up to how a hash table works. The probing variants, the clustering and cache trade-offs, the load limits and the deletion issue come from the Wikipedia open addressing article, which I read in full, and the chaining load range from the Wikipedia hash table article, which I read in part. The worked example and the probe-count experiment are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-open-addressing",
+      "wikipedia-hash-table",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "collisions",
+        "title": "Collision handling, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "lookup or probe"
+          },
+          {
+            "kind": "write",
+            "label": "insert or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "collision or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Chaining",
+            "at": 2
+          },
+          {
+            "text": "Open addressing",
+            "at": 4
+          },
+          {
+            "text": "Clustering",
+            "at": 5
+          },
+          {
+            "text": "Deleting",
+            "at": 6
+          },
+          {
+            "text": "Load limits",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -2.8,
+            "y": 3.2,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": -1.6,
+            "y": 2.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": -0.4,
+            "y": 0.8,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": 0.8,
+            "y": -0.4,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": 2.0,
+            "y": -1.6,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": 3.2,
+            "y": -2.8,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "x1",
+            "kind": "cube",
+            "x": 1.0,
+            "y": 2.2,
+            "label": "B",
+            "icon": "cell",
+            "tone": "orange",
+            "from": 2,
+            "until": 3
+          },
+          {
+            "id": "x2",
+            "kind": "cube",
+            "x": 2.1,
+            "y": 3.3,
+            "label": "D",
+            "icon": "cell",
+            "tone": "orange",
+            "from": 3,
+            "until": 3
+          }
+        ],
+        "links": [
+          {
+            "a": "b2",
+            "b": "x1",
+            "dir": "to",
+            "from": 2,
+            "until": 3
+          },
+          {
+            "a": "x1",
+            "b": "x2",
+            "dir": "to",
+            "from": 3,
+            "until": 3
+          }
+        ],
+        "steps": [
+          {
+            "title": "Collisions are normal",
+            "tag": "problem",
+            "body": [
+              "Many keys, few buckets: some keys must share a bucket. Even good hash functions collide. Suppose the keys A, B, C and D hash to buckets 2, 2, 3 and 2.",
+              "There are two standard plans. Separate chaining keeps a list in each bucket. Open addressing looks for another free bucket."
+            ],
+            "short": "Why collide",
+            "hud": [
+              {
+                "k": "A, B, D",
+                "v": "all want bucket 2",
+                "tone": "bad"
+              },
+              {
+                "k": "C",
+                "v": "wants bucket 3"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Chaining: A and C go in without trouble",
+            "tag": "solution",
+            "body": [
+              "A hashes to bucket 2 and C to bucket 3. Both buckets are empty, so each pair goes straight in.",
+              "No collision yet, so nothing special happens."
+            ],
+            "short": "No collision",
+            "hud": [
+              {
+                "k": "Stored",
+                "v": "A in 2, C in 3"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Chaining: B collides, so it joins A's chain",
+            "tag": "solution",
+            "body": [
+              "B also hashes to bucket 2, which already holds A. In separate chaining each bucket holds a list, so B is added to the list in bucket 2.",
+              "The Wikipedia article's chaining insert places the new item at the head of the list. Either end works."
+            ],
+            "short": "Chain B",
+            "hud": [
+              {
+                "k": "Bucket 2",
+                "v": "A, B"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x1": {
+                "pill": {
+                  "text": "chained after A",
+                  "tone": "orange",
+                  "icon": "link"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "x1"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Chaining: D joins the chain, and lookup walks it",
+            "tag": "technique",
+            "body": [
+              "D joins the chain in bucket 2, which now has A, B and D. A lookup for D hashes to bucket 2, then walks the chain until it finds D.",
+              "The cost of a lookup is the length of the chain. With a low load factor, chains are short, so the average stays O(1)."
+            ],
+            "short": "Walk the chain",
+            "hud": [
+              {
+                "k": "Chain length in bucket 2",
+                "v": "3",
+                "tone": "warn"
+              },
+              {
+                "k": "Lookup cost",
+                "v": "chain length"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "x2": {
+                "pill": {
+                  "text": "found after 2 hops",
+                  "tone": "green",
+                  "icon": "check"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "x1",
+                  "x2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Open addressing: probe for the next free bucket",
+            "tag": "technique",
+            "body": [
+              "Now the other plan, with the same keys. Every bucket holds at most one item. A goes to bucket 2. B wants 2, finds it taken, and probes the next bucket, 3. C wants 3, finds it taken by B, and moves on to 4.",
+              "D wants 2, then 3, then 4, all taken, and ends up in 5. Stepping forward by one is called linear probing."
+            ],
+            "short": "Probing",
+            "hud": [
+              {
+                "k": "D probes",
+                "v": "4 buckets",
+                "tone": "warn"
+              },
+              {
+                "k": "Items per bucket",
+                "v": "at most 1"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "B",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "C",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "orange",
+                "pill": {
+                  "text": "D: tried 2, 3, 4",
+                  "tone": "orange",
+                  "icon": "search"
+                },
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "b3",
+                  "b4",
+                  "b5"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "With linear probing, a key hashes to bucket 4 and buckets 4 and 5 are taken, but 0 to 3 are free. Where does it go?",
+              "options": [
+                "Bucket 0",
+                "Bucket 3",
+                "The first free bucket after 5, wrapping round if needed"
+              ],
+              "answer": 2,
+              "why": "Linear probing moves forward one bucket at a time, wrapping to 0 after the last bucket."
+            }
+          },
+          {
+            "title": "Clustering: runs of full buckets grow",
+            "tag": "problem",
+            "body": [
+              "Buckets 2 to 5 now form a cluster. A new key that hashes anywhere in the cluster must probe to its end, which makes the cluster longer. Linear probing is the most sensitive to this.",
+              "The Wikipedia article says linear probing has the best cache performance but is the most sensitive to clustering."
+            ],
+            "short": "Clustering",
+            "hud": [
+              {
+                "k": "Cluster",
+                "v": "buckets 2 to 5",
+                "tone": "bad"
+              },
+              {
+                "k": "Probe length",
+                "v": "grows with the cluster",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "B",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "C",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Deleting is tricky with probing",
+            "tag": "problem",
+            "body": [
+              "Suppose B is deleted by simply emptying bucket 3. Now a lookup for D hashes to 2, finds A, goes on to 3, finds an empty bucket and wrongly concludes that D is absent.",
+              "The fix is to mark the bucket as deleted so probing continues past it, or to shift the cluster back. The article notes that marking deleted slots eventually needs a rebuild."
+            ],
+            "short": "Deleting",
+            "hud": [
+              {
+                "k": "Empty the slot",
+                "v": "breaks lookups",
+                "tone": "bad"
+              },
+              {
+                "k": "Mark as deleted",
+                "v": "probing continues",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "del",
+                "tone": "grey",
+                "pill": {
+                  "text": "deleted marker",
+                  "tone": "grey",
+                  "icon": "x"
+                },
+                "status": "dim"
+              },
+              "b4": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "b3",
+                  "b4",
+                  "b5"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "How full can a table get?",
+            "tag": "insight",
+            "body": [
+              "Chaining degrades gently as the load factor grows, and works with a load factor above 1. The article gives the best range for chaining as typically 1 to 3, and about 0.6 to 0.75 as the limit for open addressing. Open addressing cannot hold more items than buckets.",
+              "As an open-addressing table nears full, probes rise dramatically."
+            ],
+            "short": "Load limits",
+            "hud": [
+              {
+                "k": "Chaining",
+                "v": "load 1 to 3 is fine"
+              },
+              {
+                "k": "Open addressing",
+                "v": "keep below about 0.75",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Other probing patterns",
+            "tag": "technique",
+            "body": [
+              "Quadratic probing makes the gap grow each time, which spreads the keys out. Double hashing uses a second hash function to set the gap, so different keys follow different paths and clustering nearly disappears.",
+              "The trade-off is cache use: linear probing is best, double hashing is worst, and quadratic probing is between them."
+            ],
+            "short": "Variants",
+            "hud": [
+              {
+                "k": "Linear",
+                "v": "gap 1: best cache"
+              },
+              {
+                "k": "Quadratic",
+                "v": "gap grows"
+              },
+              {
+                "k": "Double hashing",
+                "v": "second hash sets the gap"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Collisions are handled either by chaining a list per bucket or by probing for another free bucket. Chaining tolerates a higher load factor and makes deletion easy. Open addressing keeps everything in one array and needs care with deletes.",
+              "Pick one and know its trade-offs."
+            ],
+            "short": "Recap",
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "A",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "B",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "C",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "D",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 chaining: a list per bucket",
+                "2 open addressing: probe to a free slot",
+                "3 deletion needs a marker or shift-back",
+                "4 keep the load factor in check"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Handling a collision is like two guests with the same seat number at a wedding.",
+      "story": "Two guests are both told to sit in seat 2. One way: put a small bench there, so both can sit in seat 2 together. That is chaining. The other way: the second guest walks on to the next free seat. That is open addressing. But if someone later leaves their seat, you need to leave a note, or guests looking for their friend will think the row has ended.",
+      "maps": [
+        [
+          "The shared seat 2",
+          "A bucket with a collision"
+        ],
+        [
+          "A bench for both",
+          "A chain in the bucket"
+        ],
+        [
+          "Walking to the next seat",
+          "Probing"
+        ],
+        [
+          "The note on a left seat",
+          "A deleted marker"
+        ]
+      ],
+      "words": [
+        [
+          "collision",
+          "Two keys that hash to the same bucket."
+        ],
+        [
+          "chaining",
+          "Keep a list of all pairs in each bucket."
+        ],
+        [
+          "open addressing",
+          "Look for another free bucket when yours is taken."
+        ],
+        [
+          "probing",
+          "Trying one bucket after another to find a free one."
+        ],
+        [
+          "clustering",
+          "Long runs of full buckets that make probing slower."
+        ]
+      ]
+    }
   }
 ]
