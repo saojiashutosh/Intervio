@@ -160700,5 +160700,2191 @@
         ]
       ]
     }
+  },
+  {
+    "id": "counting-radix-sort",
+    "n": 200,
+    "level": 14,
+    "week": "Core",
+    "title": "Counting Sort and Radix Sort: Beating n log n",
+    "tagline": "Sort integers without comparing them, by counting keys and placing items stably, then extend it digit by digit to large numbers.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 3,
+    "explain": [
+      "Any sort that compares items cannot do better than O(n log n) on average. Counting sort and radix sort avoid comparisons and use the structure of the keys instead. The Wikipedia article says counting sort sorts items whose keys are non-negative integers up to a maximum k, and runs in O(n + k) time. It is not a comparison sort, so the n log n bound does not apply to it.",
+      "## Counting sort in three steps",
+      "Make an array count of k + 1 zeros. First, go through the input and add one to count[key] for each item. Second, turn count into prefix sums: count[v] becomes the number of items with key at most v, which is the position where the items with key v end in the sorted output. Third, go through the input from the last item to the first. For each item, decrease count[key] by one, and write the item at that index in the output.",
+      "- Going backwards keeps items with equal keys in their original order, so the sort is stable. The article stresses that stability is needed for radix sort.\n- Time is O(n + k), and space is O(n + k).\n- It is practical only when k is not much larger than n, as the article notes.",
+      "> A worked example: keys 4, 2, 2, 8, 3, 3, 1 with k = 8. Counts for keys 0 to 8 are 0, 1, 2, 2, 1, 0, 0, 0, 1. Prefix sums are 0, 1, 3, 5, 6, 6, 6, 6, 7. Go from the right: the last 1 goes to position 0, the 3 to position 4, the other 3 to 3, the 8 to 6, the 2 to 2, the other 2 to 1, and the 4 to 5. The output is 1, 2, 2, 3, 3, 4, 8.",
+      "## Radix sort",
+      "Large numbers make k too big for counting sort. Radix sort sorts by one digit at a time with a stable sort, usually counting sort over the 10 or 256 possible digit values. In the least significant digit version, you start with the last digit and move towards the first. After the final pass, the numbers are sorted, because each pass respects the work of the earlier ones through stability. For d digits and digit range k, the time is Theta(d(n + k)). The article states this, and notes it is linear when d is constant and k is O(n).",
+      "## The most significant digit version",
+      "Starting from the first digit and recursing into each group is called MSD radix sort. It handles strings of different lengths well and can stop early, but the article says MSD sorts are not necessarily stable, and a stable version needs a buffer as big as the input.",
+      "## When to use them",
+      "Use counting sort for small integer keys such as ages, grades or letters. Use radix sort for fixed-length keys such as integers, IP addresses or fixed-width strings. For general data, with arbitrary comparisons, use a comparison sort. Counting sort is also a subroutine in suffix array construction and in sorting by one key before another.",
+      "## Negative numbers and other keys",
+      "To handle negative integers, add the minimum to every key so the smallest becomes 0, sort, and subtract it again. To sort records by a key, count by the key and place the whole record. For floating point numbers or strings with large alphabets, plain counting sort does not fit.",
+      "## How to talk through it",
+      "Say that these are not comparison sorts and why the n log n bound does not apply. Describe the three steps of counting sort, say why we go backwards, and give O(n + k). For radix, say stable sort per digit from the least significant, and O(d(n + k))."
+    ],
+    "keyPoints": [
+      "Counting sort: count keys, prefix sums, place items from the right. O(n + k) time and space. Stable.",
+      "Practical only when the key range k is not much larger than n.",
+      "Not a comparison sort, so the O(n log n) lower bound does not apply.",
+      "LSD radix sort: a stable sort on each digit from the least significant. Theta(d(n + k)).",
+      "MSD radix sort is not necessarily stable. Negative numbers need an offset."
+    ],
+    "sql": [
+      {
+        "title": "Counting sort, stable, by a key",
+        "lang": "py",
+        "code": "def counting_sort(items, k, key=lambda x: x):\n    # items have integer keys from 0 to k; returns a new list, stable\n    count = [0] * (k + 1)\n    for x in items:\n        count[key(x)] += 1\n    for v in range(1, k + 1):\n        count[v] += count[v - 1]                       # prefix sums: where each key's items end\n    out = [None] * len(items)\n    for x in reversed(items):                          # from the right: equal keys keep their order\n        count[key(x)] -= 1\n        out[count[key(x)]] = x\n    return out\n\nassert counting_sort([4, 2, 2, 8, 3, 3, 1], 8) == [1, 2, 2, 3, 3, 4, 8]\nassert counting_sort([], 5) == [] and counting_sort([0, 0], 0) == [0, 0]\nrecords = [(2, \"a\"), (1, \"b\"), (2, \"c\"), (1, \"d\")]\nassert counting_sort(records, 2, key=lambda r: r[0]) == [(1, \"b\"), (1, \"d\"), (2, \"a\"), (2, \"c\")]    # stable\n\ndef sort_with_negatives(a):\n    if not a:\n        return []\n    low = min(a)\n    return [x + low for x in counting_sort([x - low for x in a], max(a) - low)]\n\nassert sort_with_negatives([3, -2, 0, -2, 5]) == [-2, -2, 0, 3, 5]"
+      },
+      {
+        "title": "LSD radix sort",
+        "lang": "py",
+        "code": "def counting_sort_by_digit(a, exp):\n    count = [0] * 10\n    for x in a:\n        count[(x // exp) % 10] += 1\n    for d in range(1, 10):\n        count[d] += count[d - 1]\n    out = [0] * len(a)\n    for x in reversed(a):                              # stable\n        d = (x // exp) % 10\n        count[d] -= 1\n        out[count[d]] = x\n    return out\n\ndef radix_sort(a):\n    a = list(a)\n    if not a:\n        return a\n    exp = 1\n    while max(a) // exp > 0:                           # one pass for each digit of the largest number\n        a = counting_sort_by_digit(a, exp)\n        exp *= 10\n    return a\n\nassert radix_sort([170, 45, 75, 90, 802, 24, 2]) == [2, 24, 45, 75, 90, 170, 802]\nassert radix_sort([]) == [] and radix_sort([5]) == [5] and radix_sort([0, 0]) == [0, 0]\nassert radix_sort([10, 1, 100, 11]) == [1, 10, 11, 100]\n\nimport random\nrandom.seed(66)\nfor _ in range(100):\n    data = [random.randint(0, 10 ** 6) for _ in range(random.randint(0, 40))]\n    assert radix_sort(data) == sorted(data)"
+      },
+      {
+        "title": "Why the passes must be stable",
+        "lang": "py",
+        "code": "def one_pass(a, exp, stable=True):\n    buckets = [[] for _ in range(10)]\n    for x in a:\n        buckets[(x // exp) % 10].append(x)\n    if not stable:\n        for b in buckets:\n            b.reverse()                                # an unstable pass scrambles equal digits\n    return [x for b in buckets for x in b]\n\ndata = [170, 45, 75, 90, 802, 24, 2]\ngood = data\nfor exp in (1, 10, 100):\n    good = one_pass(good, exp)\nassert good == sorted(data)\n\nbad = data\nfor exp in (1, 10, 100):\n    bad = one_pass(bad, exp, stable=False)\nassert bad != sorted(data)                             # without stability the earlier digits are lost"
+      }
+    ],
+    "django": {},
+    "exercise": "Write counting_sort with a key function, and check that it is stable on records. Add support for negative numbers. Then write LSD radix sort for non-negative integers and check it against sorted on 100 random lists. Finally, replace the stable digit sort with an unstable one and show an input where radix sort gives a wrong answer.",
+    "pitfalls": [
+      "Placing items from the left, which breaks stability and therefore radix sort.",
+      "Using counting sort when k is huge. The count array may not even fit in memory.",
+      "Forgetting the prefix sums step, or using them as start positions when your loop expects end positions.",
+      "Radix sorting from the most significant digit with a plain stable pass. That does not sort correctly. Go from the least significant.",
+      "Using these for floating point or arbitrary objects without a suitable integer key."
+    ],
+    "interview": [
+      {
+        "q": "How does counting sort work and when is it a good choice?",
+        "a": "Count the occurrences of each key, take prefix sums to get each key's end position, then place the items from the right so equal keys keep their order. It takes O(n + k) time and space, so it is good when the keys are small integers and k is not much larger than n."
+      },
+      {
+        "q": "Why can counting sort beat O(n log n)?",
+        "a": "It does not compare items. The O(n log n) lower bound applies only to comparison sorts. Counting sort uses the key values directly as array indexes."
+      },
+      {
+        "q": "How does radix sort work?",
+        "a": "Sort the numbers by one digit at a time, from the least significant digit to the most, using a stable sort such as counting sort for each digit. Stability makes each pass preserve the order from earlier passes. The time is Theta(d(n + k))."
+      },
+      {
+        "q": "Why must the digit sort be stable?",
+        "a": "A later pass sorts by a more significant digit. Numbers with equal digits there must stay in the order given by the earlier, less significant digits. Only a stable sort preserves that order."
+      }
+    ],
+    "references": [
+      {
+        "title": "Counting sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Counting_sort",
+        "kind": "Reference"
+      },
+      {
+        "title": "Radix sort (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Radix_sort",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: counting and radix sort are the standard answers to how a sort can beat n log n, and they test stability. The three steps, the O(n + k) cost, the stability and the practical limit on k come from the Wikipedia counting sort article, which I read in full, and the digit-by-digit method, Theta(d(n + k)), the LSD and MSD stability remarks and the example numbers from the Wikipedia radix sort article, which I read in part. The worked examples and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-counting-sort",
+      "wikipedia-radix-sort",
+      "wikipedia-sorting-algorithm",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "countsort",
+        "title": "Counting sort and radix sort, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "swap or place"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "No comparisons",
+            "at": 0
+          },
+          {
+            "text": "Count",
+            "at": 1
+          },
+          {
+            "text": "Prefix sums",
+            "at": 2
+          },
+          {
+            "text": "Place",
+            "at": 3
+          },
+          {
+            "text": "Radix idea",
+            "at": 6
+          },
+          {
+            "text": "Radix cost",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "i0",
+            "kind": "cube",
+            "x": -5.15,
+            "y": 1.75,
+            "label": "4",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i1",
+            "kind": "cube",
+            "x": -4.0,
+            "y": 0.6,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i2",
+            "kind": "cube",
+            "x": -2.85,
+            "y": -0.55,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i3",
+            "kind": "cube",
+            "x": -1.7,
+            "y": -1.7,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i4",
+            "kind": "cube",
+            "x": -0.55,
+            "y": -2.85,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i5",
+            "kind": "cube",
+            "x": 0.6,
+            "y": -4.0,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "i6",
+            "kind": "cube",
+            "x": 1.75,
+            "y": -5.15,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -3.5,
+            "y": 3.5,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -2.625,
+            "y": 2.625,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -1.75,
+            "y": 1.75,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": -0.875,
+            "y": 0.875,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 0.0,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 0.875,
+            "y": -0.875,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 1.75,
+            "y": -1.75,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c7",
+            "kind": "cube",
+            "x": 2.625,
+            "y": -2.625,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c8",
+            "kind": "cube",
+            "x": 3.5,
+            "y": -3.5,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o0",
+            "kind": "cube",
+            "x": -1.75,
+            "y": 5.15,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o1",
+            "kind": "cube",
+            "x": -0.6,
+            "y": 4.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o2",
+            "kind": "cube",
+            "x": 0.55,
+            "y": 2.85,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o3",
+            "kind": "cube",
+            "x": 1.7,
+            "y": 1.7,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o4",
+            "kind": "cube",
+            "x": 2.85,
+            "y": 0.55,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o5",
+            "kind": "cube",
+            "x": 4.0,
+            "y": -0.6,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o6",
+            "kind": "cube",
+            "x": 5.15,
+            "y": -1.75,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Sorting without comparing",
+            "tag": "technique",
+            "body": [
+              "Comparison sorts cannot beat O(n log n) on average. Counting sort avoids comparisons completely. It works when the keys are small non-negative integers, up to a maximum k. Here the keys are 4, 2, 2, 8, 3, 3, 1, so k = 8.",
+              "The idea is to count how many times each key occurs, and use the counts to compute each item's position."
+            ],
+            "short": "No comparisons",
+            "hud": [
+              {
+                "k": "Keys",
+                "v": "integers 0 to k, here k = 8"
+              },
+              {
+                "k": "Time",
+                "v": "O(n + k)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 1: count each key",
+            "tag": "technique",
+            "body": [
+              "Make an array of k + 1 counters, all 0. Go through the input once and add one to the counter for each key. The key 2 occurs twice, 3 twice, and 1, 4 and 8 once each.",
+              "The counter row now reads 0, 1, 2, 2, 1, 0, 0, 0, 1 for the keys 0 to 8."
+            ],
+            "short": "Count",
+            "hud": [
+              {
+                "k": "Counts",
+                "v": "0 1 2 2 1 0 0 0 1"
+              },
+              {
+                "k": "Cost",
+                "v": "O(n)"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "2",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i0",
+                  "c4"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "i3",
+                  "c8"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "Step 2: prefix sums give each key's end position",
+            "tag": "technique",
+            "body": [
+              "Turn the counts into running totals. The total for key v is the number of items with a key at most v. The row now reads 0 1 3 5 6 6 6 6 7. For key 2, the total is 3: so the items with key 2 end at position 3, and fill positions 1 and 2.",
+              "These totals are the positions where each key's items stop in the sorted output."
+            ],
+            "short": "Prefix sums",
+            "hud": [
+              {
+                "k": "Prefix sums",
+                "v": "0 1 3 5 6 6 6 6 7"
+              },
+              {
+                "k": "Cost",
+                "v": "O(k)"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "7",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 3: place items from the right end",
+            "tag": "solution",
+            "body": [
+              "Go through the input from the last item to the first. For each item, subtract 1 from its key's total and write the item at that position in the output. The last item, 1, has total 1 for key 1, so it goes to position 0. The next item, 3, goes to position 4, and the one before it, 3, to position 3.",
+              "Going backwards keeps equal keys in their original order."
+            ],
+            "short": "Place",
+            "hud": [
+              {
+                "k": "Item 1",
+                "v": "goes to position 0"
+              },
+              {
+                "k": "Item 3",
+                "v": "goes to position 4"
+              },
+              {
+                "k": "Next 3",
+                "v": "goes to position 3"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "4",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "i6",
+                  "o0"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "i5",
+                  "o4"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "i4",
+                  "o3"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              }
+            ],
+            "predict": {
+              "question": "The totals for key 2 say its items end at position 3. The last 2 in the input goes where?",
+              "options": [
+                "Position 2: one before the end",
+                "Position 0",
+                "Position 3"
+              ],
+              "answer": 0,
+              "why": "Each placement subtracts 1 from the key's total first. The last 2 takes position 3 - 1 = 2, and the earlier 2 takes position 1."
+            }
+          },
+          {
+            "title": "The sorted output",
+            "tag": "insight",
+            "body": [
+              "After all 7 items are placed, the output reads 1 2 2 3 3 4 8. The two 2s are in their original order, and so are the two 3s.",
+              "That property is called stability, and radix sort depends on it."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Output",
+                "v": "1 2 2 3 3 4 8",
+                "tone": "good"
+              },
+              {
+                "k": "Stable",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "4",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Cost and when it fits",
+            "tag": "insight",
+            "body": [
+              "Counting the keys takes O(n). The prefix sums take O(k). Placing takes O(n). So the total is O(n + k) time and O(n + k) space. The Wikipedia article says it is practical only when k is not much larger than n.",
+              "It is not a comparison sort, so the n log n bound does not apply. Ages, scores out of 100 and small codes suit it. Large numbers do not."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time and space",
+                "v": "O(n + k)",
+                "tone": "good"
+              },
+              {
+                "k": "Good when",
+                "v": "k is about n or less",
+                "tone": "good"
+              },
+              {
+                "k": "Bad when",
+                "v": "k is huge, such as 10^9",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "4",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "8",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "hidden": false,
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "hidden": false,
+                "label": "4",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "hidden": false,
+                "label": "5",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "c8": {
+                "hidden": false,
+                "label": "6",
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o4": {
+                "hidden": false,
+                "label": "3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o5": {
+                "hidden": false,
+                "label": "4",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o6": {
+                "hidden": false,
+                "label": "8",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Radix sort: sort digit by digit",
+            "tag": "technique",
+            "body": [
+              "What if the numbers are large? Radix sort sorts by one digit at a time, using a stable sort such as counting sort for each digit. Here are 170, 45, 75, 90, 802, 24 and 2. We start from the least significant digit.",
+              "Each digit has only 10 values, so counting sort on one digit is cheap."
+            ],
+            "short": "Radix idea",
+            "hud": [
+              {
+                "k": "Digits",
+                "v": "0 to 9: k = 10"
+              },
+              {
+                "k": "Order",
+                "v": "least significant digit first"
+              },
+              {
+                "k": "Each pass",
+                "v": "a stable sort"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "170",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "45",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "75",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "90",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "802",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "24",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Pass 1: sort by the ones digit",
+            "tag": "solution",
+            "body": [
+              "Sort the numbers by their last digit, keeping the order of ties: 170 90 802 2 24 45 75. 170 and 90 have last digit 0, 802 and 2 have 2, 24 has 4, 45 and 75 have 5.",
+              "Stability here matters: it makes later passes keep this work."
+            ],
+            "short": "Ones digit",
+            "hud": [
+              {
+                "k": "After pass 1",
+                "v": "170 90 802 2 24 45 75"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "170",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "90",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "802",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "24",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "45",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "75",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Pass 2: sort by the tens digit",
+            "tag": "solution",
+            "body": [
+              "Now sort by the tens digit, again stably: 802 2 24 45 170 75 90. Items with the same tens digit stay in the order of the previous pass, which was by ones digit.",
+              "So within the same tens digit, the ones order survives."
+            ],
+            "short": "Tens digit",
+            "hud": [
+              {
+                "k": "After pass 2",
+                "v": "802 2 24 45 170 75 90"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "802",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "24",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "45",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "170",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "75",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "90",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Pass 3: sort by the hundreds digit",
+            "tag": "solution",
+            "body": [
+              "The last pass is by the hundreds digit: 2 24 45 75 90 170 802. The numbers are sorted. A number with fewer digits counts as having a 0 in the higher places.",
+              "Three passes for three digits."
+            ],
+            "short": "Hundreds digit",
+            "hud": [
+              {
+                "k": "Sorted",
+                "v": "2 24 45 75 90 170 802",
+                "tone": "good"
+              },
+              {
+                "k": "Passes",
+                "v": "d = 3"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "24",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "45",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "75",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "90",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "170",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "802",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Radix sort cost",
+            "tag": "insight",
+            "body": [
+              "With d digits and a digit range of k values, least-significant-digit radix sort takes Theta(d(n + k)) time, as the Wikipedia article states, and is a stable non-comparison sort. When d is constant and k is O(n), that is linear.",
+              "The most-significant-digit version sorts recursively and is not necessarily stable."
+            ],
+            "short": "Radix cost",
+            "hud": [
+              {
+                "k": "LSD radix",
+                "v": "Theta(d(n + k))",
+                "tone": "good"
+              },
+              {
+                "k": "MSD radix",
+                "v": "not necessarily stable",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "i0": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "24",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "45",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "75",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "90",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "170",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "802",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Counting sort counts keys, takes prefix sums, then places items from the right: O(n + k), stable. Radix sort applies a stable sort one digit at a time, from the least significant: O(d(n + k)). Neither compares items, so they can beat n log n when keys are small integers.",
+              "For general data, use a comparison sort."
+            ],
+            "short": "Recap",
+            "set": {
+              "i0": {
+                "label": "2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i1": {
+                "label": "24",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i2": {
+                "label": "45",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i3": {
+                "label": "75",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i4": {
+                "label": "90",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i5": {
+                "label": "170",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "i6": {
+                "label": "802",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c0": {
+                "hidden": true
+              },
+              "c1": {
+                "hidden": true
+              },
+              "c2": {
+                "hidden": true
+              },
+              "c3": {
+                "hidden": true
+              },
+              "c4": {
+                "hidden": true
+              },
+              "c5": {
+                "hidden": true
+              },
+              "c6": {
+                "hidden": true
+              },
+              "c7": {
+                "hidden": true
+              },
+              "c8": {
+                "hidden": true
+              },
+              "o0": {
+                "hidden": true
+              },
+              "o1": {
+                "hidden": true
+              },
+              "o2": {
+                "hidden": true
+              },
+              "o3": {
+                "hidden": true
+              },
+              "o4": {
+                "hidden": true
+              },
+              "o5": {
+                "hidden": true
+              },
+              "o6": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 count keys",
+                "2 prefix sums = end positions",
+                "3 place from the right: stable",
+                "4 radix: stable sort per digit, from the last"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Counting sort is like sorting exam papers by dropping each one into a labelled pigeonhole and then reading the pigeonholes in order.",
+      "story": "A teacher has exam papers with scores from 0 to 10. She sets up eleven pigeonholes, one for each score. She drops every paper into its pigeonhole, putting later papers behind earlier ones. Then she reads the pigeonholes from 0 to 10, and the papers come out sorted, with equal scores still in the order she received them. She never compared one paper with another.",
+      "maps": [
+        [
+          "The pigeonholes",
+          "The count array"
+        ],
+        [
+          "Dropping a paper in",
+          "Counting a key"
+        ],
+        [
+          "Reading the pigeonholes in order",
+          "The sorted output"
+        ],
+        [
+          "Equal scores in arrival order",
+          "Stability"
+        ]
+      ],
+      "words": [
+        [
+          "counting sort",
+          "Sort integers by counting how often each key occurs."
+        ],
+        [
+          "radix sort",
+          "Sort numbers digit by digit using a stable sort."
+        ],
+        [
+          "prefix sum",
+          "The running total of the counts up to a position."
+        ],
+        [
+          "stable",
+          "Equal items keep the order they had before sorting."
+        ],
+        [
+          "digit",
+          "One position in a number, such as the ones or tens place."
+        ]
+      ]
+    }
   }
 ]
