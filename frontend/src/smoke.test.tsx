@@ -618,7 +618,8 @@ describe('stage lessons: isometric step-through diagrams', () => {
     'singly-linked-lists', 'doubly-linked-lists', 'fast-slow-pointers', 'reversing-a-list', 'merge-sorted-lists', 'lru-cache-linked-list',
     'stacks', 'balanced-brackets', 'queues', 'circular-buffer', 'deques', 'monotonic-stack', 'monotonic-queue',
     'hash-tables', 'collision-handling', 'resizing-rehashing', 'sets-and-maps', 'bloom-filters',
-    'binary-trees', 'tree-traversals', 'lowest-common-ancestor', 'binary-search-trees', 'bst-deletion', 'balanced-trees', 'tries', 'segment-trees']
+    'binary-trees', 'tree-traversals', 'lowest-common-ancestor', 'binary-search-trees', 'bst-deletion', 'balanced-trees', 'tries', 'segment-trees',
+    'binary-heaps', 'building-a-heap', 'priority-queues', 'top-k', 'median-of-a-stream', 'heap-sort']
   const rail = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
   const heading = (c: HTMLElement) => c.querySelector('.stage-text h4')?.textContent ?? ''
 
