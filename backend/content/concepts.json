@@ -121638,5 +121638,743 @@
         ]
       ]
     }
+  },
+  {
+    "id": "sets-and-maps",
+    "n": 165,
+    "level": 14,
+    "week": "Core",
+    "title": "Sets and Maps: Union, Intersection, Counting and Grouping",
+    "tagline": "Use Python's set and dict as hash tables: fast membership, set algebra, counting with Counter and grouping with defaultdict.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A set and a dictionary are the two hash tables you will use most. A set stores distinct items. A dictionary, or map, stores a value for each key. Both use the hash of the key to jump straight to a bucket, so membership tests, inserts and deletes are O(1) on average. Both need keys to be hashable.",
+      "## Sets",
+      "The Python documentation describes a set as an unordered collection of distinct hashable objects. It supports x in s, len(s) and iteration. It does not record position or insertion order, so it has no indexing or slicing. Because a set is mutable, it is not hashable, so it cannot be a dictionary key or a member of another set. A frozenset is the immutable, hashable version.",
+      "- add(x) puts x in. discard(x) removes it if present. remove(x) raises KeyError if it is absent. pop() removes an arbitrary item.\n- Union: A | B. Intersection: A & B. Difference: A - B. Symmetric difference: A ^ B.\n- The operators need sets, while the named methods accept any iterable.",
+      "## Maps",
+      "A dictionary maps keys to values. get(key, default) never raises KeyError. setdefault(key, default) inserts the default if the key is missing. pop(key, default) removes and returns the value. Dictionaries preserve insertion order. Keys that compare equal, like 1 and 1.0, index the same entry. The keys, values and items views are live views of the entries, and the keys and items views behave like sets.",
+      "## Counter and defaultdict",
+      "The collections module has two helpers. Counter is a dict subclass for counting hashable objects. It returns zero for a missing item instead of raising KeyError, and most_common(n) gives the n most common items. Counter('abracadabra').most_common(3) is a:5, b:2, r:2. defaultdict takes a default_factory. When you read a missing key it calls the factory, stores the result and returns it. The docs say defaultdict(list) is simpler and faster than doing the same with setdefault.",
+      "> A worked example: two-sum. Given numbers and a target, keep a dict from each value you have seen to its index. For each number x, look for target - x in the dict. If it is there, you have the pair. One pass, O(n) time, instead of O(n squared) with two loops.",
+      "## Choosing between them",
+      "Need only to know if something has been seen? Use a set. Need a count? Counter. Need to group items by a key? defaultdict(list). Need to find an earlier item by its value? A dict from value to index. In each case, you are replacing a search inside a loop by a hash lookup.",
+      "## Common mistakes",
+      "Using a list for membership tests inside a loop. Modifying a dictionary while iterating over it. Using a mutable key. Expecting a set to keep order. Forgetting that the average O(1) has a worst case of O(n).",
+      "## How to talk through it",
+      "Say which question the structure answers, and state the average cost. Name the pattern: seen set, counter, groups, or complement lookup. Test an empty input and duplicates."
+    ],
+    "keyPoints": [
+      "set: distinct hashable items, no order, O(1) average membership. frozenset is hashable.",
+      "A | B union, A & B intersection, A - B difference, A ^ B symmetric difference.",
+      "dict: get never raises KeyError, setdefault inserts a default, keys are hashable, insertion order is kept.",
+      "Counter counts hashable items and has most_common. defaultdict(list) groups items.",
+      "A search inside a loop is the signal to use a set or dict: seen set, counts, groups, complement lookup."
+    ],
+    "sql": [
+      {
+        "title": "Set algebra and membership",
+        "lang": "py",
+        "code": "A, B = {1, 2, 3, 4}, {3, 4, 5}\nassert A | B == {1, 2, 3, 4, 5}\nassert A & B == {3, 4}\nassert A - B == {1, 2} and B - A == {5}\nassert A ^ B == {1, 2, 5}\nassert 3 in A and 9 not in A\n\nA.add(2)                                      # already there: nothing changes\nassert len(A) == 4\nA.discard(99)                                 # no error if absent\ntry:\n    A.remove(99)\nexcept KeyError:\n    pass\nelse:\n    raise AssertionError(\"remove must raise for a missing item\")\n\nassert A.union([7, 8]) == {1, 2, 3, 4, 7, 8}   # methods accept any iterable\nkey = frozenset({1, 2})\nassert {key: \"a frozenset can be a dict key\"}[frozenset({2, 1})]"
+      },
+      {
+        "title": "Counting and grouping",
+        "lang": "py",
+        "code": "from collections import Counter, defaultdict\n\nc = Counter(\"abracadabra\")\nassert c.most_common(3) == [(\"a\", 5), (\"b\", 2), (\"r\", 2)]\nassert c[\"z\"] == 0                              # a missing item counts as zero\n\ngroups = defaultdict(list)\nfor word in [\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"]:\n    groups[\"\".join(sorted(word))].append(word)\nassert sorted(map(sorted, groups.values())) == [[\"ate\", \"eat\", \"tea\"], [\"bat\"], [\"nat\", \"tan\"]]\n\nd = {}\nfor ch in \"hello\":\n    d[ch] = d.get(ch, 0) + 1\nassert d == {\"h\": 1, \"e\": 1, \"l\": 2, \"o\": 1}\nd.setdefault(\"z\", 0)\nassert d[\"z\"] == 0 and d.pop(\"q\", \"none\") == \"none\""
+      },
+      {
+        "title": "Hash lookups instead of loops: two-sum and the first unique letter",
+        "lang": "py",
+        "code": "def two_sum(nums, target):\n    seen = {}                                    # value -> index\n    for i, x in enumerate(nums):\n        if target - x in seen:\n            return [seen[target - x], i]\n        seen[x] = i\n    return []\n\ndef first_unique(s):\n    counts = {}\n    for ch in s:\n        counts[ch] = counts.get(ch, 0) + 1\n    for i, ch in enumerate(s):\n        if counts[ch] == 1:\n            return i\n    return -1\n\ndef has_duplicate(items):\n    seen = set()\n    for x in items:\n        if x in seen:\n            return True\n        seen.add(x)\n    return False\n\nassert two_sum([2, 7, 11, 15], 9) == [0, 1]\nassert two_sum([3, 3], 6) == [0, 1] and two_sum([1, 2], 10) == []\nassert first_unique(\"leetcode\") == 0 and first_unique(\"aabb\") == -1\nassert has_duplicate([1, 2, 3, 1]) and not has_duplicate([1, 2, 3])"
+      }
+    ],
+    "django": {},
+    "exercise": "Write two_sum, first_unique and has_duplicate, then group_anagrams with defaultdict. Next, find the common items of two lists with a set, in O(n + m) time. Finally, write longest_consecutive(nums), the length of the longest run of consecutive integers, in O(n) using a set, and say why it is not O(n squared).",
+    "pitfalls": [
+      "Testing membership in a list inside a loop, which makes the whole thing O(n squared). Build a set.",
+      "Expecting a set to keep order or to support indexing.",
+      "Changing the size of a dict or set while looping over it. Loop over a copy.",
+      "Using a set or a list as a dict key. Use a frozenset or a tuple.",
+      "Using d[key] when the key may be missing. Use get, setdefault, Counter or defaultdict."
+    ],
+    "interview": [
+      {
+        "q": "What are the costs of set and dict operations in Python?",
+        "a": "Membership, add, remove and lookup are O(1) on average and O(n) in the worst case, because both are hash tables. Union, intersection and difference cost about the size of the sets involved."
+      },
+      {
+        "q": "How do you find the common items of two lists?",
+        "a": "Put one into a set and test each item of the other, or use the set intersection operator. It is O(n + m) on average, against O(n x m) for two nested loops."
+      },
+      {
+        "q": "What is the difference between Counter and defaultdict?",
+        "a": "Counter is a dict specialised for counting hashable items, with most_common and zero for missing items. defaultdict calls a factory to create a default value for a missing key, so it suits grouping with list or set as the factory."
+      },
+      {
+        "q": "How do you solve two-sum in one pass?",
+        "a": "Keep a dict from each value you have seen to its index. For each number, check whether target minus the number is already in the dict. If so, return both indexes."
+      }
+    ],
+    "references": [
+      {
+        "title": "Built-in types: dict, set and frozenset (Python docs)",
+        "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
+        "kind": "Python docs"
+      },
+      {
+        "title": "collections: Counter and defaultdict (Python docs)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.Counter",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: sets and dicts are the main tools behind the 'use a hash map' coding patterns. The definitions, operators, methods and the hashability rules come from the Python built-in types page, which I read, and Counter, most_common and defaultdict from the Python collections page, which I read. The two-sum walkthrough and the choice guide are my judgment and standard technique, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-stdtypes-dict-set",
+      "py-counter-defaultdict",
+      "py-glossary-hashable",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "setsmaps",
+        "title": "Sets and maps, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "lookup or probe"
+          },
+          {
+            "kind": "write",
+            "label": "insert or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "collision or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Sets",
+            "at": 0
+          },
+          {
+            "text": "Set algebra",
+            "at": 2
+          },
+          {
+            "text": "Maps",
+            "at": 6
+          },
+          {
+            "text": "Patterns",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "x1",
+            "kind": "cube",
+            "x": -2.05,
+            "y": 2.35,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "x2",
+            "kind": "cube",
+            "x": 0.05,
+            "y": 2.25,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "x3",
+            "kind": "cube",
+            "x": -1.25,
+            "y": -0.15,
+            "label": "3",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "x4",
+            "kind": "cube",
+            "x": 0.85,
+            "y": -0.25,
+            "label": "4",
+            "icon": "cell",
+            "tone": "purple"
+          },
+          {
+            "id": "x5",
+            "kind": "cube",
+            "x": 2.45,
+            "y": -1.45,
+            "label": "5",
+            "icon": "cell",
+            "tone": "orange"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A set: distinct items, no order",
+            "tag": "technique",
+            "body": [
+              "A set holds each item at most once, and has no order. Under the hood it is a hash table with keys only. The Python docs call it an unordered collection of distinct hashable objects.",
+              "Adding an item that is already there changes nothing, and you cannot ask for the third item, because there is no position."
+            ],
+            "short": "Sets",
+            "hud": [
+              {
+                "k": "Duplicates",
+                "v": "never stored"
+              },
+              {
+                "k": "Order",
+                "v": "none"
+              },
+              {
+                "k": "Items",
+                "v": "hashable only"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "blue",
+                "status": null,
+                "pill": {
+                  "text": "A only",
+                  "tone": "blue",
+                  "icon": "box"
+                }
+              },
+              "x2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "purple",
+                "status": null,
+                "pill": {
+                  "text": "A and B",
+                  "tone": "purple",
+                  "icon": "box"
+                }
+              },
+              "x4": {
+                "tone": "purple",
+                "status": null,
+                "pill": null
+              },
+              "x5": {
+                "tone": "orange",
+                "status": null,
+                "pill": {
+                  "text": "B only",
+                  "tone": "orange",
+                  "icon": "box"
+                }
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "A = {1, 2, 3, 4}",
+                "B = {3, 4, 5}"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Membership test: O(1)",
+            "tag": "technique",
+            "body": [
+              "x in s asks whether an item is in the set. It hashes x and checks one bucket, so on average it takes O(1). In a list the same test takes O(n).",
+              "This is the most common reason to use a set: replacing a slow search inside a loop."
+            ],
+            "short": "Membership",
+            "hud": [
+              {
+                "k": "x in set",
+                "v": "O(1) average",
+                "tone": "good"
+              },
+              {
+                "k": "x in list",
+                "v": "O(n)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "x2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "orange",
+                "status": "live",
+                "pill": {
+                  "text": "3 in A: True",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "x4": {
+                "tone": "purple",
+                "status": null,
+                "pill": null
+              },
+              "x5": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Union: everything in A or B",
+            "tag": "solution",
+            "body": [
+              "A | B (or A.union(B)) holds every item that is in either set: 1, 2, 3, 4, 5. Items in both appear once.",
+              "The operators need two sets. The named methods accept any iterable."
+            ],
+            "short": "Union",
+            "hud": [
+              {
+                "k": "A | B",
+                "v": "{1, 2, 3, 4, 5}",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x4": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x5": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "A | B   # union"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Intersection: in both",
+            "tag": "solution",
+            "body": [
+              "A & B keeps only the items in both sets: 3 and 4. It is the quick way to find common items.",
+              "The cost is about the size of the smaller set, because you check each of its items against the other."
+            ],
+            "short": "Intersection",
+            "hud": [
+              {
+                "k": "A & B",
+                "v": "{3, 4}",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x2": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x3": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x4": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x5": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "A & B   # intersection"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Difference: in A but not in B",
+            "tag": "solution",
+            "body": [
+              "A - B keeps the items of A that are not in B: 1 and 2. B - A would give just 5. Difference is not symmetric.",
+              "Use it for questions like which users are in the old list but not in the new list."
+            ],
+            "short": "Difference",
+            "hud": [
+              {
+                "k": "A - B",
+                "v": "{1, 2}",
+                "tone": "good"
+              },
+              {
+                "k": "B - A",
+                "v": "{5}"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x4": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x5": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "A - B   # difference"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Symmetric difference: in exactly one",
+            "tag": "solution",
+            "body": [
+              "A ^ B keeps the items that are in one set but not both: 1, 2 and 5. It is the union without the intersection.",
+              "It finds what changed between two snapshots."
+            ],
+            "short": "Symmetric difference",
+            "hud": [
+              {
+                "k": "A ^ B",
+                "v": "{1, 2, 5}",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x2": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x4": {
+                "tone": "grey",
+                "status": "dim",
+                "pill": null
+              },
+              "x5": {
+                "tone": "green",
+                "status": null,
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "A ^ B   # symmetric difference"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "A map: a key leads to a value",
+            "tag": "technique",
+            "body": [
+              "A dictionary, or map, stores a value for each key, using the same hash table idea. Here a dictionary counts letters of abracadabra: a is 5, b is 2, r is 2, c is 1 and d is 1.",
+              "Counter and defaultdict are dict helpers for exactly this kind of counting and grouping."
+            ],
+            "short": "Maps",
+            "hud": [
+              {
+                "k": "Counter",
+                "v": "counts hashable items"
+              },
+              {
+                "k": "most_common(3)",
+                "v": "a, b, r"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "blue",
+                "status": null,
+                "pill": {
+                  "text": "most common",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "label": "a:5"
+              },
+              "x2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null,
+                "label": "b:2"
+              },
+              "x3": {
+                "tone": "purple",
+                "status": null,
+                "pill": null,
+                "label": "r:2"
+              },
+              "x4": {
+                "tone": "purple",
+                "status": null,
+                "pill": null,
+                "label": "c:1"
+              },
+              "x5": {
+                "tone": "orange",
+                "status": null,
+                "pill": null,
+                "label": "d:1"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "from collections import Counter",
+                "Counter('abracadabra').most_common(3)"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Four patterns to know",
+            "tag": "insight",
+            "body": [
+              "Remove duplicates: set(items). Fast membership: build a set once. Count: Counter or a dict with get. Group: defaultdict(list), where each key collects its items.",
+              "The classic two-sum puzzle: keep a dict from value to index, and for each number look up target minus the number."
+            ],
+            "short": "Patterns",
+            "hud": [
+              {
+                "k": "Dedupe",
+                "v": "set(items)"
+              },
+              {
+                "k": "Group",
+                "v": "defaultdict(list)"
+              },
+              {
+                "k": "Complement lookup",
+                "v": "dict value to index"
+              }
+            ],
+            "set": {
+              "x1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null,
+                "label": "set"
+              },
+              "x2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null,
+                "label": "dict"
+              },
+              "x3": {
+                "tone": "purple",
+                "status": null,
+                "pill": null,
+                "label": "Counter"
+              },
+              "x4": {
+                "tone": "purple",
+                "status": null,
+                "pill": null,
+                "label": "defaultdict"
+              },
+              "x5": {
+                "tone": "orange",
+                "status": null,
+                "pill": null,
+                "label": "two-sum"
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A set is a hash table of keys. A dict is a hash table of keys with values. Both give O(1) average lookups, need hashable keys, and have no position. Reach for them when a loop searches repeatedly.",
+              "Use frozenset when you need a set as a dict key."
+            ],
+            "short": "Recap",
+            "set": {
+              "x1": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "x2": {
+                "tone": "blue",
+                "status": null,
+                "pill": null
+              },
+              "x3": {
+                "tone": "purple",
+                "status": null,
+                "pill": null
+              },
+              "x4": {
+                "tone": "purple",
+                "status": null,
+                "pill": null
+              },
+              "x5": {
+                "tone": "orange",
+                "status": null,
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 membership: x in set is O(1)",
+                "2 | & - ^ for set algebra",
+                "3 Counter and defaultdict",
+                "4 dict for complement lookups"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A set is a guest list where each name is written once, and a map is a phone book with a number next to each name.",
+      "story": "A guest list only says who is invited. Writing a name twice does not add a second person, and there is no first or last guest. A phone book is the same, but each name has a number beside it. Both let you check a name at once, without reading the whole list. Comparing two guest lists tells you who is on both, who is on one, and who is on neither.",
+      "maps": [
+        [
+          "The guest list",
+          "A set"
+        ],
+        [
+          "The phone book",
+          "A dictionary or map"
+        ],
+        [
+          "Checking a name",
+          "A hash lookup"
+        ],
+        [
+          "Names on both lists",
+          "Intersection"
+        ]
+      ],
+      "words": [
+        [
+          "set",
+          "A collection of distinct items with no order."
+        ],
+        [
+          "dictionary",
+          "A collection that stores a value for each key."
+        ],
+        [
+          "intersection",
+          "The items that are in both sets."
+        ],
+        [
+          "union",
+          "All items that are in either set."
+        ],
+        [
+          "hashable",
+          "Having a hash that never changes, so it can be a key or set member."
+        ]
+      ]
+    }
   }
 ]
