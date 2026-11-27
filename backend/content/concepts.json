@@ -142378,5 +142378,991 @@
         ]
       ]
     }
+  },
+  {
+    "id": "connected-components",
+    "n": 184,
+    "level": 14,
+    "week": "Core",
+    "title": "Connected Components: Finding the Pieces of a Graph",
+    "tagline": "Count and label the separate pieces of a graph by starting a search at each unvisited vertex, in O(V + E).",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 2,
+    "explain": [
+      "A connected component of an undirected graph is a connected piece that is not part of a larger connected piece. Inside a component every vertex can reach every other, and there are no edges leaving it. The Wikipedia article says the components partition the vertices of the graph, and that every graph is the disjoint union of its components. A connected graph has exactly one component, and each isolated vertex is a component by itself.",
+      "## The algorithm",
+      "Keep a visited set. Go through the vertices one by one. If a vertex is not visited, you have found a new component: start a BFS or DFS from it, and mark everything it reaches with the new component number. Continue the scan. The number of searches you started is the number of components. The article states that components can be found in time linear in V + E with BFS or DFS.",
+      "- Never reset the visited marks between searches, or the work becomes O(V x (V + E)).\n- A search from a vertex cannot leave its component, so each search labels exactly one component.\n- Time is O(V + E), and space is O(V).",
+      "## Checking with counts",
+      "A spanning forest takes one tree from each component. With n vertices and c components, every spanning forest has n - c edges. So a graph with n vertices, m edges and c components has m - n + c independent cycles. If m equals n - c, the graph has no cycles at all. The article gives the circuit rank as m - n + c.",
+      "> A worked example: seven vertices A to G, with edges A-B, B-C, D-E and F-G. Start at A: the search finds A, B and C, component 1. Scan on: D is unvisited, so a search finds D and E, component 2. F is unvisited, so a search finds F and G, component 3. There are 3 components, and 4 edges, which equals 7 - 3, so the graph has no cycles.",
+      "## Union-find",
+      "A disjoint-set structure gives the same answer, and works when edges arrive one at a time. Start with every vertex in its own set. For each edge, union the sets of its two ends. The number of sets left is the number of components. The article notes that union-find supports adding vertices and edges and asking about components, each in amortized inverse-Ackermann time, and that Kruskal's algorithm uses it.",
+      "## Grids",
+      "A grid of land and water is an implicit graph: each land cell is joined to its land neighbours. Counting islands is counting components. You do not need to build the graph. Scan the cells, and when you find unvisited land, run a flood fill, a DFS or BFS, that marks the whole island.",
+      "## Directed graphs",
+      "In a directed graph you can ask for weakly connected components, ignoring the direction of edges, or strongly connected components, in which every vertex can reach every other along directed paths. The plain scan finds the weak ones. The strong ones need the algorithms in a later lesson.",
+      "## How to talk through it",
+      "State the scan and the search, say that the visited marks are shared, and give O(V + E). Mention union-find for dynamic graphs. Test an empty graph, isolated vertices and a connected graph."
+    ],
+    "keyPoints": [
+      "A component is a maximal connected piece. Components partition the vertices.",
+      "Scan the vertices. Each unvisited vertex starts a BFS or DFS and a new component. O(V + E).",
+      "Never reset the visited marks between searches.",
+      "n vertices and c components: every spanning forest has n - c edges. Extra edges mean cycles.",
+      "Union-find gives the same count and handles edges arriving one at a time. A grid of islands is a graph."
+    ],
+    "sql": [
+      {
+        "title": "Count and label the components",
+        "lang": "py",
+        "code": "from collections import deque\n\ndef components(graph):\n    label, count = {}, 0\n    for start in graph:\n        if start in label:\n            continue\n        count += 1                                     # an unvisited vertex: a new component\n        label[start] = count\n        q = deque([start])\n        while q:\n            v = q.popleft()\n            for w in graph[v]:\n                if w not in label:\n                    label[w] = count\n                    q.append(w)\n    return label, count\n\ngraph = {\"A\": [\"B\"], \"B\": [\"A\", \"C\"], \"C\": [\"B\"], \"D\": [\"E\"], \"E\": [\"D\"], \"F\": [\"G\"], \"G\": [\"F\"]}\nlabel, count = components(graph)\nassert count == 3\nassert label[\"A\"] == label[\"B\"] == label[\"C\"] == 1 and label[\"D\"] == label[\"E\"] == 2 and label[\"F\"] == label[\"G\"] == 3\nassert components({}) == ({}, 0)\nassert components({1: [], 2: [], 3: []})[1] == 3          # isolated vertices\nedges = sum(len(n) for n in graph.values()) // 2\nassert edges == len(graph) - count                          # a forest: m = n - c"
+      },
+      {
+        "title": "Union-find version",
+        "lang": "py",
+        "code": "def count_components(n, edges):\n    parent = list(range(n))\n    def find(x):\n        while parent[x] != x:\n            parent[x] = parent[parent[x]]             # path halving\n            x = parent[x]\n        return x\n    count = n\n    for a, b in edges:\n        ra, rb = find(a), find(b)\n        if ra != rb:\n            parent[ra] = rb\n            count -= 1                                 # two sets merged into one\n    return count\n\nassert count_components(7, [(0, 1), (1, 2), (3, 4), (5, 6)]) == 3\nassert count_components(5, []) == 5\nassert count_components(4, [(0, 1), (1, 2), (2, 3), (3, 0)]) == 1\nassert count_components(0, []) == 0"
+      },
+      {
+        "title": "Number of islands on a grid",
+        "lang": "py",
+        "code": "def count_islands(grid):\n    if not grid:\n        return 0\n    rows, cols, seen, islands = len(grid), len(grid[0]), set(), 0\n    for r in range(rows):\n        for c in range(cols):\n            if grid[r][c] == \"1\" and (r, c) not in seen:\n                islands += 1\n                stack = [(r, c)]\n                seen.add((r, c))\n                while stack:                                   # flood fill with an explicit stack\n                    cr, cc = stack.pop()\n                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n                        nr, nc = cr + dr, cc + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == \"1\" and (nr, nc) not in seen:\n                            seen.add((nr, nc))\n                            stack.append((nr, nc))\n    return islands\n\ngrid = [\"11000\",\n        \"11000\",\n        \"00100\",\n        \"00011\"]\nassert count_islands([list(row) for row in grid]) == 3\nassert count_islands([]) == 0\nassert count_islands([list(\"000\")]) == 0"
+      }
+    ],
+    "django": {},
+    "exercise": "Write components with BFS and with union-find and check they agree on 100 random graphs. Then count the islands in a grid, and find the size of the largest component. Finally, given the number of vertices, edges and components, say how many independent cycles the graph has, and test your formula.",
+    "pitfalls": [
+      "Resetting the visited set before each search. The scan becomes quadratic.",
+      "Forgetting isolated vertices, which are components of size one. Make sure every vertex is a key in the graph.",
+      "Counting components in a directed graph with this method and calling them strongly connected.",
+      "Forgetting the reverse edges when building an undirected graph.",
+      "Using recursion for a flood fill on a large grid and exceeding the recursion limit."
+    ],
+    "interview": [
+      {
+        "q": "How do you count the connected components of a graph?",
+        "a": "Scan all vertices. Whenever you find an unvisited one, start a BFS or DFS from it, marking everything it reaches, and add one to the count. It takes O(V + E)."
+      },
+      {
+        "q": "How can union-find find the components?",
+        "a": "Start with each vertex in its own set, union the two ends of every edge, and the number of sets left is the number of components. It also handles edges arriving one at a time."
+      },
+      {
+        "q": "How many edges does a spanning forest have?",
+        "a": "n - c for n vertices and c components. A graph with exactly n - c edges is a forest, and any extra edge creates a cycle."
+      },
+      {
+        "q": "How would you count the islands in a grid?",
+        "a": "Treat land cells as vertices joined to their land neighbours. Scan the grid, and for each unvisited land cell, flood fill the island with DFS or BFS and add one to the count."
+      }
+    ],
+    "references": [
+      {
+        "title": "Component (graph theory) (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Component_(graph_theory)",
+        "kind": "Reference"
+      },
+      {
+        "title": "Union-find (Princeton, Algorithms 4th ed.)",
+        "url": "https://algs4.cs.princeton.edu/15uf/",
+        "kind": "Course notes"
+      }
+    ],
+    "basis": "Why it is here: components and islands questions are common graph exercises. The definition, the partition of vertices, the linear-time BFS or DFS approach, the union-find incremental method and the n - c edges in a spanning forest come from the Wikipedia component article, which I read in part, and the union-find structure from the Princeton page I read earlier. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-component-graph-theory",
+      "princeton-union-find",
+      "wikipedia-breadth-first-search",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "components",
+        "title": "Connected components, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or explore"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "back edge or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Pieces",
+            "at": 0
+          },
+          {
+            "text": "Component 1",
+            "at": 1
+          },
+          {
+            "text": "Component 2",
+            "at": 2
+          },
+          {
+            "text": "Counting",
+            "at": 5
+          },
+          {
+            "text": "Union-find",
+            "at": 6
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 3.1,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.7,
+            "y": 0.9,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": -0.5,
+            "y": 3.1,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": -0.6,
+            "y": -0.6,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 0.9,
+            "y": 0.9,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gF",
+            "kind": "cube",
+            "x": 1.5,
+            "y": -2.7,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gG",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -1.2,
+            "label": "G",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none"
+          },
+          {
+            "a": "gB",
+            "b": "gC",
+            "dir": "none"
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none"
+          },
+          {
+            "a": "gF",
+            "b": "gG",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "A graph can be in several pieces",
+            "tag": "technique",
+            "body": [
+              "In an undirected graph, a connected component is a piece in which every vertex can reach every other, and which is not part of a larger such piece. This graph has 7 vertices in 3 pieces: A, B, C; D, E; and F, G.",
+              "The Wikipedia article says the components partition the vertices: every vertex belongs to exactly one."
+            ],
+            "short": "Pieces",
+            "hud": [
+              {
+                "k": "Vertices",
+                "v": "7"
+              },
+              {
+                "k": "Edges",
+                "v": "4"
+              },
+              {
+                "k": "Components",
+                "v": "?"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Start a search at A: it finds A, B and C",
+            "tag": "solution",
+            "body": [
+              "Take the first unvisited vertex, A, and run a BFS or DFS from it. It reaches B, and from B reaches C. Everything it reaches is one component. Mark all three as component 1.",
+              "A search cannot leave its component, because there are no edges out of it."
+            ],
+            "short": "Component 1",
+            "hud": [
+              {
+                "k": "Component 1",
+                "v": "A B C",
+                "tone": "good"
+              },
+              {
+                "k": "Visited",
+                "v": "3 of 7"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gA",
+                  "gB",
+                  "gC"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Scan on: D is unvisited, so a new component starts",
+            "tag": "solution",
+            "body": [
+              "Go through the vertices in order. B and C are already visited. D is not, so it begins a new component. A search from D reaches E. That is component 2.",
+              "Each time you find an unvisited vertex, you have found a new component."
+            ],
+            "short": "Component 2",
+            "hud": [
+              {
+                "k": "Component 2",
+                "v": "D E",
+                "tone": "good"
+              },
+              {
+                "k": "Visited",
+                "v": "5 of 7"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "The scan reaches F, which is unvisited. What does that mean?",
+              "options": [
+                "F is in component 1",
+                "A new component starts at F",
+                "The graph has a cycle"
+              ],
+              "answer": 1,
+              "why": "An unvisited vertex was not reached by any earlier search, so it is in a new component."
+            }
+          },
+          {
+            "title": "F starts the third component",
+            "tag": "solution",
+            "body": [
+              "F is unvisited, so a search from F finds G. That is component 3. Now every vertex is visited.",
+              "The number of searches we started is the number of components: 3."
+            ],
+            "short": "Component 3",
+            "hud": [
+              {
+                "k": "Component 3",
+                "v": "F G",
+                "tone": "good"
+              },
+              {
+                "k": "Components",
+                "v": "3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gF",
+                  "gG"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The cost is linear",
+            "tag": "insight",
+            "body": [
+              "Each vertex is visited once and each edge is looked at a constant number of times. So finding all components takes O(V + E) time, as the Wikipedia article states for a BFS or DFS approach.",
+              "Do not restart the visited marks between searches. That is what keeps it linear."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(V + E)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(V)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "A check: edges, vertices and components",
+            "tag": "insight",
+            "body": [
+              "A spanning forest picks a tree from each component. With n vertices and c components, every spanning forest has n - c edges. Here that is 7 - 3 = 4, which matches the 4 edges, so the graph has no cycles.",
+              "If a graph has more edges than n - c, it has a cycle."
+            ],
+            "short": "Counting",
+            "hud": [
+              {
+                "k": "n - c",
+                "v": "7 - 3 = 4"
+              },
+              {
+                "k": "Edges",
+                "v": "4",
+                "tone": "good"
+              },
+              {
+                "k": "Cycles",
+                "v": "none"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The union-find way",
+            "tag": "technique",
+            "body": [
+              "Another method uses a disjoint-set structure. Start with each vertex in its own set, and for each edge, union the sets of its two ends. At the end, the number of sets is the number of components.",
+              "The article says union-find handles adding edges and asking about components with amortized inverse-Ackermann cost per operation, so it suits graphs that grow."
+            ],
+            "short": "Union-find",
+            "hud": [
+              {
+                "k": "Start",
+                "v": "7 sets"
+              },
+              {
+                "k": "Each edge",
+                "v": "union two sets"
+              },
+              {
+                "k": "End",
+                "v": "3 sets",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Directed graphs have two kinds",
+            "tag": "insight",
+            "body": [
+              "In a directed graph, the weak components ignore the direction of edges. The strongly connected components require a path in both directions between every pair. The next lessons cover strongly connected components.",
+              "Do not use the plain algorithm of this lesson on a directed graph and call the result strong components."
+            ],
+            "short": "Directed graphs",
+            "hud": [
+              {
+                "k": "Weak component",
+                "v": "ignore directions"
+              },
+              {
+                "k": "Strong component",
+                "v": "paths both ways"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Find components by scanning the vertices, and starting a BFS or DFS at each unvisited one. The number of searches is the number of components. It costs O(V + E). Union-find gives the same answer and handles growing graphs.",
+              "A grid of land and water is a graph too: islands are components."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": {
+                  "text": "component 1",
+                  "tone": "teal",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": {
+                  "text": "component 2",
+                  "tone": "purple",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "gF": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "component 3",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gG": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 scan all vertices",
+                "2 unvisited: new search, new component",
+                "3 never reset the visited marks",
+                "4 O(V + E)"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Connected components are like islands in a sea, where you can walk anywhere on an island but not between islands.",
+      "story": "Imagine a map of islands with bridges between some places on the same island. From any spot, you can walk to any other spot on the same island, but not to another island. To count the islands, you start at a spot you have not visited, walk everywhere you can reach, and mark it all. Then you look for a spot you have not marked, and that must be a new island.",
+      "maps": [
+        [
+          "An island",
+          "A connected component"
+        ],
+        [
+          "Walking everywhere you can reach",
+          "A BFS or DFS"
+        ],
+        [
+          "A spot you have not marked",
+          "An unvisited vertex"
+        ],
+        [
+          "The number of islands",
+          "The number of components"
+        ]
+      ],
+      "words": [
+        [
+          "connected component",
+          "A piece of a graph in which every vertex can reach every other."
+        ],
+        [
+          "flood fill",
+          "Marking everything reachable from a starting cell."
+        ],
+        [
+          "spanning forest",
+          "A tree chosen inside each component."
+        ],
+        [
+          "union-find",
+          "A structure that tracks which items belong to the same group."
+        ],
+        [
+          "isolated vertex",
+          "A vertex with no edges."
+        ]
+      ]
+    }
   }
 ]
