@@ -132674,5 +132674,1156 @@
         ]
       ]
     }
+  },
+  {
+    "id": "binary-heaps",
+    "n": 175,
+    "level": 14,
+    "week": "Core",
+    "title": "Binary Heaps: Sift Up and Sift Down",
+    "tagline": "Understand the heap shape and order rules, why a heap fits in an array, and how insert and extract-min each restore the order in O(log n).",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "A binary heap is a complete binary tree that obeys the heap property. The Wikipedia article states both: the shape property says it is a complete tree, and the heap property says each key is greater than or equal to the keys of its children in a max-heap, or less than or equal to them in a min-heap. The result is that the smallest key of a min-heap is always at the root, where you can read it in O(1).",
+      "## Stored in an array",
+      "Because the tree is complete, it fits in an array with no gaps. Number the nodes level by level from 0. The children of index i are at 2i + 1 and 2i + 2, and the parent of i is at floor((i - 1) / 2). With a root at index 1 the formulas are 2i, 2i + 1 and floor(i / 2). No pointers are needed, which makes heaps compact and fast.",
+      "## Insert: sift up",
+      "Append the new key at the end of the array, which is the first free spot of the last level, so the shape stays complete. The order may now be broken between the new key and its parent. While the key is smaller than its parent, swap them. The key moves up one level per swap, so the worst case is O(log n). The article adds that for random keys the average cost is O(1).",
+      "## Extract the minimum: sift down",
+      "Remove the root, which is the minimum. To keep the shape, move the last key of the array into the root and shrink the array. Now the order may be broken at the top. While the key is larger than one of its children, swap it with the smaller child. It moves down one level per swap, so this costs O(log n). Swapping with the smaller child is what keeps the order correct for both children.",
+      "> A worked example: the min-heap 2, 4, 3, 9, 6, 5. Insert 1: place it at index 6, as the child of 3. Swap with 3, then with 2, and 1 reaches the root, giving 1, 4, 2, 9, 6, 5, 3. Extract the minimum: take 1, move the last key 3 to the root, and swap it with the smaller child 2. It stops at index 2, since its child 5 is larger. The heap is 2, 4, 3, 9, 6, 5 again.",
+      "## What a heap can and cannot do",
+      "- Find the minimum: O(1).\n- Insert: O(log n). Extract the minimum: O(log n).\n- Build from n items: O(n), shown in the next lesson.\n- Search for an arbitrary key: O(n), since the order is only partial.\n- Delete an arbitrary item: O(log n) once you know its index.",
+      "A heap does not keep its items sorted. Only the root is guaranteed to be the minimum. Siblings can be in any order, and a node on one side can be larger than a node deeper on the other side.",
+      "## In Python",
+      "The heapq module implements a binary min-heap on a plain list: heappush and heappop. The min-heap invariant is that heap[k] is at most heap[2k + 1] and heap[2k + 2]. For a max-heap, push the negated values. The article credits J. W. J. Williams with introducing the binary heap in 1964 for heapsort.",
+      "## How to talk through it",
+      "State the shape and order rules, say it lives in an array with the index formulas, and describe sift up and sift down in one sentence each. Give O(1), O(log n) and O(log n), and say what a heap cannot do."
+    ],
+    "keyPoints": [
+      "A binary heap is a complete tree where each parent is at most its children (min-heap). The minimum is at the root.",
+      "Array layout: children of i at 2i + 1 and 2i + 2, parent at (i - 1) // 2.",
+      "Insert: append at the end, sift up while smaller than the parent. O(log n).",
+      "Extract min: move the last key to the root, sift down, always swapping with the smaller child. O(log n).",
+      "Peek is O(1). Searching for a key is O(n). A heap is not sorted. heapq is a min-heap on a list."
+    ],
+    "sql": [
+      {
+        "title": "A min-heap on a list",
+        "lang": "py",
+        "code": "class MinHeap:\n    def __init__(self):\n        self.a = []\n\n    def push(self, x):\n        a = self.a\n        a.append(x)\n        i = len(a) - 1\n        while i > 0 and a[i] < a[(i - 1) // 2]:          # sift up\n            a[i], a[(i - 1) // 2] = a[(i - 1) // 2], a[i]\n            i = (i - 1) // 2\n\n    def peek(self):\n        return self.a[0]\n\n    def pop(self):\n        a = self.a\n        top, last = a[0], a.pop()\n        if a:\n            a[0] = last                                   # move the last key to the root\n            i = 0\n            while True:                                   # sift down\n                small, left, right = i, 2 * i + 1, 2 * i + 2\n                if left < len(a) and a[left] < a[small]:\n                    small = left\n                if right < len(a) and a[right] < a[small]:\n                    small = right\n                if small == i:\n                    break\n                a[i], a[small] = a[small], a[i]\n                i = small\n        return top\n\n    def __len__(self):\n        return len(self.a)\n\nh = MinHeap()\nh.a = [2, 4, 3, 9, 6, 5]\nh.push(1)\nassert h.a == [1, 4, 2, 9, 6, 5, 3]\nassert h.pop() == 1 and h.a == [2, 4, 3, 9, 6, 5]\nassert h.peek() == 2 and len(h) == 6"
+      },
+      {
+        "title": "Check against sorting and heapq",
+        "lang": "py",
+        "code": "import heapq\nimport random\n\nclass MinHeap:\n    def __init__(self):\n        self.a = []\n    def push(self, x):\n        a = self.a\n        a.append(x)\n        i = len(a) - 1\n        while i > 0 and a[i] < a[(i - 1) // 2]:\n            a[i], a[(i - 1) // 2] = a[(i - 1) // 2], a[i]\n            i = (i - 1) // 2\n    def pop(self):\n        a = self.a\n        top, last = a[0], a.pop()\n        if a:\n            a[0] = last\n            i = 0\n            while True:\n                small, left, right = i, 2 * i + 1, 2 * i + 2\n                if left < len(a) and a[left] < a[small]:\n                    small = left\n                if right < len(a) and a[right] < a[small]:\n                    small = right\n                if small == i:\n                    break\n                a[i], a[small] = a[small], a[i]\n                i = small\n        return top\n\ndef is_min_heap(a):\n    return all(a[(i - 1) // 2] <= a[i] for i in range(1, len(a)))\n\nrandom.seed(18)\ndata = [random.randint(0, 99) for _ in range(300)]\nmine, ref = MinHeap(), []\nfor x in data:\n    mine.push(x)\n    heapq.heappush(ref, x)\n    assert is_min_heap(mine.a)\nout = [mine.pop() for _ in range(len(data))]\nassert out == sorted(data) == [heapq.heappop(ref) for _ in range(len(data))]"
+      },
+      {
+        "title": "A max-heap with heapq, and heap is not sorted",
+        "lang": "py",
+        "code": "import heapq\n\nnums = [5, 1, 8, 3, 9, 2]\nheap = [-x for x in nums]                       # negate to get a max-heap\nheapq.heapify(heap)\nassert -heapq.heappop(heap) == 9 and -heap[0] == 8\n\nh = []\nfor x in (2, 4, 3, 9, 6, 5):\n    heapq.heappush(h, x)\nassert h[0] == 2                                # only the root is guaranteed\nassert h != sorted(h)                          # the list is a heap, not a sorted list\nassert all(h[(i - 1) // 2] <= h[i] for i in range(1, len(h)))\nassert heapq.nsmallest(3, h) == [2, 3, 4]       # sorted output needs more work"
+      }
+    ],
+    "django": {},
+    "exercise": "Write MinHeap with push, pop and peek and check it against heapq on 300 random numbers after every push. Then write MaxHeap by changing the comparisons, and a function that returns the index of a key in the heap by scanning, to see that it is O(n). Finally, explain why moving the last key to the root keeps the tree complete.",
+    "pitfalls": [
+      "Swapping with the larger child during sift down in a min-heap. Always use the smaller child.",
+      "Forgetting to stop sifting when the key is in the right place, or when it reaches a leaf or the root.",
+      "Expecting the array to be sorted. A heap guarantees only the parent and child order.",
+      "Using the wrong index formulas for a root at index 1 versus index 0.",
+      "Searching a heap for an arbitrary key and expecting O(log n). It is O(n)."
+    ],
+    "interview": [
+      {
+        "q": "What is a binary heap?",
+        "a": "A complete binary tree stored in an array in which each node is at most its children (a min-heap) or at least its children (a max-heap). The extreme key is at the root. Insert and extract are O(log n), and peek is O(1)."
+      },
+      {
+        "q": "How does insert work in a heap?",
+        "a": "Append the key at the end of the array, then sift it up: swap it with its parent while it is smaller, in a min-heap. It costs O(log n) in the worst case."
+      },
+      {
+        "q": "How does extract-min work?",
+        "a": "Remove the root, move the last key to the root, then sift it down by repeatedly swapping with the smaller child until the order is restored. It costs O(log n)."
+      },
+      {
+        "q": "Why can a heap be stored in an array?",
+        "a": "Because the tree is complete, with no gaps. The children of index i are at 2i + 1 and 2i + 2, and the parent is at (i - 1) // 2, so no pointers are needed."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary heap (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_heap",
+        "kind": "Reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: heaps sit under priority queues, top-k questions and heap sort in coding rounds. The shape and heap properties, the sift up and sift down operations, the costs, the array formulas and the 1964 origin come from the Wikipedia binary heap article, which I read in part. The heapq invariant comes from the Python heapq page, which I read in full. The worked example and the code are my own illustration and judgment, and the code is checked by running it against heapq. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-heap",
+      "py-heapq",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "heap",
+        "title": "Binary heaps, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Two rules",
+            "at": 0
+          },
+          {
+            "text": "Insert",
+            "at": 2
+          },
+          {
+            "text": "Sift up",
+            "at": 3
+          },
+          {
+            "text": "Extract",
+            "at": 6
+          },
+          {
+            "text": "Costs",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "h0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "9",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "6",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "5",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "h6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "1",
+            "icon": "ball",
+            "tone": "green",
+            "from": 2
+          }
+        ],
+        "links": [
+          {
+            "a": "h0",
+            "b": "h1",
+            "dir": "none"
+          },
+          {
+            "a": "h0",
+            "b": "h2",
+            "dir": "none"
+          },
+          {
+            "a": "h1",
+            "b": "h3",
+            "dir": "none"
+          },
+          {
+            "a": "h1",
+            "b": "h4",
+            "dir": "none"
+          },
+          {
+            "a": "h2",
+            "b": "h5",
+            "dir": "none"
+          },
+          {
+            "a": "h2",
+            "b": "h6",
+            "dir": "none",
+            "from": 2
+          }
+        ],
+        "steps": [
+          {
+            "title": "Two rules: a shape and an order",
+            "tag": "technique",
+            "body": [
+              "A binary heap is a binary tree with two rules. The shape rule: it is complete, so every level is full except the last, which fills from the left. The order rule: in a min-heap each node is less than or equal to its children.",
+              "So the smallest key is always at the root. The Wikipedia article describes the same two properties."
+            ],
+            "short": "Two rules",
+            "hud": [
+              {
+                "k": "Shape",
+                "v": "complete tree"
+              },
+              {
+                "k": "Order",
+                "v": "parent <= children"
+              },
+              {
+                "k": "Minimum",
+                "v": "always at the root",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "minimum",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            }
+          },
+          {
+            "title": "A heap lives in an array",
+            "tag": "technique",
+            "body": [
+              "Because the tree is complete, it needs no pointers. Store it level by level in an array. The children of index i are at 2i + 1 and 2i + 2, and the parent is at (i - 1) // 2.",
+              "Here the array is 2, 4, 3, 9, 6, 5. Index 0 holds 2, its children are at 1 and 2."
+            ],
+            "short": "Array layout",
+            "hud": [
+              {
+                "k": "Children of i",
+                "v": "2i + 1, 2i + 2"
+              },
+              {
+                "k": "Parent of i",
+                "v": "(i - 1) // 2"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 0",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 1",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 2",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 3",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 4",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 5",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "5"
+              }
+            }
+          },
+          {
+            "title": "Insert 1: put it at the end",
+            "tag": "solution",
+            "body": [
+              "To insert, add the new key at the first free spot of the last level, so the shape stays complete. This may break the order: 1 is smaller than its parent 3.",
+              "We repair the order next."
+            ],
+            "short": "Insert",
+            "hud": [
+              {
+                "k": "Shape",
+                "v": "still complete",
+                "tone": "good"
+              },
+              {
+                "k": "Order",
+                "v": "broken at 3 > 1",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "new: 1",
+                  "tone": "green",
+                  "icon": "bolt"
+                },
+                "status": null,
+                "label": "1"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "h2",
+                  "h6"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Sift up: swap with the parent",
+            "tag": "technique",
+            "body": [
+              "While the new key is smaller than its parent, swap them. 1 is smaller than 3, so they swap. Now 1 is at index 2, and 3 is at index 6.",
+              "This is called sift up, or bubble up."
+            ],
+            "short": "Sift up, 1",
+            "hud": [
+              {
+                "k": "Swap",
+                "v": "1 and its parent 3"
+              },
+              {
+                "k": "Order below",
+                "v": "fine",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "1 moved up",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "h6",
+                  "h2"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "1 is now at index 2, and its parent is the root 2. What happens next?",
+              "options": [
+                "It stays: the order is fine",
+                "It swaps with 2, because 1 < 2",
+                "It swaps with 3"
+              ],
+              "answer": 1,
+              "why": "1 is smaller than its parent 2, so another swap is needed."
+            }
+          },
+          {
+            "title": "Sift up again: it becomes the new root",
+            "tag": "solution",
+            "body": [
+              "1 is smaller than its parent 2, so they swap again. 1 is now the root. A root has no parent, so we stop.",
+              "The order rule holds again everywhere."
+            ],
+            "short": "Sift up, 2",
+            "hud": [
+              {
+                "k": "Swaps",
+                "v": "2"
+              },
+              {
+                "k": "Heap array",
+                "v": "1 4 2 9 6 5 3",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "new minimum",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "h2",
+                  "h0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Insert costs O(log n)",
+            "tag": "insight",
+            "body": [
+              "A key moves up at most one level per swap, and the tree has about log2 n levels. So insert costs O(log n) in the worst case. The Wikipedia article adds that for random keys the average is O(1).",
+              "Peeking at the minimum costs O(1): it is the root."
+            ],
+            "short": "Cost of insert",
+            "hud": [
+              {
+                "k": "insert",
+                "v": "O(log n)",
+                "tone": "warn"
+              },
+              {
+                "k": "peek minimum",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Levels",
+                "v": "about log2 n"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              }
+            }
+          },
+          {
+            "title": "Extract the minimum: take the root",
+            "tag": "solution",
+            "body": [
+              "To remove the minimum, take the root, 1. The root's place must be filled, and the shape must stay complete. So move the last key, 3, into the root, and shrink the heap by one.",
+              "Now the order is broken at the top: 3 is larger than its children."
+            ],
+            "short": "Extract",
+            "hud": [
+              {
+                "k": "Returned",
+                "v": "1",
+                "tone": "good"
+              },
+              {
+                "k": "Order",
+                "v": "broken at the root",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "3 moved here",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Sift down: swap with the smaller child",
+            "tag": "technique",
+            "body": [
+              "While a key is larger than one of its children, swap it with the smaller child. The children of the root are 4 and 2, and 2 is smaller. Swap 3 with 2.",
+              "Always pick the smaller child, so the new parent is smaller than both its children."
+            ],
+            "short": "Sift down",
+            "hud": [
+              {
+                "k": "Children",
+                "v": "4 and 2"
+              },
+              {
+                "k": "Swap with",
+                "v": "2, the smaller",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "3 moved down",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": true
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "h0",
+                  "h2"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Stop when the order holds",
+            "tag": "solution",
+            "body": [
+              "Now 3 is at index 2. Its only child is 5, and 3 is smaller, so the order holds and we stop. The heap is 2, 4, 3, 9, 6, 5 again.",
+              "A key moves down at most one level per swap, so extract costs O(log n)."
+            ],
+            "short": "Done",
+            "hud": [
+              {
+                "k": "extract min",
+                "v": "O(log n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Heap",
+                "v": "2 4 3 9 6 5",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "minimum",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "What a heap is good for, and not good for",
+            "tag": "insight",
+            "body": [
+              "Good: find the minimum in O(1), insert and extract in O(log n), and build from n items in O(n). Not good: searching for an arbitrary key costs O(n), and the items are not kept in sorted order.",
+              "Python's heapq module is a min-heap stored in a list. For a max-heap, store negated values."
+            ],
+            "short": "Costs",
+            "hud": [
+              {
+                "k": "Find min",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Insert, extract",
+                "v": "O(log n)",
+                "tone": "good"
+              },
+              {
+                "k": "Search for a key",
+                "v": "O(n)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A binary heap is a complete tree stored in an array, with each parent no larger than its children. Insert at the end and sift up. Extract the root, move the last key to the top and sift down. Both take O(log n).",
+              "It is the structure behind priority queues and heap sort."
+            ],
+            "short": "Recap",
+            "set": {
+              "h0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "2"
+              },
+              "h1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "h2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "h3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "h4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "h5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "h6": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 complete tree in an array",
+                "2 parent <= children (min-heap)",
+                "3 push: append, sift up",
+                "4 pop: last to root, sift down"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A heap is like a pyramid of people where each person is shorter than the two people below them.",
+      "story": "Think of a pyramid where each person must be shorter than the two people standing below. The shortest person is always at the top, so you can spot them at once. When a new person arrives, they stand at the bottom and swap places upwards while they are shorter than the person above. When the top person leaves, the last person takes their place and swaps downwards until they are in the right spot.",
+      "maps": [
+        [
+          "The shortest person at the top",
+          "The minimum at the root"
+        ],
+        [
+          "A newcomer swapping upwards",
+          "Sift up"
+        ],
+        [
+          "Someone swapping downwards",
+          "Sift down"
+        ],
+        [
+          "The pyramid filling row by row",
+          "A complete tree"
+        ]
+      ],
+      "words": [
+        [
+          "heap",
+          "A complete tree where each parent is no larger than its children."
+        ],
+        [
+          "sift up",
+          "Swap a key with its parent until the order holds."
+        ],
+        [
+          "sift down",
+          "Swap a key with its smaller child until the order holds."
+        ],
+        [
+          "complete tree",
+          "A tree where every level is full except the last, which fills from the left."
+        ],
+        [
+          "min-heap",
+          "A heap with the smallest key at the root."
+        ]
+      ]
+    }
   }
 ]
