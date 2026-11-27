@@ -133825,5 +133825,1075 @@
         ]
       ]
     }
+  },
+  {
+    "id": "building-a-heap",
+    "n": 176,
+    "level": 14,
+    "week": "Core",
+    "title": "Building a Heap in O(n)",
+    "tagline": "Turn an unordered array into a heap with Floyd's bottom-up method, and see why it is faster than inserting the items one by one.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Given n items in any order, how fast can you arrange them into a heap? The obvious way is to push them one at a time. Each push costs O(log n), so n pushes cost O(n log n). The Wikipedia article calls this the insert-based method, credited to Williams, and takes O(n log n). A better method, by Floyd, builds the heap in O(n).",
+      "## Floyd's method",
+      "Treat the array as a complete tree. The nodes at indexes n // 2 and above are leaves, and a leaf is a heap already. Start at the last internal node, index n // 2 - 1, and sift it down. Then do the same for each earlier index, down to the root at index 0. When you sift down node i, both of its subtrees are already heaps, so the sift down repairs the whole subtree under i. At the end, the entire array is a heap.",
+      "## A trace",
+      "Build a min-heap from 9, 6, 8, 4, 3, 1, 5. The last internal node is index 2, holding 8. Its children are 1 and 5, so swap with 1. Next, index 1 holds 6, with children 4 and 3, so swap with 3. Finally, the root 9 has children 3 and 1. Swap with 1, then with 5, and 9 comes to rest at a leaf. The result is 1, 3, 5, 4, 6, 8, 9.",
+      "## Why it is O(n)",
+      "A sift down at a node costs up to the height of that node. Half of all nodes are leaves with height 0, so they cost nothing. A quarter have height 1, an eighth have height 2, and so on. The total work is about n times the sum of h divided by 2 to the power (h + 1), and that sum converges to a constant. So the build is O(n). The article explains that the total cost is O(n) because this sum converges, and gives the worst-case comparison count as 2n minus 2 times the number of 1 bits in n, minus the number of trailing zeros.",
+      "> A worked example: for n = 1,023, inserting items in descending order into a min-heap sends every new item all the way to the root, so the swaps add up to about n log2 n, which is around 9,000. Floyd's method does fewer than n swaps, under 1,023. Same result, an order of magnitude less work.",
+      "## Where it is used",
+      "heapq.heapify in Python's standard library builds a heap in place in linear time. It is the first phase of heap sort. It is also the right way to start a priority queue from a known batch of items, instead of pushing them individually. If you also need to add items later, push them with heappush.",
+      "## Common mistakes",
+      "Starting the loop at the last index instead of n // 2 - 1. Looping from the root downwards, which does not give a heap. Sifting up instead of down. Forgetting that the children of an out-of-range index do not exist.",
+      "## How to talk through it",
+      "State both methods and their costs. Explain that leaves are heaps already, so you begin at the last parent. Give the argument that half the nodes cost nothing, a quarter cost one swap, and so on, giving O(n). Mention heapify."
+    ],
+    "keyPoints": [
+      "Floyd's method: sift down each node from index n // 2 - 1 back to 0. Leaves are already heaps.",
+      "Total cost O(n), against O(n log n) for n separate pushes.",
+      "Why: half the nodes have height 0, a quarter height 1, and so on. The sum of h / 2^h converges.",
+      "heapq.heapify builds a min-heap in place in linear time.",
+      "Always loop from the last parent towards the root, and sift down, not up."
+    ],
+    "sql": [
+      {
+        "title": "Build a heap bottom-up and count the swaps",
+        "lang": "py",
+        "code": "def sift_down(a, i, n):\n    swaps = 0\n    while True:\n        small, left, right = i, 2 * i + 1, 2 * i + 2\n        if left < n and a[left] < a[small]:\n            small = left\n        if right < n and a[right] < a[small]:\n            small = right\n        if small == i:\n            return swaps\n        a[i], a[small] = a[small], a[i]\n        i, swaps = small, swaps + 1\n\ndef build_heap(a):\n    swaps = 0\n    for i in range(len(a) // 2 - 1, -1, -1):          # from the last parent to the root\n        swaps += sift_down(a, i, len(a))\n    return swaps\n\ndef is_min_heap(a):\n    return all(a[(i - 1) // 2] <= a[i] for i in range(1, len(a)))\n\na = [9, 6, 8, 4, 3, 1, 5]\nswaps = build_heap(a)\nassert a == [1, 3, 5, 4, 6, 8, 9] and swaps == 4 and is_min_heap(a)\nb = []\nassert build_heap(b) == 0 and b == []\nc = [1]\nassert build_heap(c) == 0 and c == [1]"
+      },
+      {
+        "title": "Floyd's method versus n pushes",
+        "lang": "py",
+        "code": "import heapq\nimport random\n\ndef sift_down(a, i, n):\n    swaps = 0\n    while True:\n        small, left, right = i, 2 * i + 1, 2 * i + 2\n        if left < n and a[left] < a[small]:\n            small = left\n        if right < n and a[right] < a[small]:\n            small = right\n        if small == i:\n            return swaps\n        a[i], a[small] = a[small], a[i]\n        i, swaps = small, swaps + 1\n\ndef floyd_swaps(items):\n    a = list(items)\n    return sum(sift_down(a, i, len(a)) for i in range(len(a) // 2 - 1, -1, -1))\n\ndef push_swaps(items):\n    a, swaps = [], 0\n    for x in items:\n        a.append(x)\n        i = len(a) - 1\n        while i > 0 and a[i] < a[(i - 1) // 2]:\n            a[i], a[(i - 1) // 2] = a[(i - 1) // 2], a[i]\n            i, swaps = (i - 1) // 2, swaps + 1\n    return swaps\n\nn = 1023\ndescending = list(range(n, 0, -1))                     # the worst case for pushing into a min-heap\nf, p = floyd_swaps(descending), push_swaps(descending)\nassert f < n                                           # linear\nassert p > 3 * f and p > 8000                          # about n log n\n\nrandom.seed(20)\ndata = random.sample(range(1000), 500)               # distinct values: no ties to break differently\nref = list(data)\nheapq.heapify(ref)\nmine = list(data)\nfor i in range(len(mine) // 2 - 1, -1, -1):\n    sift_down(mine, i, len(mine))\nassert mine == ref                                     # same heap as heapq.heapify builds"
+      },
+      {
+        "title": "heapify, then use the heap",
+        "lang": "py",
+        "code": "import heapq\n\nitems = [9, 6, 8, 4, 3, 1, 5]\nheapq.heapify(items)                                   # in place, linear time\nassert items == [1, 3, 5, 4, 6, 8, 9]\nassert heapq.heappop(items) == 1\nheapq.heappush(items, 0)\nassert heapq.heappop(items) == 0 and items[0] == 3\n\ntop3 = heapq.nsmallest(3, [9, 6, 8, 4, 3, 1, 5])\nassert top3 == [1, 3, 4]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write build_heap with sift_down and count the swaps for random lists of 100, 1,000 and 10,000 items. Write the push-based version too, and compare the counts on descending input. Then write build_max_heap by changing the comparisons, and check it against heapq with negated values.",
+    "pitfalls": [
+      "Starting the loop at index n - 1 or at 0 going upwards. Start at n // 2 - 1 and go down to 0.",
+      "Using sift up inside the build loop. Floyd's method sifts down.",
+      "Forgetting that sift down must stop at the end of the heap (n), not at the end of the list when the heap is a prefix.",
+      "Saying build is O(n log n) because each of n / 2 sift downs is O(log n). The costs are not all log n.",
+      "Pushing items one by one when you already have all of them. Use heapify."
+    ],
+    "interview": [
+      {
+        "q": "How do you build a heap from an array in O(n)?",
+        "a": "Sift down every internal node, starting from the last one at index n // 2 - 1 and moving back to the root. Leaves are already heaps. This is Floyd's method, and heapq.heapify uses it."
+      },
+      {
+        "q": "Why is building a heap O(n) and not O(n log n)?",
+        "a": "A sift down costs at most the height of the node, and most nodes are near the bottom: half are leaves with height 0, a quarter have height 1, and so on. The sum of those heights is linear in n."
+      },
+      {
+        "q": "What is the difference between sift up and sift down?",
+        "a": "Sift up moves a key towards the root while it is smaller than its parent, and is used after an insert. Sift down moves a key towards the leaves while it is larger than a child, and is used after an extract and when building a heap."
+      },
+      {
+        "q": "Where would you use heapify?",
+        "a": "When you have a whole batch of items and want a priority queue from them, and as the first phase of heap sort."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary heap (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_heap",
+        "kind": "Reference"
+      },
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: the linear-time build is a common follow-up in heap questions. Floyd's method, its O(n) cost with the converging sum, the O(n log n) insert-based method and the comparison count come from the Wikipedia binary heap article, which I read in part, and the in-place linear heapify from the Python heapq page, which I read in full. The trace and the swap-count experiment are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-heap",
+      "py-heapq",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "buildheap",
+        "title": "Building a heap, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The task",
+            "at": 0
+          },
+          {
+            "text": "Floyd's idea",
+            "at": 2
+          },
+          {
+            "text": "Sift down",
+            "at": 3
+          },
+          {
+            "text": "Result",
+            "at": 6
+          },
+          {
+            "text": "Why O(n)",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "9",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "6",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "8",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "4",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "b6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "5",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "b0",
+            "b": "b1",
+            "dir": "none"
+          },
+          {
+            "a": "b0",
+            "b": "b2",
+            "dir": "none"
+          },
+          {
+            "a": "b1",
+            "b": "b3",
+            "dir": "none"
+          },
+          {
+            "a": "b1",
+            "b": "b4",
+            "dir": "none"
+          },
+          {
+            "a": "b2",
+            "b": "b5",
+            "dir": "none"
+          },
+          {
+            "a": "b2",
+            "b": "b6",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "The task: turn any array into a heap",
+            "tag": "technique",
+            "body": [
+              "We have 7 numbers in no particular order: 9, 6, 8, 4, 3, 1, 5. We want them to form a min-heap, where every parent is at most its children. Read as a tree, the array is not a heap yet: the root 9 is the largest.",
+              "There are two ways to build the heap."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "9 6 8 4 3 1 5"
+              },
+              {
+                "k": "Heap?",
+                "v": "no: 9 is above 6 and 8",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            }
+          },
+          {
+            "title": "Way one: insert the items one by one",
+            "tag": "problem",
+            "body": [
+              "Push each number in turn, sifting it up. Each insert costs O(log n), so n inserts cost O(n log n). It works, but it does more work than needed.",
+              "A smarter way builds the heap from the bottom up."
+            ],
+            "short": "Repeated insert",
+            "hud": [
+              {
+                "k": "n inserts",
+                "v": "O(n log n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            }
+          },
+          {
+            "title": "Way two (Floyd): sift down from the last parent",
+            "tag": "technique",
+            "body": [
+              "Half of the nodes are leaves, and a leaf is already a heap of one. So begin at the last parent, index n // 2 - 1 = 2, and sift it down. Then go to index 1, then index 0.",
+              "The Wikipedia article calls this Floyd's method: sift down from the last internal node back to the root."
+            ],
+            "short": "Floyd's idea",
+            "hud": [
+              {
+                "k": "Leaves",
+                "v": "indexes 3 to 6: already heaps",
+                "tone": "good"
+              },
+              {
+                "k": "Start at",
+                "v": "index n // 2 - 1 = 2"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "last parent",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "8"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            }
+          },
+          {
+            "title": "Index 2: 8 swaps with the smaller child 1",
+            "tag": "solution",
+            "body": [
+              "The key 8 has children 1 and 5. The smaller child is 1, which is less than 8, so swap. The subtree is now a heap: 1 above 8 and 5.",
+              "Each sift down only fixes one subtree, whose children are already heaps."
+            ],
+            "short": "Fix index 2",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "9 6 1 4 3 8 5"
+              },
+              {
+                "k": "Swaps",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "1 moved up",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b2",
+                  "b5"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "Index 1: 6 swaps with the smaller child 3",
+            "tag": "solution",
+            "body": [
+              "The key 6 has children 4 and 3. The smaller is 3, which is less than 6, so swap. The subtree under index 1 is now a heap: 3 above 4 and 6.",
+              "The rest of the tree is untouched."
+            ],
+            "short": "Fix index 1",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "9 3 1 4 6 8 5"
+              },
+              {
+                "k": "Swaps",
+                "v": "2 so far"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "3 moved up",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b1",
+                  "b4"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The root 9 has children 3 and 1. Which does it swap with first?",
+              "options": [
+                "3",
+                "1: the smaller child",
+                "Neither"
+              ],
+              "answer": 1,
+              "why": "Sift down always swaps with the smaller child, so that the new parent is smaller than both its children."
+            }
+          },
+          {
+            "title": "Index 0: 9 sinks twice",
+            "tag": "solution",
+            "body": [
+              "The root 9 has children 3 and 1. Swap with the smaller, 1. Now 9 is at index 2, with children 8 and 5. Swap with 5. Now 9 is at index 6, a leaf, and it stops.",
+              "A key can sink many levels, but only the top of the tree is tall."
+            ],
+            "short": "Fix the root",
+            "hud": [
+              {
+                "k": "Array",
+                "v": "1 3 5 4 6 8 9"
+              },
+              {
+                "k": "Swaps",
+                "v": "4 in total"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": {
+                  "text": "minimum 1",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "1"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "9 sank to a leaf",
+                  "tone": "orange",
+                  "icon": "bolt"
+                },
+                "status": null,
+                "label": "9"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "b0",
+                  "b2"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "b2",
+                  "b6"
+                ],
+                "kind": "write",
+                "delay": 0.4
+              }
+            ]
+          },
+          {
+            "title": "The result is a valid heap",
+            "tag": "insight",
+            "body": [
+              "1 is at the root. Every parent is at most its children: 1 is under 3 and 5, 3 is under 4 and 6, and 5 is under 8 and 9. We built it in one bottom-up pass.",
+              "We never touched the leaves, since they were already heaps."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "1 3 5 4 6 8 9",
+                "tone": "good"
+              },
+              {
+                "k": "Total swaps",
+                "v": "4 for 7 items"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              }
+            }
+          },
+          {
+            "title": "Why it is O(n), not O(n log n)",
+            "tag": "insight",
+            "body": [
+              "A sift down costs as many swaps as the height of the node. Half the nodes are leaves (height 0), a quarter have height 1, an eighth have height 2, and so on. The total is the sum of h divided by 2 to the power h, which adds up to less than 2 per node.",
+              "So the whole build costs O(n). The Wikipedia article states the same, with the sum converging."
+            ],
+            "short": "Why O(n)",
+            "hud": [
+              {
+                "k": "Nodes at height 0",
+                "v": "n / 2: no work",
+                "tone": "good"
+              },
+              {
+                "k": "Height 1",
+                "v": "n / 4: 1 swap each"
+              },
+              {
+                "k": "Total",
+                "v": "O(n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              }
+            }
+          },
+          {
+            "title": "In Python: heapq.heapify",
+            "tag": "technique",
+            "body": [
+              "heapq.heapify(list) turns a list into a min-heap in place, in linear time. It uses this very method. Use it instead of pushing items one at a time.",
+              "For a max-heap, negate the values first."
+            ],
+            "short": "heapify",
+            "hud": [
+              {
+                "k": "heapify",
+                "v": "O(n), in place",
+                "tone": "good"
+              },
+              {
+                "k": "n pushes",
+                "v": "O(n log n)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "import heapq",
+                "heapq.heapify(items)   # in place, O(n)"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "To build a heap from n items, start at index n // 2 - 1 and sift down each node back to index 0. It costs O(n), faster than n pushes at O(n log n).",
+              "This is the first phase of heap sort."
+            ],
+            "short": "Recap",
+            "set": {
+              "b0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "1"
+              },
+              "b1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "3"
+              },
+              "b2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "5"
+              },
+              "b3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "4"
+              },
+              "b4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "6"
+              },
+              "b5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "8"
+              },
+              "b6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "9"
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 leaves are already heaps",
+                "2 start at n // 2 - 1",
+                "3 sift down each node to the root",
+                "4 O(n) total"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Building a heap is like sorting out a pyramid by fixing it from the bottom rows upwards.",
+      "story": "Imagine a messy pyramid of people. The people in the bottom row have nobody below them, so they are fine. You start with the row just above and let each person step down if someone below is shorter, swapping with the shorter of the two. Then you move up a row and repeat. By the time you reach the top, the whole pyramid is in order, and you did far less work than if you had added people one by one.",
+      "maps": [
+        [
+          "The bottom row",
+          "The leaves: already heaps"
+        ],
+        [
+          "Stepping down in a row",
+          "Sift down"
+        ],
+        [
+          "Working row by row upwards",
+          "Floyd's method"
+        ],
+        [
+          "Adding people one by one",
+          "Repeated insert"
+        ]
+      ],
+      "words": [
+        [
+          "heapify",
+          "Turn an unordered array into a heap."
+        ],
+        [
+          "Floyd's method",
+          "Build a heap by sifting down from the last parent to the root."
+        ],
+        [
+          "internal node",
+          "A node that has at least one child."
+        ],
+        [
+          "leaf",
+          "A node with no children."
+        ],
+        [
+          "sift down",
+          "Swap a key with its smaller child until the order holds."
+        ]
+      ]
+    }
   }
 ]
