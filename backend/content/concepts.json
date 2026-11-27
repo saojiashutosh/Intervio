@@ -138988,5 +138988,869 @@
         ]
       ]
     }
+  },
+  {
+    "id": "graph-representation",
+    "n": 181,
+    "level": 14,
+    "week": "Core",
+    "title": "Graph Representation: Adjacency Lists and Matrices",
+    "tagline": "Learn what a graph is and how to store one as an adjacency list, an adjacency matrix or an edge list, with the cost of each.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A graph is a set of vertices, also called nodes, joined by edges. Roads between cities, friends in a network, links between web pages and tasks that depend on others are all graphs. An undirected graph has edges that work both ways. A directed graph has edges with a direction. A weighted graph attaches a number, such as a distance or a cost, to each edge. Before you can run any graph algorithm, you must choose how to store the graph.",
+      "## Adjacency list",
+      "An adjacency list keeps, for each vertex, a collection of its neighbours. The Wikipedia article describes it as a set of unordered neighbour lists, one per vertex. The space is proportional to the number of vertices plus the number of edges. Listing all the neighbours of a vertex v takes time proportional to its degree. Testing for one particular edge means searching a neighbour list, which is slower than in a matrix. In Python the standard form is a dictionary of lists.",
+      "## Adjacency matrix",
+      "An adjacency matrix is a V by V table. The entry in row i and column j is 1 if there is an edge from vertex i to vertex j, and 0 otherwise. For an undirected graph the matrix is symmetric. The Wikipedia article notes that whether an edge exists between two vertices can be determined at once, in constant time, but listing the neighbours of a vertex requires scanning a whole row, which takes time proportional to V. The space is V squared, even for a graph with few edges.",
+      "- Adjacency list: space V + E, neighbours in O(degree), edge test by searching a list.\n- Adjacency matrix: space V squared, neighbours in O(V), edge test in O(1).\n- Edge list: space E, good for sorting edges by weight, as Kruskal's algorithm does.",
+      "## Which to choose",
+      "Most real graphs are sparse: each vertex is joined to a few others, so E is far less than V squared. For them, the list wins on space and on the neighbour walks that every traversal does. A matrix is the better choice for dense graphs, for graphs with a small fixed number of vertices, and when you need fast edge tests or matrix operations. The Wikipedia article on adjacency lists gives a calculation showing that the list is larger than the matrix only when the density exceeds about one in sixty-four, for its bit-packed example.",
+      "> A worked example: the graph with edges A-B, A-C, B-D, C-D and D-E. As a list: A has B and C, B has A and D, C has A and D, D has B, C and E, and E has D. As a matrix, it is 5 by 5 with 10 ones, since each undirected edge fills two cells. The sum of the degrees, 2 + 2 + 2 + 3 + 1, is 10, which is twice the 5 edges.",
+      "## Directed and weighted graphs",
+      "For a directed edge, add it only to the source's list, or set only one cell of the matrix. For weights, store the weight beside each neighbour: a dict of dicts, so adj[a][b] gives the weight, or a list of (neighbour, weight) pairs. Out-degree is the number of edges leaving a vertex, and in-degree is the number entering it.",
+      "## Common mistakes",
+      "Forgetting to add the reverse edge for an undirected graph. Building an adjacency matrix for a graph with a million vertices. Assuming vertices are numbered 0 to n - 1 when they are names or tuples. Not handling vertices that have no edges, which do not appear in the edge list.",
+      "## How to talk through it",
+      "Ask whether the graph is directed, weighted and sparse. Pick an adjacency list unless there is a reason not to, and give the space as V + E. Mention the matrix and say when it is better."
+    ],
+    "keyPoints": [
+      "A graph has vertices and edges. Edges can be undirected, directed or weighted.",
+      "Adjacency list: space V + E, neighbours in O(degree). The usual choice for sparse graphs.",
+      "Adjacency matrix: space V squared, edge test in O(1), neighbours in O(V). Good for dense graphs.",
+      "Undirected edge: add both directions. Weighted: store the weight (dict of dicts or (neighbour, weight) pairs).",
+      "Sum of degrees = 2 x number of edges in an undirected graph."
+    ],
+    "sql": [
+      {
+        "title": "Build a list and a matrix from an edge list",
+        "lang": "py",
+        "code": "from collections import defaultdict\n\nedges = [(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"D\"), (\"C\", \"D\"), (\"D\", \"E\")]\n\ndef adjacency_list(edges, directed=False):\n    adj = defaultdict(list)\n    for a, b in edges:\n        adj[a].append(b)\n        if not directed:\n            adj[b].append(a)\n    return adj\n\ndef adjacency_matrix(vertices, edges, directed=False):\n    index = {v: i for i, v in enumerate(vertices)}\n    m = [[0] * len(vertices) for _ in vertices]\n    for a, b in edges:\n        m[index[a]][index[b]] = 1\n        if not directed:\n            m[index[b]][index[a]] = 1\n    return m\n\nadj = adjacency_list(edges)\nassert adj[\"D\"] == [\"B\", \"C\", \"E\"] and adj[\"E\"] == [\"D\"]\nvertices = [\"A\", \"B\", \"C\", \"D\", \"E\"]\nm = adjacency_matrix(vertices, edges)\nassert m[3] == [0, 1, 1, 0, 1]                           # row D\nassert all(m[i][j] == m[j][i] for i in range(5) for j in range(5))      # symmetric\nassert sum(map(sum, m)) == 2 * len(edges)                # each undirected edge fills two cells\nassert sum(len(n) for n in adj.values()) == 2 * len(edges)"
+      },
+      {
+        "title": "Directed and weighted graphs, degrees and edge tests",
+        "lang": "py",
+        "code": "from collections import defaultdict\n\nedges = [(\"A\", \"B\", 4), (\"A\", \"C\", 2), (\"C\", \"B\", 1)]\n\nout_edges = defaultdict(dict)\nin_degree = defaultdict(int)\nfor a, b, w in edges:\n    out_edges[a][b] = w                                  # a directed, weighted edge\n    in_degree[b] += 1\n\nassert out_edges[\"A\"] == {\"B\": 4, \"C\": 2}\nassert out_edges[\"A\"][\"C\"] == 2 and \"B\" in out_edges[\"C\"] and \"A\" not in out_edges[\"B\"]\nassert in_degree[\"B\"] == 2 and in_degree[\"A\"] == 0\nassert len(out_edges[\"A\"]) == 2                          # out-degree of A\n\ndef has_edge_list(adj, a, b):                            # searching a list: O(degree)\n    return b in adj[a]\n\nlst = {\"A\": [\"B\", \"C\"], \"B\": [\"A\"], \"C\": [\"A\"]}\nassert has_edge_list(lst, \"A\", \"C\") and not has_edge_list(lst, \"B\", \"C\")"
+      },
+      {
+        "title": "Convert between the forms and check a sparse graph",
+        "lang": "py",
+        "code": "def matrix_to_list(m, names):\n    return {names[i]: [names[j] for j in range(len(m)) if m[i][j]] for i in range(len(m))}\n\ndef list_to_edges(adj):\n    seen, out = set(), []\n    for a, ns in adj.items():\n        for b in ns:\n            if (b, a) not in seen:                        # report each undirected edge once\n                seen.add((a, b))\n                out.append((a, b))\n    return out\n\nnames = [\"A\", \"B\", \"C\", \"D\", \"E\"]\nm = [[0, 1, 1, 0, 0], [1, 0, 0, 1, 0], [1, 0, 0, 1, 0], [0, 1, 1, 0, 1], [0, 0, 0, 1, 0]]\nadj = matrix_to_list(m, names)\nassert adj[\"A\"] == [\"B\", \"C\"] and adj[\"D\"] == [\"B\", \"C\", \"E\"]\nassert sorted(list_to_edges(adj)) == [(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"D\"), (\"C\", \"D\"), (\"D\", \"E\")]\n\nn = 1000                                                  # a sparse path graph\npath_edges = [(i, i + 1) for i in range(n - 1)]\ncells_matrix = n * n\ncells_list = n + 2 * len(path_edges)\nassert cells_list < cells_matrix / 100                    # the list is far smaller"
+      }
+    ],
+    "django": {},
+    "exercise": "Build an adjacency list, an adjacency matrix and an edge list from the same edges, directed and undirected. Write functions for neighbours, has_edge, degree and number_of_edges for each form, and check that they agree. Then build a graph of 2,000 vertices in a path, and compare the memory use of the list and the matrix.",
+    "pitfalls": [
+      "Forgetting the reverse edge in an undirected graph. Algorithms then explore it as if it were directed.",
+      "Using an adjacency matrix for a large sparse graph. V squared space can be enormous.",
+      "Assuming every vertex appears as the source of an edge. Isolated vertices must be added explicitly.",
+      "Testing for an edge by searching a long list inside a loop. Use a set or dict of neighbours.",
+      "Mixing up in-degree and out-degree in a directed graph."
+    ],
+    "interview": [
+      {
+        "q": "What is the difference between an adjacency list and an adjacency matrix?",
+        "a": "A list stores, for each vertex, its neighbours, using space proportional to V + E. A matrix is a V by V table of 0s and 1s, using V squared space, which gives constant-time edge tests but O(V) to list a vertex's neighbours."
+      },
+      {
+        "q": "When would you use an adjacency matrix?",
+        "a": "For dense graphs, where E is close to V squared, for small graphs, and when you need constant-time edge lookups or matrix operations."
+      },
+      {
+        "q": "How do you represent a weighted graph?",
+        "a": "Store the weight with each neighbour: a dict of dicts, adj[a][b] = weight, or a list of (neighbour, weight) pairs. An edge list of (a, b, weight) works for algorithms like Kruskal's."
+      },
+      {
+        "q": "How are the degrees of an undirected graph related to its edges?",
+        "a": "The sum of all degrees is twice the number of edges, because each edge adds one to the degree of both its endpoints."
+      }
+    ],
+    "references": [
+      {
+        "title": "Adjacency list (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Adjacency_list",
+        "kind": "Reference"
+      },
+      {
+        "title": "Adjacency matrix (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Adjacency_matrix",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: graph questions begin with choosing a representation. The adjacency list definition, its V + E space, the degree-proportional neighbour cost and the density comparison come from the Wikipedia adjacency list article, which I read in full, and the matrix definition, the constant-time edge test and the row-scan neighbour cost from the Wikipedia adjacency matrix article, which I read in part. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-adjacency-list",
+      "wikipedia-adjacency-matrix",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "graphrepr",
+        "title": "Graph representation, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or explore"
+          },
+          {
+            "kind": "write",
+            "label": "update"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "back edge or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Vertices and edges",
+            "at": 0
+          },
+          {
+            "text": "Matrix",
+            "at": 2
+          },
+          {
+            "text": "List",
+            "at": 3
+          },
+          {
+            "text": "Choosing",
+            "at": 4
+          },
+          {
+            "text": "In Python",
+            "at": 5
+          }
+        ],
+        "nodes": [
+          {
+            "id": "gA",
+            "kind": "cube",
+            "x": -2.6,
+            "y": 2.6,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gB",
+            "kind": "cube",
+            "x": -2.4,
+            "y": -0.4,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gC",
+            "kind": "cube",
+            "x": 0.4,
+            "y": 2.4,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gD",
+            "kind": "cube",
+            "x": 0.7,
+            "y": -0.7,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "gE",
+            "kind": "cube",
+            "x": 2.4,
+            "y": -2.4,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "gA",
+            "b": "gB",
+            "dir": "none"
+          },
+          {
+            "a": "gA",
+            "b": "gC",
+            "dir": "none"
+          },
+          {
+            "a": "gB",
+            "b": "gD",
+            "dir": "none"
+          },
+          {
+            "a": "gC",
+            "b": "gD",
+            "dir": "none"
+          },
+          {
+            "a": "gD",
+            "b": "gE",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "A graph is things and the links between them",
+            "tag": "technique",
+            "body": [
+              "A graph has vertices, also called nodes, and edges that join pairs of vertices. Here the vertices are A to E, and there are 5 edges. Graphs model roads, friendships, web links, networks and dependencies.",
+              "The two questions in this lesson: how do we store a graph, and what does each choice cost."
+            ],
+            "short": "Vertices and edges",
+            "hud": [
+              {
+                "k": "Vertices V",
+                "v": "5"
+              },
+              {
+                "k": "Edges E",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "vertex",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Edges",
+              "lines": [
+                "A-B  A-C  B-D  C-D  D-E"
+              ],
+              "hl": []
+            }
+          },
+          {
+            "title": "Kinds of graph",
+            "tag": "technique",
+            "body": [
+              "In an undirected graph an edge works both ways, like a friendship. In a directed graph an edge has a direction, like a link from one web page to another. A weighted graph puts a number on each edge, such as a distance.",
+              "The same storage ideas cover all three."
+            ],
+            "short": "Directed, weighted",
+            "hud": [
+              {
+                "k": "Undirected",
+                "v": "A-B means B-A"
+              },
+              {
+                "k": "Directed",
+                "v": "A to B only"
+              },
+              {
+                "k": "Weighted",
+                "v": "a number per edge"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Adjacency matrix: a table of yes and no",
+            "tag": "technique",
+            "body": [
+              "Make a V by V table. The cell in row i and column j is 1 if there is an edge from i to j, and 0 if not. For an undirected graph the table is symmetric. Checking whether A and D are joined is one lookup: the cell is 0.",
+              "The table always uses V squared cells, whatever the number of edges."
+            ],
+            "short": "Matrix",
+            "hud": [
+              {
+                "k": "Space",
+                "v": "V squared"
+              },
+              {
+                "k": "Is there an edge?",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "List the neighbours",
+                "v": "O(V): scan a row",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "row A, column D",
+                  "tone": "orange",
+                  "icon": "grid"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "cell = 0: no edge",
+                  "tone": "orange",
+                  "icon": "x"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Adjacency matrix",
+              "lines": [
+                "    A B C D E",
+                "A   0 1 1 0 0",
+                "B   1 0 0 1 0",
+                "C   1 0 0 1 0",
+                "D   0 1 1 0 1",
+                "E   0 0 0 1 0"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Adjacency list: each vertex lists its neighbours",
+            "tag": "technique",
+            "body": [
+              "Give each vertex a list of the vertices it is joined to. D has the neighbours B, C and E. Listing them takes time proportional to how many there are. The Wikipedia article says the space is proportional to V plus E.",
+              "Checking one particular edge means searching a short list."
+            ],
+            "short": "List",
+            "hud": [
+              {
+                "k": "Space",
+                "v": "V + E",
+                "tone": "good"
+              },
+              {
+                "k": "List the neighbours",
+                "v": "O(degree)",
+                "tone": "good"
+              },
+              {
+                "k": "Is there an edge?",
+                "v": "search a list",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "3 neighbours",
+                  "tone": "orange",
+                  "icon": "link"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "teal",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "gD",
+                  "gB"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "gD",
+                  "gC"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "gD",
+                  "gE"
+                ],
+                "kind": "request",
+                "delay": 0.6
+              }
+            ],
+            "card": {
+              "title": "Adjacency list",
+              "lines": [
+                "A: B C",
+                "B: A D",
+                "C: A D",
+                "D: B C E",
+                "E: D"
+              ],
+              "hl": [
+                3
+              ]
+            },
+            "predict": {
+              "question": "How many neighbours does D have in this graph?",
+              "options": [
+                "2",
+                "3",
+                "5"
+              ],
+              "answer": 1,
+              "why": "D is joined to B, C and E. The number of neighbours of a vertex is called its degree."
+            }
+          },
+          {
+            "title": "Which one to choose",
+            "tag": "insight",
+            "body": [
+              "A matrix suits dense graphs, where most pairs are joined, and when you test edges a lot. A list suits sparse graphs, with few edges, and when you walk through neighbours, as every traversal does. Most real graphs are sparse.",
+              "The article's rule of thumb is about the density E divided by V squared."
+            ],
+            "short": "Dense or sparse",
+            "hud": [
+              {
+                "k": "Dense graph",
+                "v": "matrix is fine"
+              },
+              {
+                "k": "Sparse graph",
+                "v": "list wins",
+                "tone": "good"
+              },
+              {
+                "k": "Most traversals",
+                "v": "walk neighbours: list",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python: a dict of lists",
+            "tag": "solution",
+            "body": [
+              "The usual form is a dictionary from each vertex to a list of its neighbours. For an undirected edge, add each endpoint to the other's list. For a directed edge, add it only to the source's list.",
+              "A defaultdict(list) saves you from checking whether a key exists."
+            ],
+            "short": "A dict of lists",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "from collections import defaultdict",
+                "adj = defaultdict(list)",
+                "for a, b in edges:",
+                "    adj[a].append(b)",
+                "    adj[b].append(a)   # leave out for a directed graph"
+              ],
+              "hl": [
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Weighted graphs store the weight too",
+            "tag": "technique",
+            "body": [
+              "For a weighted graph, store the weight beside each neighbour: a dict of dicts, adj[a][b] = weight, or a list of (neighbour, weight) pairs. Shortest path and spanning tree algorithms need this.",
+              "An edge list, a plain list of (a, b, weight) triples, is also used. Kruskal's algorithm sorts such a list."
+            ],
+            "short": "Weights",
+            "hud": [
+              {
+                "k": "Dict of dicts",
+                "v": "adj[a][b] = weight"
+              },
+              {
+                "k": "Edge list",
+                "v": "(a, b, weight)"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "adj = {'A': {'B': 4, 'C': 2}, 'B': {'A': 4}}",
+                "weight = adj['A']['B']   # 4"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Counting edges and degrees",
+            "tag": "insight",
+            "body": [
+              "In an undirected graph, the sum of all degrees is twice the number of edges, since each edge is counted at both ends. Here the degrees are 2, 2, 2, 3 and 1, which add to 10, and there are 5 edges.",
+              "A quick check like this catches a missing reverse edge."
+            ],
+            "short": "Degrees",
+            "hud": [
+              {
+                "k": "Sum of degrees",
+                "v": "2 x E = 10",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "degree 2",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "degree 2",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "degree 2",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "degree 3",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "degree 1",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A graph is vertices and edges. Store it as an adjacency list, a dict of lists, for most problems: V + E space and fast neighbour walks. Use a matrix for dense graphs or constant-time edge tests. Add weights as a second value.",
+              "Say which you chose and why."
+            ],
+            "short": "Recap",
+            "set": {
+              "gA": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gB": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gC": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gD": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gE": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 list: V + E space, walk neighbours",
+                "2 matrix: V squared space, O(1) edge test",
+                "3 undirected: add both directions",
+                "4 weighted: store the weight"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A graph is a map of dots and lines, and storing it is like choosing between a big table and a contact list.",
+      "story": "Imagine a map of towns joined by roads. You can write a big table with every town along the top and the side, and tick the box when two towns are joined. That is a matrix, and it is big even if there are few roads. Or you can keep a small list for each town of the towns it is joined to. That is an adjacency list, and it is short when roads are few.",
+      "maps": [
+        [
+          "The towns",
+          "The vertices"
+        ],
+        [
+          "The roads",
+          "The edges"
+        ],
+        [
+          "The big table of ticks",
+          "The adjacency matrix"
+        ],
+        [
+          "A list of neighbours for each town",
+          "The adjacency list"
+        ]
+      ],
+      "words": [
+        [
+          "graph",
+          "A set of vertices joined by edges."
+        ],
+        [
+          "vertex",
+          "One point in a graph, also called a node."
+        ],
+        [
+          "edge",
+          "A link between two vertices."
+        ],
+        [
+          "adjacency list",
+          "For each vertex, a list of the vertices it is joined to."
+        ],
+        [
+          "degree",
+          "The number of edges at a vertex."
+        ]
+      ]
+    }
   }
 ]
