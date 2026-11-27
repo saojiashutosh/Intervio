@@ -177067,5 +177067,1263 @@
         ]
       ]
     }
+  },
+  {
+    "id": "memoization",
+    "n": 209,
+    "level": 14,
+    "week": "Core",
+    "title": "Memoization: Remembering Answers to Beat Slow Recursion",
+    "tagline": "Turn an exponential recursion into a linear one by caching each answer, and learn the two properties that make dynamic programming work.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Some recursive functions repeat the same work many times. Memoization fixes that by remembering the answer to each call. The Wikipedia article describes it as storing the results of calls to a pure function so that later calls with the same arguments return the stored value. It trades memory for time, and it is usually done with a hash table. It is the top-down way of doing dynamic programming.",
+      "## A slow recursion",
+      "The Fibonacci numbers are 0, 1, 1, 2, 3, 5, 8 and so on. Each is the sum of the two before it. As code, fib(n) = fib(n - 1) + fib(n - 2), with fib(0) = 0 and fib(1) = 1. For fib(5) this makes 15 calls. For fib(30) it makes 2,692,537 calls, because fib(3) is computed again and again. The call tree for fib(5) computes fib(3) twice, fib(2) three times and fib(1) five times. The number of calls grows about as fast as the Fibonacci numbers, which is exponential in n.",
+      "## Remember the answers",
+      "Keep a dictionary, the cache. At the start of the function, if n is in the cache, return the stored answer. Otherwise compute it, store it and return it. Each value of n is now computed only once. For fib(5) there are 9 calls instead of 15, and for fib(30) there are about 59. The time is O(n), and the memory is O(n) for the cache and the recursion.",
+      "> A worked example: fib(5) calls fib(4), fib(3), fib(2) and fib(1). The base cases store fib(1) = 1 and fib(0) = 0. Then fib(2) = 1 is stored. Back in fib(3), the call fib(1) is a cache hit, so fib(3) = 2. In fib(4), fib(2) is a hit, so fib(4) = 3. In fib(5), fib(3) is a hit, so fib(5) = 5.",
+      "## The two properties",
+      "Memoization pays off when there are overlapping subproblems, which means the same smaller calls come up many times. For the answer to be built from the smaller answers, the problem needs optimal substructure. The Wikipedia dynamic programming article names these as the two requirements. A divide-and-conquer algorithm such as merge sort has subproblems that do not overlap, so a cache would never be hit.",
+      "## Rules for a safe cache",
+      "- The function must be pure: the same arguments always give the same result, and the call changes nothing else. The Wikipedia article says memoization is only valid for referentially transparent functions.\n- The arguments must be hashable, so they can be dictionary keys. Use tuples, not lists.\n- Include every argument that changes the answer in the key.\n- The cache uses memory. For a function called with many different arguments, use functools.lru_cache with a size limit.",
+      "## In Python",
+      "The decorator functools.cache wraps a function with a cache. functools.lru_cache does the same with an optional limit that discards the least recently used results. Both are one line. A deep recursion can go beyond Python's default recursion limit, about 1,000 frames, so for large n turn the recursion into a loop, which is the bottom-up form shown in the next lesson.",
+      "## Where it is used",
+      "Counting paths, splitting strings into words, game scores, the edit distance of two strings, and most dynamic programming problems start as a plain recursion, and a cache makes it fast. A good way to solve a new problem is to write the slow recursion first, find the repeated calls, and add the cache.",
+      "## How to talk through it",
+      "Write the recursion, show that the same call repeats with a small example, add a cache, and state the new cost in terms of the number of different arguments, times the work for each. Mention that the function must be pure, and the recursion depth."
+    ],
+    "keyPoints": [
+      "Memoization stores the result of each call, so a repeated call returns at once. It trades memory for time.",
+      "Plain fib is exponential (2.7 million calls for fib(30)). With a cache it is O(n).",
+      "It works when subproblems overlap and the answer is built from smaller answers (optimal substructure).",
+      "The function must be pure and its arguments hashable. functools.cache does it in one line.",
+      "Top-down dynamic programming. Watch the recursion limit: use a loop for large n."
+    ],
+    "sql": [
+      {
+        "title": "Count the calls: plain, hand-made cache, functools.cache",
+        "lang": "py",
+        "code": "from functools import cache\n\ndef calls_plain(n):\n    count = [0]\n    def fib(k):\n        count[0] += 1\n        return k if k < 2 else fib(k - 1) + fib(k - 2)\n    return fib(n), count[0]\n\ndef calls_cached(n):\n    count, cache = [0], {}\n    def fib(k):\n        count[0] += 1\n        if k in cache:\n            return cache[k]\n        cache[k] = k if k < 2 else fib(k - 1) + fib(k - 2)\n        return cache[k]\n    return fib(n), count[0]\n\nassert calls_plain(5) == (5, 15)\nassert calls_cached(5) == (5, 9)\nassert calls_plain(20)[1] == 21891\nassert calls_cached(30) == (832040, 59)                   # 2n - 1 calls\n\n@cache\ndef fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\n\nassert fib(50) == 12586269025\nassert fib.cache_info().misses == 51                      # each n computed once"
+      },
+      {
+        "title": "Memoize any pure function with a decorator",
+        "lang": "py",
+        "code": "def memoize(f):\n    cache = {}\n    def wrapper(*args):\n        if args not in cache:\n            cache[args] = f(*args)\n        return cache[args]\n    wrapper.cache = cache\n    return wrapper\n\n@memoize\ndef paths(r, c):                                          # routes across a grid, moving right or down\n    if r == 0 or c == 0:\n        return 1\n    return paths(r - 1, c) + paths(r, c - 1)\n\nassert paths(2, 2) == 6\nassert paths(16, 16) == 601080390\nassert len(paths.cache) == 17 * 17 - 1                    # each (r, c) with r, c > 0 or on an edge, computed once\n\ncalls = []\n@memoize\ndef impure(x):\n    calls.append(x)\n    return x * 2\n\nassert impure(3) == 6 and impure(3) == 6 and calls == [3]  # the second call is a hit"
+      },
+      {
+        "title": "Split a string into dictionary words: memoized",
+        "lang": "py",
+        "code": "from functools import cache\n\ndef can_split(text, words):\n    words = set(words)\n    @cache\n    def ok(start):\n        if start == len(text):\n            return True\n        return any(text[start:end] in words and ok(end) for end in range(start + 1, len(text) + 1))\n    return ok(0)\n\nassert can_split(\"leetcode\", [\"leet\", \"code\"]) is True\nassert can_split(\"applepenapple\", [\"apple\", \"pen\"]) is True\nassert can_split(\"catsandog\", [\"cats\", \"dog\", \"sand\", \"and\", \"cat\"]) is False\nassert can_split(\"\", [\"a\"]) is True"
+      }
+    ],
+    "django": {},
+    "exercise": "Write plain fib and count the calls for n = 5, 20 and 25. Add a hand-made cache and count again. Then use functools.cache and check cache_info. Write a memoize decorator, apply it to a grid path counter, and show that an impure function is not safe to memoize. Finally, solve word split with a cache.",
+    "pitfalls": [
+      "Memoizing a function that depends on global state or changes something. It is not pure.",
+      "Using a list as an argument. It is not hashable. Use a tuple.",
+      "Leaving an argument out of the cache key, so different calls share one answer.",
+      "Hitting the recursion limit for large n.",
+      "Memoizing something with no overlap, such as merge sort, which only wastes memory."
+    ],
+    "interview": [
+      {
+        "q": "What is memoization?",
+        "a": "Storing the result of each function call, keyed by its arguments, so a repeated call returns the stored result instead of computing again. It trades memory for time and works for pure functions."
+      },
+      {
+        "q": "Why is naive Fibonacci slow, and how do you fix it?",
+        "a": "It recomputes the same values exponentially often, about 2.7 million calls for fib(30). Caching each result makes it O(n)."
+      },
+      {
+        "q": "When does memoization help?",
+        "a": "When the problem has overlapping subproblems, so the same calls repeat, and optimal substructure, so the answer is built from smaller answers."
+      },
+      {
+        "q": "What is the difference between memoization and dynamic programming?",
+        "a": "Memoization is the top-down form: recursion with a cache. Dynamic programming also includes the bottom-up form, where you fill a table from the smallest subproblems up."
+      }
+    ],
+    "references": [
+      {
+        "title": "Memoization (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Memoization",
+        "kind": "Reference"
+      },
+      {
+        "title": "Dynamic programming (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Dynamic_programming",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: memoization is the easiest way into dynamic programming and is asked about directly. The definition of memoization as storing results of calls to a pure function, the space-time trade, the need for referential transparency and the hash table implementation come from the Wikipedia memoization article, which I read in part. The two requirements of overlapping subproblems and optimal substructure, and the top-down and bottom-up forms, come from the Wikipedia dynamic programming article, which I read in part. The call counts and the code are my own illustration, checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-memoization",
+      "wikipedia-dynamic-programming",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "memo",
+        "title": "Memoization, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "reads"
+          },
+          {
+            "kind": "write",
+            "label": "fills"
+          },
+          {
+            "kind": "response",
+            "label": "answer"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Slow recursion",
+            "at": 0
+          },
+          {
+            "text": "Memoization",
+            "at": 2
+          },
+          {
+            "text": "Base cases",
+            "at": 3
+          },
+          {
+            "text": "Cost",
+            "at": 8
+          },
+          {
+            "text": "Two conditions",
+            "at": 9
+          },
+          {
+            "text": "In Python",
+            "at": 10
+          }
+        ],
+        "nodes": [
+          {
+            "id": "f0",
+            "kind": "cube",
+            "x": -3.0,
+            "y": 3.0,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f1",
+            "kind": "cube",
+            "x": -1.8,
+            "y": 1.8,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f2",
+            "kind": "cube",
+            "x": -0.6,
+            "y": 0.6,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f3",
+            "kind": "cube",
+            "x": 0.6,
+            "y": -0.6,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f4",
+            "kind": "cube",
+            "x": 1.8,
+            "y": -1.8,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "f5",
+            "kind": "cube",
+            "x": 3.0,
+            "y": -3.0,
+            "label": "?",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A slow and simple recursion",
+            "tag": "technique",
+            "body": [
+              "The Fibonacci numbers start 0, 1, 1, 2, 3, 5, 8. Each is the sum of the two before it, so we can write fib(n) = fib(n - 1) + fib(n - 2), with fib(0) = 0 and fib(1) = 1. The code is short and correct.",
+              "But it is very slow. To find fib(5) it makes 15 calls. For fib(30) it makes 2,692,537 calls."
+            ],
+            "short": "Slow recursion",
+            "hud": [
+              {
+                "k": "fib(5)",
+                "v": "15 calls",
+                "tone": "warn"
+              },
+              {
+                "k": "fib(30)",
+                "v": "2,692,537 calls",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The same work again and again",
+            "tag": "problem",
+            "body": [
+              "In the tree of calls for fib(5), fib(3) is worked out 2 times, fib(2) 3 times and fib(1) 5 times. Each time it does all its work from scratch, though the answer cannot change.",
+              "The number of calls grows like the Fibonacci numbers themselves, so it doubles about every step."
+            ],
+            "short": "Repeated work",
+            "hud": [
+              {
+                "k": "fib(3)",
+                "v": "worked out 2 times"
+              },
+              {
+                "k": "fib(2)",
+                "v": "3 times"
+              },
+              {
+                "k": "fib(1)",
+                "v": "5 times",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "called 5x",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "called 3x",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "called 2x",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The idea: remember every answer",
+            "tag": "technique",
+            "body": [
+              "Keep a dictionary called the cache. Before working out fib(n), look in the cache. If the answer is there, return it at once. If not, work it out, store it, and return it. Each value of n is then worked out only once.",
+              "This is called memoization. The Wikipedia article describes it as storing the results of calls to a pure function, so later calls return the stored result, a trade of memory for time."
+            ],
+            "short": "Memoization",
+            "set": {
+              "f0": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "cache = {}",
+                "def fib(n):",
+                "    if n in cache: return cache[n]",
+                "    result = n if n < 2 else fib(n - 1) + fib(n - 2)",
+                "    cache[n] = result; return result"
+              ],
+              "hl": [
+                2,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Dive down to the base cases",
+            "tag": "solution",
+            "body": [
+              "fib(5) calls fib(4), which calls fib(3), then fib(2), then fib(1). Nothing is in the cache yet, so we keep going down. fib(1) is a base case: it returns 1 and we store it. Then fib(0) returns 0 and we store it.",
+              "A base case is a small input whose answer is known without more recursion."
+            ],
+            "short": "Base cases",
+            "hud": [
+              {
+                "k": "Cache",
+                "v": "fib(1)=1, fib(0)=0"
+              },
+              {
+                "k": "Calls so far",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "fib(2) = 1",
+            "tag": "solution",
+            "body": [
+              "Back in fib(2): it has fib(1) = 1 and fib(0) = 0, so fib(2) = 1. Store it.",
+              "The cache now has three answers."
+            ],
+            "short": "fib(2)",
+            "hud": [
+              {
+                "k": "Cache",
+                "v": "3 answers"
+              },
+              {
+                "k": "Calls so far",
+                "v": "6"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "fib(3) = 2, reusing fib(1)",
+            "tag": "solution",
+            "body": [
+              "fib(3) needs fib(2), which we just have, and fib(1). The call fib(1) finds the answer in the cache and returns at once. So fib(3) = 1 + 1 = 2. Store it.",
+              "This is the first saving: a call that would have done work now takes no time."
+            ],
+            "short": "fib(3)",
+            "hud": [
+              {
+                "k": "Cache hit",
+                "v": "fib(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Calls so far",
+                "v": "7"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "reused",
+                  "tone": "teal",
+                  "icon": "copy"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "orange",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "fib(4) needs fib(3) and fib(2). Both are in the cache. How many new additions does fib(4) do?",
+              "options": [
+                "Many",
+                "One: 2 + 1",
+                "None"
+              ],
+              "answer": 1,
+              "why": "Both values are known, so fib(4) is just one addition, 2 + 1 = 3."
+            }
+          },
+          {
+            "title": "fib(4) = 3, reusing fib(2)",
+            "tag": "solution",
+            "body": [
+              "fib(4) = fib(3) + fib(2). The call to fib(2) is a cache hit. So fib(4) = 2 + 1 = 3.",
+              "Again, no repeated work."
+            ],
+            "short": "fib(4)",
+            "hud": [
+              {
+                "k": "Cache hit",
+                "v": "fib(2)",
+                "tone": "good"
+              },
+              {
+                "k": "Calls so far",
+                "v": "8"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "teal",
+                "pill": {
+                  "text": "reused",
+                  "tone": "teal",
+                  "icon": "copy"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "orange",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "?",
+                "tone": "blue",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "blue",
+                  "icon": "key"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "fib(5) = 5, reusing fib(3)",
+            "tag": "solution",
+            "body": [
+              "fib(5) = fib(4) + fib(3), and fib(3) is a cache hit. So fib(5) = 3 + 2 = 5.",
+              "In all, there were 9 calls, instead of 15."
+            ],
+            "short": "fib(5)",
+            "hud": [
+              {
+                "k": "Answer",
+                "v": "5",
+                "tone": "good"
+              },
+              {
+                "k": "Calls",
+                "v": "9 instead of 15",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "teal",
+                "pill": {
+                  "text": "reused",
+                  "tone": "teal",
+                  "icon": "copy"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "5",
+                "tone": "orange",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The cost: one call per value of n",
+            "tag": "insight",
+            "body": [
+              "Each distinct n is worked out once, and each work step is one addition, so the time is O(n), with O(n) memory for the cache. fib(30) now needs about 59 calls, not 2,692,537.",
+              "An exponential algorithm became a linear one with a dictionary."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n)",
+                "tone": "good"
+              },
+              {
+                "k": "Memory",
+                "v": "O(n)"
+              },
+              {
+                "k": "fib(30)",
+                "v": "59 calls",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "When does it work?",
+            "tag": "insight",
+            "body": [
+              "Memoization helps when the same smaller problems come up again, called overlapping subproblems. The answer to a big problem must also be built from answers to smaller ones, called optimal substructure. Together these two properties are what dynamic programming needs.",
+              "Divide and conquer, like merge sort, has no overlap, so memoizing it would not help."
+            ],
+            "short": "Two conditions",
+            "hud": [
+              {
+                "k": "Overlapping subproblems",
+                "v": "the same call repeats"
+              },
+              {
+                "k": "Optimal substructure",
+                "v": "big answer from small ones"
+              }
+            ],
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "In Python: functools.cache",
+            "tag": "technique",
+            "body": [
+              "Instead of writing the dictionary yourself, put the decorator functools.cache, or lru_cache, above the function. Arguments must be hashable. A deep recursion can exceed Python's recursion limit, around 1,000 calls, so switch to a loop for large n.",
+              "Memoization is only correct for pure functions: the same input must always give the same output."
+            ],
+            "short": "In Python",
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "from functools import cache",
+                "@cache",
+                "def fib(n):",
+                "    return n if n < 2 else fib(n - 1) + fib(n - 2)"
+              ],
+              "hl": [
+                1
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Memoization is top-down dynamic programming: write the plain recursion, then remember each answer in a cache. It turns an exponential recursion into a linear one when subproblems overlap. Check that the function is pure, and watch the recursion depth.",
+              "Next, the same idea built from the bottom up, with a table."
+            ],
+            "short": "Recap",
+            "set": {
+              "f0": {
+                "label": "0",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(0)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f1": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(1)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f2": {
+                "label": "1",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(2)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f3": {
+                "label": "2",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(3)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f4": {
+                "label": "3",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(4)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "f5": {
+                "label": "5",
+                "tone": "green",
+                "pill": {
+                  "text": "fib(5)",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 write the recursion",
+                "2 find the repeated calls",
+                "3 cache the results",
+                "4 pure function, mind the depth"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Memoization is like writing the answer in the margin of your notes so you never work the same sum twice.",
+      "story": "You are doing a long worksheet where many questions need the same small sum, such as 7 times 8. The first time, you work it out and write the answer in the margin. After that, when the sum comes up again, you look in the margin and copy it. The worksheet takes minutes instead of hours. The margin notes are the cache, and they only help because the same sums keep coming back.",
+      "maps": [
+        [
+          "The margin notes",
+          "The cache"
+        ],
+        [
+          "Looking before working it out",
+          "A cache check"
+        ],
+        [
+          "The same sum coming up again",
+          "Overlapping subproblems"
+        ],
+        [
+          "Copying the answer",
+          "A cache hit"
+        ]
+      ],
+      "words": [
+        [
+          "memoization",
+          "Storing the result of each call so a repeat call returns it at once."
+        ],
+        [
+          "cache",
+          "A place that keeps results for later."
+        ],
+        [
+          "pure function",
+          "A function whose result depends only on its arguments and which changes nothing else."
+        ],
+        [
+          "overlapping subproblems",
+          "The same smaller problem is needed many times."
+        ],
+        [
+          "base case",
+          "A small input whose answer is known without more recursion."
+        ]
+      ]
+    }
   }
 ]
