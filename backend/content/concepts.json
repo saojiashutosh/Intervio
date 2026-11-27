@@ -135581,5 +135581,1222 @@
         ]
       ]
     }
+  },
+  {
+    "id": "top-k",
+    "n": 178,
+    "level": 14,
+    "week": "Core",
+    "title": "Top-K Problems: A Small Heap Keeps the Best",
+    "tagline": "Find the k largest items, or the k-th largest, with a min-heap of size k, so that a huge or streaming input costs only O(n log k).",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "Many questions ask for the k best of n items: the k largest numbers, the k most frequent words, the k closest points. Sorting everything costs O(n log n) and needs all the data at once. When k is much smaller than n, a heap of size k does the job in O(n log k) time and O(k) space, and works on streams.",
+      "## The k largest with a min-heap",
+      "Keep a min-heap holding the k largest numbers seen so far. Its root is the smallest of them, and acts as a gate. For each new number x: if the heap has fewer than k items, push x. Otherwise, if x is larger than the root, replace the root with x using heapreplace, which pops and pushes in one step. If x is not larger, skip it. At the end, the heap holds the k largest numbers, and the root is the k-th largest.",
+      "A min-heap is the right choice, which surprises many people. You need to evict the smallest of the k kept items quickly, and a min-heap gives it to you at the root in O(1).",
+      "## The cost",
+      "Each number is compared with the root in O(1). A number that gets in costs O(log k) to insert. In the worst case, every number gets in, so the time is O(n log k). The extra space is O(k). For k = 10 and a million numbers, that is about 3 million steps, against 20 million for a full sort.",
+      "> A worked example: the 3 largest of 5, 1, 9, 3, 7, 2, 8. Fill the heap with 5, 1, 9. Then 3 beats the root 1, so replace: the heap holds 3, 5, 9. 7 beats 3: the heap holds 5, 7, 9. 2 is below 5, skip. 8 beats 5: the heap holds 7, 8, 9. The answer is 9, 8, 7, and 7 is the third largest.",
+      "## The k smallest, and other versions",
+      "For the k smallest, use a max-heap of size k. In Python, negate the values with heapq. For the k most frequent words, count with a Counter first, then keep a heap of size k keyed by count. For the k closest points to the origin, key the heap by distance and keep a max-heap of size k so the farthest of the kept points is at the root.",
+      "## Other approaches",
+      "Sorting and slicing is the simplest: O(n log n). Quickselect finds the k-th largest in O(n) on average and partitions the rest, but it needs all the data in memory and can degrade to O(n squared). The Python heapq module offers nlargest and nsmallest, which are equivalent to sorting and slicing but are efficient for small n relative to the input, and for n = 1 the docs say to use min or max.",
+      "## When to pick which",
+      "Use the heap when k is small compared with n, when the data arrives as a stream or does not fit in memory, or when you need the answer to stay up to date as new items arrive. Use sort when k is close to n. Use quickselect when you have all the data and want O(n) on average.",
+      "## How to talk through it",
+      "Say that you keep a min-heap of size k and explain why min and not max. Give the three cases for each new item: fill, replace, skip. State O(n log k) time and O(k) space, and compare with sorting."
+    ],
+    "keyPoints": [
+      "k largest: keep a min-heap of size k. Its root is the smallest kept item, the gate.",
+      "For each x: push if not full; else if x > root, heapreplace; else skip. O(log k) when it gets in, O(1) when skipped.",
+      "Total O(n log k) time, O(k) extra space. Works on streams.",
+      "The root of the finished heap is the k-th largest. For the k smallest, negate the values.",
+      "heapq.nlargest(k, items) does it. Sorting is O(n log n). Quickselect is O(n) average with all data in memory."
+    ],
+    "sql": [
+      {
+        "title": "The k largest and the k-th largest",
+        "lang": "py",
+        "code": "import heapq\n\ndef k_largest(nums, k):\n    heap = []\n    for x in nums:\n        if len(heap) < k:\n            heapq.heappush(heap, x)\n        elif x > heap[0]:\n            heapq.heapreplace(heap, x)                 # pop the gate and push x in one step\n    return sorted(heap, reverse=True)\n\ndef kth_largest(nums, k):\n    heap = []\n    for x in nums:\n        if len(heap) < k:\n            heapq.heappush(heap, x)\n        elif x > heap[0]:\n            heapq.heapreplace(heap, x)\n    return heap[0]\n\ndata = [5, 1, 9, 3, 7, 2, 8]\nassert k_largest(data, 3) == [9, 8, 7]\nassert kth_largest(data, 3) == 7 and kth_largest(data, 1) == 9\nassert k_largest(data, 10) == sorted(data, reverse=True)       # k larger than n: everything\nassert k_largest([], 3) == []\nassert heapq.nlargest(3, data) == [9, 8, 7]"
+      },
+      {
+        "title": "Top k frequent words and k closest points",
+        "lang": "py",
+        "code": "import heapq\nfrom collections import Counter\n\ndef top_k_frequent(words, k):\n    counts = Counter(words)\n    return [w for w, _ in heapq.nlargest(k, counts.items(), key=lambda item: (item[1], -ord(item[0][0])))]\n\nassert top_k_frequent([\"a\", \"b\", \"a\", \"c\", \"b\", \"a\"], 2) == [\"a\", \"b\"]\n\ndef k_closest(points, k):\n    heap = []                                          # a max-heap by distance: store negated distances\n    for x, y in points:\n        d = x * x + y * y\n        if len(heap) < k:\n            heapq.heappush(heap, (-d, x, y))\n        elif -d > heap[0][0]:                          # closer than the farthest kept point\n            heapq.heapreplace(heap, (-d, x, y))\n    return sorted((x, y) for _, x, y in heap)\n\nassert k_closest([(1, 3), (-2, 2), (3, 3), (0, 1)], 2) == [(-2, 2), (0, 1)]\nassert k_closest([(5, 5)], 3) == [(5, 5)]"
+      },
+      {
+        "title": "A streaming top-k and a check against sorting",
+        "lang": "py",
+        "code": "import heapq\nimport random\n\nclass TopK:\n    def __init__(self, k):\n        self.k, self.heap = k, []\n\n    def add(self, x):\n        if len(self.heap) < self.k:\n            heapq.heappush(self.heap, x)\n        elif x > self.heap[0]:\n            heapq.heapreplace(self.heap, x)\n\n    def top(self):\n        return sorted(self.heap, reverse=True)\n\nrandom.seed(22)\nstream = [random.randint(0, 10 ** 6) for _ in range(5000)]\nt = TopK(10)\nfor x in stream:\n    t.add(x)\nassert t.top() == sorted(stream, reverse=True)[:10]\nassert len(t.heap) == 10                              # memory stays O(k)\n\nsmall = TopK(3)\nfor x in (4, 4, 4):\n    small.add(x)\nassert small.top() == [4, 4, 4]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write k_largest and kth_largest with a min-heap of size k, and check them against sorted on 300 random lists. Write top_k_frequent with Counter and a heap, and k_closest with a max-heap of size k. Then write a TopK class for a stream and test that its memory stays O(k). Finally, explain why a max-heap of size n would be a worse choice for the k largest.",
+    "pitfalls": [
+      "Using a max-heap of all n items for the k largest. It costs O(n) memory and O(n + k log n) time.",
+      "Using a max-heap of size k for the k largest. The smallest kept item is then hard to reach.",
+      "Forgetting the case where k is larger than n, or the input is empty.",
+      "Comparing with the gate using the wrong sign for a k-smallest version. Negate carefully.",
+      "Pushing and then popping separately when heapreplace does both in one step."
+    ],
+    "interview": [
+      {
+        "q": "How do you find the k largest elements of a large array?",
+        "a": "Keep a min-heap of size k. For each element, if the heap is not full push it, else if it is larger than the root replace the root. The heap ends up holding the k largest. It costs O(n log k) time and O(k) space."
+      },
+      {
+        "q": "Why use a min-heap for the k largest elements?",
+        "a": "Because you need to evict the smallest of the k kept elements quickly, and a min-heap keeps it at the root. Its root is also the k-th largest at the end."
+      },
+      {
+        "q": "What are the alternatives and when would you use them?",
+        "a": "Sort and slice is O(n log n) and simple. Quickselect finds the k-th largest in O(n) on average but needs all the data in memory. The heap is best when k is small or the data streams."
+      },
+      {
+        "q": "How do you find the k most frequent words?",
+        "a": "Count with a Counter, then keep a min-heap of size k keyed by count, or use heapq.nlargest with a key. The cost is O(n + m log k) for m distinct words."
+      }
+    ],
+    "references": [
+      {
+        "title": "heapq: heap queue algorithm (Python docs)",
+        "url": "https://docs.python.org/3/library/heapq.html",
+        "kind": "Python docs"
+      },
+      {
+        "title": "Priority queue (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Priority_queue",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: top-k questions are among the most common heap problems in coding rounds. The heap operations, heapreplace, and the notes on nlargest and nsmallest come from the Python heapq page, which I read in full. The heap costs come from the Wikipedia priority queue article, which I read in part. The size-k min-heap method, the stream and the comparison with sorting and quickselect are standard techniques that I present from general knowledge and my own judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "py-heapq",
+      "wikipedia-priority-queue",
+      "wikipedia-binary-heap",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "topk",
+        "title": "Top-k with a heap, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or read"
+          },
+          {
+            "kind": "write",
+            "label": "swap or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 1
+          },
+          {
+            "text": "Fill",
+            "at": 2
+          },
+          {
+            "text": "Replace",
+            "at": 3
+          },
+          {
+            "text": "Skip",
+            "at": 5
+          },
+          {
+            "text": "Cost",
+            "at": 8
+          },
+          {
+            "text": "Alternatives",
+            "at": 9
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a0",
+            "kind": "cube",
+            "x": -4.65,
+            "y": 2.25,
+            "label": "5",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a1",
+            "kind": "cube",
+            "x": -3.5,
+            "y": 1.1,
+            "label": "1",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a2",
+            "kind": "cube",
+            "x": -2.35,
+            "y": -0.05,
+            "label": "9",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a3",
+            "kind": "cube",
+            "x": -1.2,
+            "y": -1.2,
+            "label": "3",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a4",
+            "kind": "cube",
+            "x": -0.05,
+            "y": -2.35,
+            "label": "7",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a5",
+            "kind": "cube",
+            "x": 1.1,
+            "y": -3.5,
+            "label": "2",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "a6",
+            "kind": "cube",
+            "x": 2.25,
+            "y": -4.65,
+            "label": "8",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "hp0",
+            "kind": "cube",
+            "x": -0.4,
+            "y": 2.6,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "hp1",
+            "kind": "cube",
+            "x": 1.1,
+            "y": 1.1,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          },
+          {
+            "id": "hp2",
+            "kind": "cube",
+            "x": 2.6,
+            "y": -0.4,
+            "label": "",
+            "icon": "plate",
+            "tone": "purple"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The task: the 3 largest of many numbers",
+            "tag": "technique",
+            "body": [
+              "Given 5, 1, 9, 3, 7, 2, 8, find the 3 largest. Sorting all of them costs O(n log n). If n is huge, or the numbers arrive as a stream, we can do better by remembering only 3.",
+              "The trick is to keep a small heap."
+            ],
+            "short": "The task",
+            "hud": [
+              {
+                "k": "Sorting",
+                "v": "O(n log n)",
+                "tone": "warn"
+              },
+              {
+                "k": "Small heap",
+                "v": "O(n log k)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "Keep a min-heap of the k best so far",
+            "tag": "technique",
+            "body": [
+              "A min-heap of size k = 3 holds the 3 largest numbers seen. Its root is the smallest of them: the gate. A new number gets in only if it is larger than the gate, and it pushes the gate out.",
+              "Why a min-heap and not a max-heap: we need quick access to the one we would throw away, which is the smallest."
+            ],
+            "short": "The idea",
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": true
+              },
+              "hp1": {
+                "hidden": true
+              },
+              "hp2": {
+                "hidden": true
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "heap = []",
+                "for x in stream:",
+                "    if len(heap) < k: heappush(heap, x)",
+                "    elif x > heap[0]: heapreplace(heap, x)"
+              ],
+              "hl": [
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "title": "The first three numbers fill the heap",
+            "tag": "solution",
+            "body": [
+              "5, 1 and 9 go straight in, since the heap is not full yet. The heap holds 1 5 9. The gate, its smallest number, is 1.",
+              "Each push costs O(log k)."
+            ],
+            "short": "Fill",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "1 5 9"
+              },
+              {
+                "k": "Gate",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "1",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a0",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "3 beats the gate 1: replace it",
+            "tag": "solution",
+            "body": [
+              "The next number is 3. It is larger than the gate 1, so 1 is not among the top 3 any more. heapreplace removes 1 and inserts 3 in one step. The heap holds 3 5 9.",
+              "The new gate is 3."
+            ],
+            "short": "3 comes in",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "3 5 9"
+              },
+              {
+                "k": "Gate",
+                "v": "3"
+              },
+              {
+                "k": "Cost",
+                "v": "O(log k)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "3",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a3",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "predict": {
+              "question": "The heap holds 3, 5, 9. The next number is 7. Does it get in?",
+              "options": [
+                "No: 7 is not the largest",
+                "Yes: 7 beats the gate 3",
+                "Only if the heap is not full"
+              ],
+              "answer": 1,
+              "why": "A number gets in if it is larger than the gate, the heap's smallest. 7 is larger than 3."
+            }
+          },
+          {
+            "title": "7 beats the gate 3",
+            "tag": "solution",
+            "body": [
+              "7 is larger than 3, so 3 leaves and 7 enters. The heap holds 5 7 9. The gate is now 5.",
+              "Every number that enters raises the gate."
+            ],
+            "short": "7 comes in",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "5 7 9"
+              },
+              {
+                "k": "Gate",
+                "v": "5"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a4",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "2 is below the gate: skip it",
+            "tag": "insight",
+            "body": [
+              "2 is smaller than the gate 5, so it cannot be in the top 3. We skip it. This is a single comparison, O(1).",
+              "Most numbers in a large stream are skipped like this."
+            ],
+            "short": "2 is skipped",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "5 7 9"
+              },
+              {
+                "k": "Cost",
+                "v": "O(1) for a skipped number",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "5",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "8 beats the gate 5",
+            "tag": "solution",
+            "body": [
+              "8 is larger than 5, so 5 leaves and 8 enters. The heap holds 7 8 9.",
+              "The stream is finished."
+            ],
+            "short": "8 comes in",
+            "hud": [
+              {
+                "k": "Heap",
+                "v": "7 8 9"
+              },
+              {
+                "k": "Gate",
+                "v": "7"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "a6",
+                  "hp0"
+                ],
+                "kind": "write"
+              }
+            ]
+          },
+          {
+            "title": "The answer: the heap holds the 3 largest",
+            "tag": "insight",
+            "body": [
+              "The heap holds 7, 8 and 9, the three largest numbers. The root, 7, is the third largest: the k-th largest overall.",
+              "To list them in order, sort the 3 items, which is cheap."
+            ],
+            "short": "Result",
+            "hud": [
+              {
+                "k": "Top 3",
+                "v": "9 8 7",
+                "tone": "good"
+              },
+              {
+                "k": "k-th largest",
+                "v": "7",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The cost: O(n log k)",
+            "tag": "insight",
+            "body": [
+              "Each of the n numbers is compared with the gate, O(1). At most n of them enter the heap, and each entry costs O(log k). The total is O(n log k), with O(k) extra space. For small k this is almost linear.",
+              "It also works on a stream, because you never need all the numbers at once."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Time",
+                "v": "O(n log k)",
+                "tone": "good"
+              },
+              {
+                "k": "Space",
+                "v": "O(k)",
+                "tone": "good"
+              },
+              {
+                "k": "Works on a stream",
+                "v": "yes",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Other ways to get the top k",
+            "tag": "technique",
+            "body": [
+              "Sort and slice: O(n log n). Quickselect: O(n) on average, finds the k-th and partitions the rest, but needs all the data in memory. heapq.nlargest(k, items) does the heap method for you. For k = 1, just use max.",
+              "Choose the heap when k is small compared with n, or when the data streams."
+            ],
+            "short": "Alternatives",
+            "hud": [
+              {
+                "k": "Sort",
+                "v": "O(n log n)"
+              },
+              {
+                "k": "Quickselect",
+                "v": "O(n) average"
+              },
+              {
+                "k": "heapq.nlargest",
+                "v": "heap of size k"
+              }
+            ],
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "For the k largest, keep a min-heap of size k. Compare each new number with the root: if larger, replace the root. For the k smallest, use a max-heap by negating. The cost is O(n log k).",
+              "The root of the finished heap is the k-th largest."
+            ],
+            "short": "Recap",
+            "set": {
+              "a0": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a4": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a5": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "a6": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "hp0": {
+                "hidden": false,
+                "label": "7",
+                "tone": "purple",
+                "pill": {
+                  "text": "smallest = the gate",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null
+              },
+              "hp1": {
+                "hidden": false,
+                "label": "8",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              },
+              "hp2": {
+                "hidden": false,
+                "label": "9",
+                "tone": "purple",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 min-heap of size k for the k largest",
+                "2 larger than the root: replace it",
+                "3 O(n log k) time, O(k) space",
+                "4 root = the k-th largest"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Top-k with a heap is like keeping a shortlist of the three tallest people you have met, and checking each newcomer against the shortest on the list.",
+      "story": "You meet people one at a time and want to remember the three tallest. You keep a short list of three. When someone new arrives, you compare them only with the shortest person on your list. If the newcomer is taller, the shortest leaves the list and the newcomer joins. If not, you ignore them. You never need to remember everyone you met.",
+      "maps": [
+        [
+          "The shortlist of three",
+          "A min-heap of size k"
+        ],
+        [
+          "The shortest on the list",
+          "The root: the gate"
+        ],
+        [
+          "A taller newcomer joins",
+          "Replacing the root"
+        ],
+        [
+          "Ignoring everyone else",
+          "Skipping in O(1)"
+        ]
+      ],
+      "words": [
+        [
+          "top-k",
+          "The k best items, such as the k largest."
+        ],
+        [
+          "min-heap",
+          "A heap with the smallest item at the root."
+        ],
+        [
+          "heapreplace",
+          "Remove the smallest item and add a new one in one step."
+        ],
+        [
+          "stream",
+          "Data that arrives one item at a time."
+        ],
+        [
+          "quickselect",
+          "A method that finds the k-th item in O(n) on average."
+        ]
+      ]
+    }
   }
 ]
