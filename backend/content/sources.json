@@ -2609,6 +2609,42 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "Levenshtein distance counts insertions, deletions and substitutions; the Wagner-Fischer table takes Theta(m n) time; two rows reduce space to Theta(min(m, n)); kitten to sitting is 3."
+    },
+    {
+      "key": "wikipedia-bitwise-operation",
+      "title": "Bitwise operation (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bitwise_operation",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "AND, OR, XOR and NOT act on each bit; AND with a mask tests or clears bits, OR sets them, XOR toggles them and x XOR x is 0; a left shift multiplies by 2^n and an arithmetic right shift divides by 2^n."
+    },
+    {
+      "key": "py-bitwise",
+      "title": "Bitwise operations on integer types (Python docs)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types",
+      "publisher": "Python Software Foundation",
+      "kind": "official",
+      "checked": "read",
+      "used_for": "Python integers behave as two's complement with infinitely many sign bits; operators |, ^, &, <<, >> and ~; int.bit_length and int.bit_count (from 3.10); shifts by a negative count raise ValueError."
+    },
+    {
+      "key": "wikipedia-bit-array",
+      "title": "Bit array (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bit_array",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A bit array stores one bit per item and can implement a set; set, clear, test and toggle with shifts and masks; union, intersection and difference are word-wide operations; population count; wasteful for sparse sets."
+    },
+    {
+      "key": "wikipedia-hamming-weight",
+      "title": "Hamming weight (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Hamming_weight",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "The number of 1 bits, or population count; x AND (x - 1) clears the lowest set bit, so repeating it counts bits in as many steps as there are 1s; Hamming distance is the weight of A XOR B; Python offers int.bit_count."
     }
   ],
   "levels": [
