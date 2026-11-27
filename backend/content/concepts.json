@@ -123572,5 +123572,1114 @@
         ]
       ]
     }
+  },
+  {
+    "id": "binary-trees",
+    "n": 167,
+    "level": 14,
+    "week": "Core",
+    "title": "Binary Trees: Nodes, Height and Shapes",
+    "tagline": "Learn the words and shapes of a binary tree: root, leaf, depth, height, and the difference between perfect, complete and full.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A binary tree is a hierarchy of nodes in which every node has at most two children, called the left and right child. The single node at the top is the root. A node with no children is a leaf. Every other node has exactly one parent. Trees appear everywhere: file systems, HTML pages, expression parsers, search structures and heaps.",
+      "## Words you must know",
+      "- Depth of a node: the number of edges from the root to that node. The root has depth 0.\n- Height of a tree: the number of edges on the longest path from the root to a leaf. The Wikipedia article counts height in edges, so a tree with a lone root has height 0.\n- Subtree: a node together with all its descendants.\n- Ancestor and descendant: nodes above and below on one path.",
+      "## Shapes",
+      "The article defines several shapes that are easy to confuse. A full binary tree has every node with 0 or 2 children. A perfect binary tree has all interior nodes with two children and all leaves at the same depth. A complete binary tree has every level filled except possibly the last, and the last level's nodes as far left as possible. A balanced tree has the heights of the left and right subtrees of every node differing by at most 1. A perfect tree is always full and complete.",
+      "## Counting nodes",
+      "A tree of height h has at most 2 to the power (h + 1) minus 1 nodes, which a perfect tree reaches. So a tree with n nodes has a height of at least log2(n + 1) minus 1. A binary tree with n nodes has n - 1 edges. The number of leaves is the number of nodes with two children plus one.",
+      "## Array layout",
+      "A complete binary tree needs no pointers. Number the nodes from 0, level by level. The children of node i are at positions 2i + 1 and 2i + 2, and its parent is at floor((i - 1) / 2). With the root numbered 1 instead, the children are 2i and 2i + 1. A complete tree with n nodes has floor(n / 2) internal nodes. Binary heaps rely on exactly this layout.",
+      "## Degenerate trees",
+      "If every node has one child, the tree is a chain of height n - 1, and searching it takes O(n), as in a linked list. The article calls such trees degenerate or pathological. The quality of a tree is its height. A balanced tree has height O(log n), and the following lessons show how to keep it that way.",
+      "> A worked example: the array 1, 2, 3, 4, 5, 6, 7 read as a tree has 1 at the root, 2 and 3 as its children, and 4, 5, 6, 7 as the leaves. Node 5, at index 4, has its parent at floor(3 / 2) = 1, which holds 2. Its children would be at 9 and 10, which do not exist, so it is a leaf.",
+      "## How to talk through it",
+      "Draw a small tree and label root, leaves, depth and height. Say which shape you mean by perfect, complete or full, since the words are often mixed up. Then state the cost of the operation in terms of the height."
+    ],
+    "keyPoints": [
+      "A binary tree node has at most two children. Root at the top, leaves at the bottom.",
+      "Depth counts edges down from the root. Height counts edges on the longest root-to-leaf path.",
+      "Full: 0 or 2 children. Perfect: all levels full. Complete: filled left to right with no gaps.",
+      "A tree of height h has at most 2^(h+1) - 1 nodes. A tree of n nodes has n - 1 edges.",
+      "A complete tree is stored in an array: children at 2i + 1 and 2i + 2, parent at (i - 1) // 2. A skewed tree has height n - 1."
+    ],
+    "sql": [
+      {
+        "title": "Build a tree from a list and measure it",
+        "lang": "py",
+        "code": "from collections import deque\n\nclass Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef build(values):                                   # level order, None means no node\n    if not values or values[0] is None:\n        return None\n    root, q, i = Node(values[0]), None, 1\n    q = deque([root])\n    while q and i < len(values):\n        node = q.popleft()\n        if i < len(values) and values[i] is not None:\n            node.left = Node(values[i]); q.append(node.left)\n        i += 1\n        if i < len(values) and values[i] is not None:\n            node.right = Node(values[i]); q.append(node.right)\n        i += 1\n    return root\n\ndef height(n):                                       # in edges: an empty tree is -1, a lone node is 0\n    return -1 if n is None else 1 + max(height(n.left), height(n.right))\n\ndef count(n):\n    return 0 if n is None else 1 + count(n.left) + count(n.right)\n\nperfect = build([1, 2, 3, 4, 5, 6, 7])\nassert height(perfect) == 2 and count(perfect) == 7 == 2 ** (height(perfect) + 1) - 1\nassert height(build([1])) == 0 and height(None) == -1\nchain = build([1, None, 2, None, 3, None, 4])\nassert height(chain) == 3 and count(chain) == 4      # a skewed tree: height n - 1"
+      },
+      {
+        "title": "Full, complete and perfect",
+        "lang": "py",
+        "code": "from collections import deque\n\nclass Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef build(values):\n    if not values or values[0] is None:\n        return None\n    root = Node(values[0]); q = deque([root]); i = 1\n    while q and i < len(values):\n        node = q.popleft()\n        if i < len(values) and values[i] is not None:\n            node.left = Node(values[i]); q.append(node.left)\n        i += 1\n        if i < len(values) and values[i] is not None:\n            node.right = Node(values[i]); q.append(node.right)\n        i += 1\n    return root\n\ndef height(n): return -1 if n is None else 1 + max(height(n.left), height(n.right))\ndef count(n): return 0 if n is None else 1 + count(n.left) + count(n.right)\n\ndef is_full(n):\n    if n is None:\n        return True\n    if (n.left is None) != (n.right is None):          # exactly one child\n        return False\n    return is_full(n.left) and is_full(n.right)\n\ndef is_perfect(n):\n    return count(n) == 2 ** (height(n) + 1) - 1\n\ndef is_complete(root):\n    q, seen_gap = deque([root]), False\n    while q:\n        node = q.popleft()\n        if node is None:\n            seen_gap = True\n        else:\n            if seen_gap:\n                return False                           # a node after a gap\n            q.append(node.left); q.append(node.right)\n    return True\n\nt7, t6, bad = build([1, 2, 3, 4, 5, 6, 7]), build([1, 2, 3, 4, 5, 6]), build([1, 2, 3, 4, None, 6, 7])\nassert is_full(t7) and is_perfect(t7) and is_complete(t7)\nassert is_complete(t6) and not is_perfect(t6) and not is_full(t6)\nassert not is_full(bad) and not is_complete(bad)\n\ndef leaves(n):\n    return 0 if n is None else (1 if n.left is None and n.right is None else leaves(n.left) + leaves(n.right))\ndef two_children(n):\n    return 0 if n is None else (n.left is not None and n.right is not None) + two_children(n.left) + two_children(n.right)\nassert leaves(t7) == two_children(t7) + 1              # leaves = nodes with two children + 1"
+      },
+      {
+        "title": "The array layout",
+        "lang": "py",
+        "code": "def left(i): return 2 * i + 1\ndef right(i): return 2 * i + 2\ndef parent(i): return (i - 1) // 2\n\na = [1, 2, 3, 4, 5, 6, 7]\nassert (a[left(0)], a[right(0)]) == (2, 3)\nassert a[parent(4)] == 2 and a[parent(6)] == 3\nassert parent(left(5)) == 5 and parent(right(5)) == 5\n\nn = 10\ninternal = [i for i in range(n) if left(i) < n]\nassert len(internal) == n // 2                          # a complete tree has floor(n / 2) internal nodes\n\ndef depth(i):\n    d = 0\n    while i:\n        i, d = parent(i), d + 1\n    return d\n\nassert [depth(i) for i in range(7)] == [0, 1, 1, 2, 2, 2, 2]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write build, height, count, is_full, is_complete and is_perfect, and test a lone node, an empty tree, a skewed tree and a perfect tree. Then write a function that returns the number of leaves and check that it equals the number of nodes with two children plus one on 100 random trees. Finally, write depth(i) for the array layout and explain why the root has depth 0.",
+    "pitfalls": [
+      "Mixing up depth and height. Depth counts down from the root, height counts the longest path down.",
+      "Counting height in nodes in one place and in edges in another. State which you use.",
+      "Mixing up full, complete and perfect. They are three different conditions.",
+      "Forgetting the empty tree. Decide its height (often -1 in edges) and handle None.",
+      "Assuming a tree is balanced. A tree built from sorted input is a chain with height n - 1."
+    ],
+    "interview": [
+      {
+        "q": "What is the difference between a full, a complete and a perfect binary tree?",
+        "a": "Full means every node has 0 or 2 children. Complete means every level is full except maybe the last, which is filled from the left. Perfect means all interior nodes have two children and all leaves are at the same depth. A perfect tree is both full and complete."
+      },
+      {
+        "q": "What is the maximum number of nodes in a binary tree of height h?",
+        "a": "2 to the power (h + 1) minus 1, reached by a perfect tree, if height counts edges and a lone root has height 0."
+      },
+      {
+        "q": "How do you store a complete binary tree in an array?",
+        "a": "Number the nodes level by level from 0. The children of node i are at 2i + 1 and 2i + 2, and the parent is at (i - 1) // 2. No pointers are needed."
+      },
+      {
+        "q": "Why does the shape of a binary tree matter?",
+        "a": "Most operations take time proportional to the height. A balanced tree has height about log2 n, but a degenerate tree is a list with height n - 1, so operations cost O(n)."
+      }
+    ],
+    "references": [
+      {
+        "title": "Binary tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Binary_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: trees are a core topic in every coding round the big-company prep pages describe. The definitions of full, perfect, complete and balanced trees, the height convention, the node-count bounds, the array index formulas and the degenerate case come from the Wikipedia binary tree article, which I read in part. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-binary-tree",
+      "amazon-topics",
+      "meta-swe-prep",
+      "ms-tech-interview"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bintree",
+        "title": "Binary trees, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "visit or search"
+          },
+          {
+            "kind": "write",
+            "label": "insert or change"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "Nodes",
+            "at": 0
+          },
+          {
+            "text": "Depth and height",
+            "at": 2
+          },
+          {
+            "text": "Shapes",
+            "at": 4
+          },
+          {
+            "text": "Array form",
+            "at": 7
+          },
+          {
+            "text": "Skewed trees",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "t0",
+            "kind": "cube",
+            "x": -1.8,
+            "y": -1.8,
+            "label": "A",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t1",
+            "kind": "cube",
+            "x": -2.225,
+            "y": 1.025,
+            "label": "B",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t2",
+            "kind": "cube",
+            "x": 1.025,
+            "y": -2.225,
+            "label": "C",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t3",
+            "kind": "cube",
+            "x": -1.838,
+            "y": 3.037,
+            "label": "D",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t4",
+            "kind": "cube",
+            "x": -0.213,
+            "y": 1.412,
+            "label": "E",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t5",
+            "kind": "cube",
+            "x": 1.412,
+            "y": -0.213,
+            "label": "F",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "t6",
+            "kind": "cube",
+            "x": 3.037,
+            "y": -1.838,
+            "label": "G",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "z0",
+            "kind": "cube",
+            "x": -3.9,
+            "y": 0.9,
+            "label": "A",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 8
+          },
+          {
+            "id": "z1",
+            "kind": "cube",
+            "x": -1.6,
+            "y": 0.8,
+            "label": "B",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 8
+          },
+          {
+            "id": "z2",
+            "kind": "cube",
+            "x": 0.7,
+            "y": 0.7,
+            "label": "C",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 8
+          },
+          {
+            "id": "z3",
+            "kind": "cube",
+            "x": 3.0,
+            "y": 0.6,
+            "label": "D",
+            "icon": "ball",
+            "tone": "orange",
+            "from": 8
+          }
+        ],
+        "links": [
+          {
+            "a": "t0",
+            "b": "t1",
+            "dir": "none"
+          },
+          {
+            "a": "t0",
+            "b": "t2",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t3",
+            "dir": "none"
+          },
+          {
+            "a": "t1",
+            "b": "t4",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t5",
+            "dir": "none"
+          },
+          {
+            "a": "t2",
+            "b": "t6",
+            "dir": "none"
+          },
+          {
+            "a": "z0",
+            "b": "z1",
+            "dir": "none",
+            "from": 8
+          },
+          {
+            "a": "z1",
+            "b": "z2",
+            "dir": "none",
+            "from": 8
+          },
+          {
+            "a": "z2",
+            "b": "z3",
+            "dir": "none",
+            "from": 8
+          }
+        ],
+        "steps": [
+          {
+            "title": "A tree is nodes joined by parent and child links",
+            "tag": "technique",
+            "body": [
+              "A binary tree is a set of nodes where each node has at most two children, called left and right. One node at the top is the root. A node with no children is a leaf.",
+              "Here A is the root, and D, E, F and G are leaves."
+            ],
+            "short": "Nodes",
+            "hud": [
+              {
+                "k": "Root",
+                "v": "A"
+              },
+              {
+                "k": "Leaves",
+                "v": "D E F G"
+              },
+              {
+                "k": "Children per node",
+                "v": "at most 2"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "root",
+                  "tone": "blue",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "leaf",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "leaf",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "leaf",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "leaf",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "Parent, child and sibling",
+            "tag": "technique",
+            "body": [
+              "B is the parent of D and E. D and E are its children, and they are siblings of each other. Every node except the root has exactly one parent.",
+              "A node's descendants are all the nodes below it. Its ancestors are all the nodes on the path up to the root."
+            ],
+            "short": "Relatives",
+            "hud": [
+              {
+                "k": "B",
+                "v": "parent"
+              },
+              {
+                "k": "D and E",
+                "v": "children, siblings"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "parent of D and E",
+                  "tone": "blue",
+                  "icon": "link"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "child",
+                  "tone": "orange",
+                  "icon": "user"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "sibling of D",
+                  "tone": "orange",
+                  "icon": "user"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "Depth: how far down from the root",
+            "tag": "technique",
+            "body": [
+              "The depth of a node is the number of edges on the path from the root to it. A has depth 0, B has depth 1 and D has depth 2.",
+              "Depth is measured downwards from the root. Height is measured the other way, and the next step explains it."
+            ],
+            "short": "Depth",
+            "hud": [
+              {
+                "k": "Depth of D",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "depth 0",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "depth 1",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "depth 2",
+                  "tone": "blue",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t1",
+                  "t3"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Height: the longest path down",
+            "tag": "insight",
+            "body": [
+              "The height of a tree is the number of edges on the longest path from the root to a leaf. This tree has height 2. The Wikipedia article counts height in edges, so a single root alone has height 0.",
+              "Height matters because most tree operations cost time proportional to it."
+            ],
+            "short": "Height",
+            "hud": [
+              {
+                "k": "Height",
+                "v": "2 edges"
+              },
+              {
+                "k": "Cost of most operations",
+                "v": "O(height)",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "orange",
+                "pill": {
+                  "text": "height 2",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "t0",
+                  "t2",
+                  "t6"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "A perfect tree: every level is full",
+            "tag": "technique",
+            "body": [
+              "In a perfect binary tree all interior nodes have two children and all leaves are at the same depth. With height h it has 2 to the power (h + 1) minus 1 nodes. Here h = 2, so 7 nodes.",
+              "A perfect tree is always full and always complete."
+            ],
+            "short": "Perfect",
+            "hud": [
+              {
+                "k": "Nodes",
+                "v": "2^(h+1) - 1 = 7",
+                "tone": "good"
+              },
+              {
+                "k": "Leaves",
+                "v": "4 = 2^h"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "green",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            },
+            "predict": {
+              "question": "A perfect binary tree has 15 nodes. What is its height in edges?",
+              "options": [
+                "2",
+                "3",
+                "4"
+              ],
+              "answer": 1,
+              "why": "2 to the power (h + 1) minus 1 is 15 when h = 3, because 2 to the power 4 is 16."
+            }
+          },
+          {
+            "title": "A complete tree fills left to right",
+            "tag": "technique",
+            "body": [
+              "In a complete binary tree every level is full except possibly the last, and the last level's nodes are as far left as possible. Remove G and this is still complete, with 6 nodes.",
+              "Complete trees matter because they can be stored in an array with no gaps. Heaps use them."
+            ],
+            "short": "Complete",
+            "hud": [
+              {
+                "k": "Nodes",
+                "v": "6"
+              },
+              {
+                "k": "Gaps",
+                "v": "none, it fills left to right",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "last node",
+                  "tone": "orange",
+                  "icon": "flag"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": true
+              }
+            }
+          },
+          {
+            "title": "A full tree: every node has 0 or 2 children",
+            "tag": "technique",
+            "body": [
+              "A full binary tree has no node with exactly one child. Remove E instead, and B has just the one child D. This tree is not full. It is not complete either, because a node is missing before F and G.",
+              "The three words mean different things. Perfect means all levels full, complete means no gaps from the left, and full means 0 or 2 children."
+            ],
+            "short": "Full",
+            "hud": [
+              {
+                "k": "This tree",
+                "v": "not full, not complete",
+                "tone": "bad"
+              },
+              {
+                "k": "Full",
+                "v": "0 or 2 children"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "red",
+                "pill": {
+                  "text": "one child only",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": true
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "label": "G"
+              }
+            }
+          },
+          {
+            "title": "The array layout of a complete tree",
+            "tag": "solution",
+            "body": [
+              "Number the nodes level by level from 0. The children of node i are at 2i + 1 and 2i + 2, and the parent of node i is at floor((i - 1) / 2). So no pointers are needed.",
+              "A tree with n nodes has n - 1 edges, and a complete tree with n nodes has floor(n / 2) internal nodes."
+            ],
+            "short": "Array form",
+            "hud": [
+              {
+                "k": "Children of i",
+                "v": "2i+1 and 2i+2"
+              },
+              {
+                "k": "Parent of i",
+                "v": "(i - 1) // 2"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 0",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "A"
+              },
+              "t1": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 1",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "B"
+              },
+              "t2": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 2",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "C"
+              },
+              "t3": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 3",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "D"
+              },
+              "t4": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 4",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "E"
+              },
+              "t5": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 5",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "F"
+              },
+              "t6": {
+                "hidden": false,
+                "tone": "blue",
+                "pill": {
+                  "text": "index 6",
+                  "tone": "blue",
+                  "icon": "box"
+                },
+                "status": null,
+                "label": "G"
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "left = 2 * i + 1",
+                "right = 2 * i + 2",
+                "parent = (i - 1) // 2"
+              ],
+              "hl": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "A skewed tree is just a list",
+            "tag": "problem",
+            "body": [
+              "If every node has only one child, the tree is a chain. Its height is n - 1, and searching it costs O(n) like a linked list. Such trees are called degenerate.",
+              "A balanced tree keeps the height near log2 n, which is the whole reason to care about shape."
+            ],
+            "short": "Skewed",
+            "hud": [
+              {
+                "k": "Skewed tree of n nodes",
+                "v": "height n - 1",
+                "tone": "bad"
+              },
+              {
+                "k": "Balanced",
+                "v": "height about log2 n",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "t0": {
+                "hidden": true
+              },
+              "t1": {
+                "hidden": true
+              },
+              "t2": {
+                "hidden": true
+              },
+              "t3": {
+                "hidden": true
+              },
+              "t4": {
+                "hidden": true
+              },
+              "t5": {
+                "hidden": true
+              },
+              "t6": {
+                "hidden": true
+              },
+              "z0": {
+                "pill": {
+                  "text": "height 3 for 4 nodes",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "z0",
+                  "z1",
+                  "z2",
+                  "z3"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A binary tree has at most two children per node. Know the words root, leaf, depth, height, perfect, complete and full, and the array layout with 2i + 1 and 2i + 2.",
+              "Say what the height is, because the cost of nearly everything depends on it."
+            ],
+            "short": "Recap",
+            "set": {
+              "z0": {
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 at most two children",
+                "2 height counts edges",
+                "3 perfect, complete, full differ",
+                "4 array index: 2i+1, 2i+2"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A binary tree is like a family tree where every person has at most two children.",
+      "story": "Think of a family tree that starts with one person at the top. Each person can have at most two children. Someone with no children is at the end of a branch. To find a relative you walk down from the top, and the number of generations you walk is the height. A tree that keeps spreading out stays short. A tree where each person has one child becomes a long line.",
+      "maps": [
+        [
+          "The person at the top",
+          "The root"
+        ],
+        [
+          "A person with no children",
+          "A leaf"
+        ],
+        [
+          "Generations from the top",
+          "Depth"
+        ],
+        [
+          "The longest line of descent",
+          "The height"
+        ]
+      ],
+      "words": [
+        [
+          "binary tree",
+          "A hierarchy where each node has at most two children."
+        ],
+        [
+          "root",
+          "The node at the very top of the tree."
+        ],
+        [
+          "leaf",
+          "A node that has no children."
+        ],
+        [
+          "height",
+          "The number of edges on the longest path from the root to a leaf."
+        ],
+        [
+          "complete",
+          "Every level is full except maybe the last, which fills from the left."
+        ]
+      ]
+    }
   }
 ]
