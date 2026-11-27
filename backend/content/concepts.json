@@ -129281,5 +129281,689 @@
         ]
       ]
     }
+  },
+  {
+    "id": "balanced-trees",
+    "n": 172,
+    "level": 14,
+    "week": "Core",
+    "title": "Balanced Trees: AVL Trees and Rotations",
+    "tagline": "See why a plain binary search tree can degrade to a list, and how an AVL tree restores balance with rotations.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 3,
+    "explain": [
+      "A plain binary search tree can become lopsided. Insert keys in sorted order and each one goes to the same side, so the tree is a chain, its height is n - 1, and every operation costs O(n). A self-balancing binary search tree prevents this. The Wikipedia article defines it as a tree that automatically keeps its height small, whatever the insertions and deletions. A tree with height h holds at most 2 to the power (h + 1) minus 1 nodes, so the smallest possible height for n nodes is floor(log2 n). For a million nodes that is 19.",
+      "## Rotations",
+      "Balancing uses tree rotations. A rotation changes which node is the parent of which, but it keeps the in-order sequence. A right rotation around y lifts its left child x: x becomes the root of the subtree, y becomes x's right child, and x's old right subtree becomes y's left subtree. A left rotation is the mirror image. A rotation is O(1), as it changes only a few pointers.",
+      "## AVL trees",
+      "An AVL tree stores a balance factor for each node: the height of the right subtree minus the height of the left subtree. The Wikipedia article requires it to be in {-1, 0, 1} for every node. After an insert or delete, retrace from the changed spot up to the root. When a node reaches a factor of -2 or +2, repair it with a rotation, and the subtree is balanced again.",
+      "- Left-Left: the left child is left-heavy. Rotate right.\n- Right-Right: the right child is right-heavy. Rotate left.\n- Left-Right: the left child is right-heavy. Rotate the left child left, then the node right.\n- Right-Left: the right child is left-heavy. Rotate the right child right, then the node left.",
+      "## The guarantee",
+      "Keeping every balance factor within one limits the height to about 1.44 times log2 n, which the article states as being within a factor of 1.44 of the optimum. Search, insert and delete are O(log n) in the worst case. A few bits per node, or a stored height, are the extra cost.",
+      "> A worked example: insert 3, 2, 1 into an AVL tree. After 1, node 3 has factor -2, a Left-Left case. Rotate right around 3. Now 2 is the root with children 1 and 3, all balance factors are 0, and the in-order sequence is still 1, 2, 3. A plain tree would have kept the chain.",
+      "## Other balanced trees",
+      "Red-black trees keep a looser balance, which means fewer rotations per update, and are common in standard libraries. Splay trees and treaps are self-balancing without a worst-case height guarantee. Which one you pick matters little in an interview. What matters is that you can say why balance is needed, what a rotation does, and what the cost becomes.",
+      "## Python and practice",
+      "Python has no built-in balanced search tree. For ordered data people use a sorted list with the bisect module, or a library such as sortedcontainers. The Wikipedia article contrasts the worst-case O(log n) lookup of balanced trees with the O(n) worst case of most hash tables, while hash tables are O(1) on average.",
+      "## How to talk through it",
+      "State the problem: a sorted insertion sequence ruins a plain BST. Say what the balance factor is, show one single rotation, and mention the double rotations. Give the cost, O(log n) for all operations, and say that a rotation preserves order."
+    ],
+    "keyPoints": [
+      "A plain BST can degenerate into a chain with height n - 1. A self-balancing tree keeps its height O(log n).",
+      "A rotation changes the parent-child links but keeps the in-order order. It is O(1).",
+      "AVL balance factor = height(right) - height(left), always in -1, 0 or +1.",
+      "Four cases: Left-Left (right rotation), Right-Right (left rotation), Left-Right and Right-Left (double rotations).",
+      "Height is at most about 1.44 log2 n. Search, insert and delete are O(log n) worst case."
+    ],
+    "sql": [
+      {
+        "title": "An AVL tree",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key):\n        self.key = key\n        self.left = self.right = None\n        self.height = 1\n\ndef h(n):\n    return n.height if n else 0\n\ndef update(n):\n    n.height = 1 + max(h(n.left), h(n.right))\n\ndef balance(n):                                      # height(right) - height(left)\n    return h(n.right) - h(n.left)\n\ndef rotate_right(y):\n    x = y.left\n    y.left, x.right = x.right, y\n    update(y); update(x)\n    return x\n\ndef rotate_left(x):\n    y = x.right\n    x.right, y.left = y.left, x\n    update(x); update(y)\n    return y\n\ndef insert(n, key):\n    if n is None:\n        return Node(key)\n    if key < n.key:\n        n.left = insert(n.left, key)\n    elif key > n.key:\n        n.right = insert(n.right, key)\n    else:\n        return n\n    update(n)\n    b = balance(n)\n    if b < -1:                                       # left-heavy\n        if balance(n.left) > 0:                      # Left-Right: straighten the left child first\n            n.left = rotate_left(n.left)\n        return rotate_right(n)\n    if b > 1:                                        # right-heavy\n        if balance(n.right) < 0:                     # Right-Left\n            n.right = rotate_right(n.right)\n        return rotate_left(n)\n    return n\n\ndef inorder(n):\n    return [] if n is None else inorder(n.left) + [n.key] + inorder(n.right)\n\nroot = None\nfor k in (3, 2, 1):\n    root = insert(root, k)\nassert (root.key, root.left.key, root.right.key) == (2, 1, 3)       # one right rotation\nroot = None\nfor k in (1, 3, 2):                                  # Right-Left case\n    root = insert(root, k)\nassert (root.key, root.left.key, root.right.key) == (2, 1, 3)\nassert inorder(root) == [1, 2, 3]"
+      },
+      {
+        "title": "Check balance, order and height on many inputs",
+        "lang": "py",
+        "code": "import math\nimport random\n\nclass Node:\n    def __init__(self, key):\n        self.key = key\n        self.left = self.right = None\n        self.height = 1\n\ndef h(n): return n.height if n else 0\ndef update(n): n.height = 1 + max(h(n.left), h(n.right))\ndef balance(n): return h(n.right) - h(n.left)\n\ndef rotate_right(y):\n    x = y.left\n    y.left, x.right = x.right, y\n    update(y); update(x)\n    return x\n\ndef rotate_left(x):\n    y = x.right\n    x.right, y.left = y.left, x\n    update(x); update(y)\n    return y\n\ndef insert(n, key):\n    if n is None:\n        return Node(key)\n    if key < n.key:\n        n.left = insert(n.left, key)\n    elif key > n.key:\n        n.right = insert(n.right, key)\n    else:\n        return n\n    update(n)\n    b = balance(n)\n    if b < -1:\n        if balance(n.left) > 0:\n            n.left = rotate_left(n.left)\n        return rotate_right(n)\n    if b > 1:\n        if balance(n.right) < 0:\n            n.right = rotate_right(n.right)\n        return rotate_left(n)\n    return n\n\ndef inorder(n): return [] if n is None else inorder(n.left) + [n.key] + inorder(n.right)\n\ndef check(n):\n    if n is None:\n        return 0\n    lh, rh = check(n.left), check(n.right)\n    assert abs(rh - lh) <= 1                          # every balance factor is -1, 0 or +1\n    assert n.height == 1 + max(lh, rh)\n    return n.height\n\nroot = None\nfor k in range(1, 1024):                              # sorted input: a plain BST would be a chain\n    root = insert(root, k)\nassert check(root) <= 1.44 * math.log2(1024 + 2)\nassert root.height == 10 and inorder(root) == list(range(1, 1024))\n\nrandom.seed(14)\nfor _ in range(50):\n    keys = [random.randint(0, 200) for _ in range(random.randint(0, 60))]\n    root = None\n    for k in keys:\n        root = insert(root, k)\n    check(root)\n    assert inorder(root) == sorted(set(keys))"
+      },
+      {
+        "title": "A rotation keeps the order",
+        "lang": "py",
+        "code": "class Node:\n    def __init__(self, key, left=None, right=None):\n        self.key, self.left, self.right = key, left, right\n\ndef rotate_right(y):\n    x = y.left\n    y.left, x.right = x.right, y\n    return x\n\ndef inorder(n):\n    return [] if n is None else inorder(n.left) + [n.key] + inorder(n.right)\n\n# 5 has left child 3, which has children 2 and 4\nt = Node(5, Node(3, Node(2), Node(4)), Node(6))\nbefore = inorder(t)\nt = rotate_right(t)\nassert t.key == 3 and t.right.key == 5 and t.right.left.key == 4     # 4 moved to be 5's left child\nassert inorder(t) == before == [2, 3, 4, 5, 6]"
+      }
+    ],
+    "django": {},
+    "exercise": "Write the AVL insert with rotate_left and rotate_right. Insert 1 to 1,000 in sorted order and check that the height stays under 1.44 log2 n and that every balance factor is -1, 0 or 1. Then add delete (hint: after the normal BST delete, update heights and rebalance each node on the way back up), and test it on random operations against a sorted set.",
+    "pitfalls": [
+      "Forgetting to update the heights after a rotation, in the right order: the lower node first.",
+      "Choosing the wrong case. Look at the balance factor of the heavy child to tell a single from a double rotation.",
+      "Rotating without reconnecting the new subtree root to the parent. Return it from the recursive call.",
+      "Believing rotations change the in-order order. They never do.",
+      "Writing a full balanced tree in an interview when the question only wants the idea."
+    ],
+    "interview": [
+      {
+        "q": "Why do we need self-balancing binary search trees?",
+        "a": "A plain BST degrades to a chain when keys arrive in sorted order, so its operations cost O(n). A self-balancing tree keeps the height O(log n), so search, insert and delete cost O(log n) in the worst case."
+      },
+      {
+        "q": "What is an AVL tree?",
+        "a": "A binary search tree in which, for every node, the heights of the left and right subtrees differ by at most 1. The balance factor, the right height minus the left height, is always -1, 0 or +1. Rotations restore the property after an insert or delete."
+      },
+      {
+        "q": "What does a tree rotation do?",
+        "a": "It changes the parent and child relationship of a few nodes so that a subtree becomes shorter on one side and taller on the other, while keeping the in-order sequence. It takes O(1) time."
+      },
+      {
+        "q": "How many rotation cases does an AVL tree have?",
+        "a": "Four: Left-Left (single right rotation), Right-Right (single left rotation), Left-Right (left then right) and Right-Left (right then left)."
+      }
+    ],
+    "references": [
+      {
+        "title": "AVL tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/AVL_tree",
+        "kind": "Reference"
+      },
+      {
+        "title": "Self-balancing binary search tree (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Self-balancing_binary_search_tree",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: balanced trees are a standard follow-up to binary search trees. The balance factor definition, the four cases, the O(log n) bounds and the 1.44 height factor come from the Wikipedia AVL tree article, which I read in part. The motivation, minimum height and the in-order property of rotations come from the Wikipedia self-balancing binary search tree article, which I read in full. The worked example and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-avl-tree",
+      "wikipedia-self-balancing-bst",
+      "wikipedia-binary-search-tree",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "avl",
+        "title": "Balanced trees and rotations, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "search or visit"
+          },
+          {
+            "kind": "write",
+            "label": "insert, change or rotate"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "A chain",
+            "at": 0
+          },
+          {
+            "text": "Balance factor",
+            "at": 1
+          },
+          {
+            "text": "Rotation",
+            "at": 3
+          },
+          {
+            "text": "Four cases",
+            "at": 5
+          },
+          {
+            "text": "Others",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "n3",
+            "kind": "cube",
+            "x": -1.7,
+            "y": -1.7,
+            "label": "3",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n2",
+            "kind": "cube",
+            "x": -1.7,
+            "y": 0.9,
+            "label": "2",
+            "icon": "ball",
+            "tone": "blue"
+          },
+          {
+            "id": "n1",
+            "kind": "cube",
+            "x": -1.7,
+            "y": 3.5,
+            "label": "1",
+            "icon": "ball",
+            "tone": "blue"
+          }
+        ],
+        "links": [
+          {
+            "a": "n3",
+            "b": "n2",
+            "dir": "none"
+          },
+          {
+            "a": "n2",
+            "b": "n1",
+            "dir": "none"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Insert 3, then 2, then 1: a chain",
+            "tag": "problem",
+            "body": [
+              "Insert the keys 3, 2 and 1 into a plain binary search tree, in that order. Each goes to the left of the last, so the tree is a chain leaning left. It has height 2 for 3 keys.",
+              "Do this with a million keys in sorted order and the tree is a linked list, while the best possible height is 19 (the Wikipedia article's figure for n = 1,000,000)."
+            ],
+            "short": "A chain",
+            "hud": [
+              {
+                "k": "Plain BST, sorted inserts",
+                "v": "height n - 1",
+                "tone": "bad"
+              },
+              {
+                "k": "Best possible",
+                "v": "floor(log2 n)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The balance factor of a node",
+            "tag": "technique",
+            "body": [
+              "An AVL tree keeps a number on each node, the balance factor: the height of the right subtree minus the height of the left subtree. In an AVL tree it must always be -1, 0 or +1.",
+              "Here node 1 has factor 0, node 2 has factor -1 (its left subtree is one taller), and node 3 has factor -2."
+            ],
+            "short": "Balance factor",
+            "hud": [
+              {
+                "k": "BF",
+                "v": "height(right) - height(left)"
+              },
+              {
+                "k": "Allowed",
+                "v": "-1, 0, +1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": {
+                  "text": "BF -2",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": {
+                  "text": "BF -1",
+                  "tone": "orange",
+                  "icon": "gauge"
+                },
+                "status": null
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": {
+                  "text": "BF 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Node 3 is out of balance",
+            "tag": "problem",
+            "body": [
+              "After the insert, you walk back up from the new node, checking each balance factor. At node 3 the factor is -2, which is not allowed. The imbalance is on the left side of the left child: the Left-Left case.",
+              "A repair is needed here, and only here."
+            ],
+            "short": "Imbalance",
+            "hud": [
+              {
+                "k": "Node 3",
+                "v": "BF -2",
+                "tone": "bad"
+              },
+              {
+                "k": "Case",
+                "v": "Left-Left"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "red",
+                "pill": {
+                  "text": "BF -2: too left-heavy",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Node 3 is left-heavy because of its left child's left side. Which repair fits?",
+              "options": [
+                "A single right rotation",
+                "A single left rotation",
+                "Remove node 3"
+              ],
+              "answer": 0,
+              "why": "A left-left imbalance is fixed by rotating the top node to the right."
+            }
+          },
+          {
+            "title": "The fix: a single right rotation",
+            "tag": "solution",
+            "body": [
+              "Rotate right around node 3. Node 2 moves up to become the root of this subtree, node 3 becomes its right child, and node 1 stays as the left child. Only a couple of pointers change.",
+              "The Wikipedia article calls the Left-Left case a simple right rotation."
+            ],
+            "short": "Rotate",
+            "hud": [
+              {
+                "k": "Pointers changed",
+                "v": "2 or 3"
+              },
+              {
+                "k": "Time",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "green",
+                "pill": {
+                  "text": "new root",
+                  "tone": "green",
+                  "icon": "flag"
+                },
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "n3",
+                  "n2"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def rotate_right(y):",
+                "    x = y.left",
+                "    y.left = x.right",
+                "    x.right = y",
+                "    return x"
+              ],
+              "hl": [
+                1,
+                2,
+                3,
+                4
+              ]
+            }
+          },
+          {
+            "title": "Balanced again, and the order is unchanged",
+            "tag": "solution",
+            "body": [
+              "Now node 2 has balance factor 0, with children 1 and 3. The height dropped from 2 to 1. Reading the tree in order still gives 1, 2, 3.",
+              "A rotation never changes the in-order sequence. The Wikipedia article says rotations move keys vertically and keep the sequence intact."
+            ],
+            "short": "Balanced",
+            "hud": [
+              {
+                "k": "In-order",
+                "v": "1 2 3",
+                "tone": "good"
+              },
+              {
+                "k": "Height",
+                "v": "1",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "green",
+                "pill": {
+                  "text": "BF 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "green",
+                "pill": {
+                  "text": "BF 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "green",
+                "pill": {
+                  "text": "BF 0",
+                  "tone": "green",
+                  "icon": "gauge"
+                },
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            }
+          },
+          {
+            "title": "Four cases, four repairs",
+            "tag": "technique",
+            "body": [
+              "Left-Left: one right rotation. Right-Right: one left rotation. Left-Right: rotate the left child left, then rotate the node right. Right-Left: rotate the right child right, then rotate the node left.",
+              "The last two are double rotations. Which case you have depends on the balance factor of the heavy child."
+            ],
+            "short": "Four cases",
+            "hud": [
+              {
+                "k": "Left-Left",
+                "v": "rotate right"
+              },
+              {
+                "k": "Right-Right",
+                "v": "rotate left"
+              },
+              {
+                "k": "Left-Right",
+                "v": "left, then right"
+              },
+              {
+                "k": "Right-Left",
+                "v": "right, then left"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            }
+          },
+          {
+            "title": "What the guarantee is worth",
+            "tag": "insight",
+            "body": [
+              "Keeping every factor within one makes the tree height O(log n). The article says an AVL tree is within a factor of about 1.44 of the best possible height. So search, insert and delete are O(log n) in the worst case, not just on average.",
+              "The price is a little extra work and a stored height or balance factor on each node."
+            ],
+            "short": "The guarantee",
+            "hud": [
+              {
+                "k": "Height",
+                "v": "about 1.44 log2 n at most",
+                "tone": "good"
+              },
+              {
+                "k": "Search, insert, delete",
+                "v": "O(log n) worst case",
+                "tone": "good"
+              },
+              {
+                "k": "Extra space",
+                "v": "a couple of bits per node"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            }
+          },
+          {
+            "title": "Other self-balancing trees",
+            "tag": "insight",
+            "body": [
+              "AVL trees are the strictest. Red-black trees balance more loosely, so they need fewer rotations on insert and delete, and are widely used in libraries. Splay trees and treaps balance on average, without guaranteeing height.",
+              "In Python there is no built-in balanced tree. Use a sorted list with bisect, or a library."
+            ],
+            "short": "Others",
+            "hud": [
+              {
+                "k": "AVL",
+                "v": "strictest balance, fastest lookups"
+              },
+              {
+                "k": "Red-black",
+                "v": "fewer rotations"
+              },
+              {
+                "k": "Splay, treap",
+                "v": "balance on average"
+              }
+            ],
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A self-balancing tree repairs its shape after each insert or delete with rotations, which keep the in-order order. AVL keeps balance factors in -1, 0, +1 and uses single or double rotations in four cases.",
+              "In an interview, explain the idea and one rotation. Writing a full AVL tree is rarely expected."
+            ],
+            "short": "Recap",
+            "set": {
+              "n3": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": 1.7,
+                "y": -2.1
+              },
+              "n2": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -1.6,
+                "y": -1.6
+              },
+              "n1": {
+                "tone": "blue",
+                "pill": null,
+                "status": null,
+                "x": -2.1,
+                "y": 1.7
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 plain BSTs can degenerate",
+                "2 AVL: balance factor in -1, 0, 1",
+                "3 rotations keep the in-order order",
+                "4 four cases, O(log n) operations"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "Balancing a tree is like straightening a leaning stack of boxes so no side gets too tall.",
+      "story": "A stack of boxes starts leaning because you keep adding to one side. Before it falls over, you lift a middle box up to the top and let the others settle on both sides of it. No box is thrown away, and the order along the shelf stays the same. A balanced tree does exactly this after each insert, so no side grows much taller than the other.",
+      "maps": [
+        [
+          "A leaning stack",
+          "An unbalanced tree"
+        ],
+        [
+          "Lifting a middle box up",
+          "A rotation"
+        ],
+        [
+          "The order along the shelf",
+          "The in-order sequence"
+        ],
+        [
+          "Checking each side's height",
+          "The balance factor"
+        ]
+      ],
+      "words": [
+        [
+          "balanced",
+          "No part of the tree is much taller than another part."
+        ],
+        [
+          "rotation",
+          "A small change of links that lifts one node and keeps the order."
+        ],
+        [
+          "balance factor",
+          "The right subtree height minus the left subtree height."
+        ],
+        [
+          "AVL tree",
+          "A search tree whose balance factors are always -1, 0 or +1."
+        ],
+        [
+          "in-order",
+          "Visiting left subtree, node, then right subtree."
+        ]
+      ]
+    }
   }
 ]
