@@ -625,7 +625,8 @@ describe('stage lessons: isometric step-through diagrams', () => {
     'binary-search', 'binary-search-on-the-answer', 'simple-sorts', 'merge-sort', 'quick-sort', 'quickselect', 'counting-radix-sort', 'stability-and-sorting-limits',
     'interval-scheduling', 'huffman-coding', 'when-greedy-fails',
     'subsets-and-combinations', 'permutations', 'n-queens', 'maze-solving',
-    'memoization', 'tabulation', 'grid-paths', 'knapsack', 'coin-change', 'longest-increasing-subsequence', 'longest-common-subsequence', 'edit-distance']
+    'memoization', 'tabulation', 'grid-paths', 'knapsack', 'coin-change', 'longest-increasing-subsequence', 'longest-common-subsequence', 'edit-distance',
+    'bits-and-masks', 'bit-tricks', 'bitsets']
   const rail = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.stage-rail button')]
   const heading = (c: HTMLElement) => c.querySelector('.stage-text h4')?.textContent ?? ''
 
