@@ -122376,5 +122376,1201 @@
         ]
       ]
     }
+  },
+  {
+    "id": "bloom-filters",
+    "n": 166,
+    "level": 14,
+    "week": "Core",
+    "title": "Bloom Filters: Probably Yes, Definitely No",
+    "tagline": "Test membership in a huge set with a tiny bit array, accepting false positives but never false negatives.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "A Bloom filter is a space-efficient probabilistic data structure that tests whether an item is in a set. The Wikipedia article says it was conceived by Burton Howard Bloom in 1970. A query returns one of two answers: possibly in the set, or definitely not in the set. False positives are possible, but false negatives are not. It stores no items, only bits.",
+      "## The structure",
+      "An empty Bloom filter is a bit array of m bits, all zero, together with k different hash functions. Each hash function maps an item to one of the m positions, and they should spread items evenly.",
+      "- Add: compute the k positions for the item and set those bits to 1.\n- Query: compute the same k positions. If any bit is 0, the item is definitely not in the set. If all are 1, the item is possibly in the set.\n- Both operations take O(k) time, independent of how many items are in the set.",
+      "## Why false positives happen",
+      "Different items can set the same bits. If the bits for an item that was never added are all 1 because other items set them, the filter says possibly. It cannot tell. As more items are added, more bits turn 1, and the false positive chance rises. A false negative is impossible, because every added item has all its bits set and bits never go back to 0.",
+      "## Why you cannot delete",
+      "Removing an item would mean clearing its k bits, but some of those bits may belong to other items too. Clearing them could make other items disappear, which would create false negatives. The article says removing an element from the simple filter is impossible, because you cannot tell which of the bits it maps to should be cleared. Variants such as counting Bloom filters exist for deletion.",
+      "## Sizing it",
+      "For n items and m bits, the false positive probability is about (1 - e to the power of minus kn/m) to the power k. The article says this assumes independence and is the common approximation. The best number of hash functions is k = (m/n) times ln 2. About 9.6 bits per item give a 1 percent error rate with the best k, and fewer than 10 bits per item are needed for 1 percent, whatever the number or size of the items.",
+      "> A worked example: an 8-bit filter with 3 hash functions. cat sets bits 1, 4 and 6. dog sets 2, 4 and 7. A query for pig checks 0, 3 and 5. Bit 0 is 0, so pig is definitely absent. A query for cow checks 1, 2 and 6, which are all 1, so the filter says possibly, a false positive.",
+      "## When to use one",
+      "Use it to guard a slow or expensive check. Ask the filter first. If it says definitely not, skip the check. If it says possibly, do the real lookup. Browsers, databases and caches use this to skip lookups for keys that do not exist. If a false positive costs only a wasted lookup, the trade is excellent.",
+      "## How to talk through it",
+      "Say what the two answers mean, and which error is allowed. Show add and query on a small bit array. Give the sizing rule and mention that deletion is not supported."
+    ],
+    "keyPoints": [
+      "A Bloom filter is m bits plus k hash functions. Add sets k bits. Query checks them.",
+      "A 0 bit means definitely not in the set. All 1s means possibly in the set.",
+      "False positives happen. False negatives never do. Items cannot be removed.",
+      "False positive rate is about (1 - e^(-kn/m))^k. Best k = (m/n) ln 2. About 9.6 bits per item gives 1 percent errors.",
+      "Add and query take O(k) time. No items are stored, so memory is tiny."
+    ],
+    "sql": [
+      {
+        "title": "A Bloom filter",
+        "lang": "py",
+        "code": "import hashlib\nimport math\n\nclass BloomFilter:\n    def __init__(self, m, k):\n        self.m, self.k = m, k\n        self.bits = 0                                   # an int used as a bit array\n\n    def _positions(self, item):\n        for i in range(self.k):\n            digest = hashlib.sha256(f\"{i}:{item}\".encode()).digest()\n            yield int.from_bytes(digest[:8], \"big\") % self.m\n\n    def add(self, item):\n        for pos in self._positions(item):\n            self.bits |= 1 << pos\n\n    def might_contain(self, item):\n        return all(self.bits >> pos & 1 for pos in self._positions(item))\n\nbf = BloomFilter(m=1000, k=4)\nfor word in (\"cat\", \"dog\", \"owl\"):\n    bf.add(word)\nassert all(bf.might_contain(w) for w in (\"cat\", \"dog\", \"owl\"))     # no false negatives\nbf2 = BloomFilter(8, 3)\nassert not any(bf2.might_contain(x) for x in (\"a\", \"b\", \"c\"))       # an empty filter says definitely not"
+      },
+      {
+        "title": "Measure the false positive rate",
+        "lang": "py",
+        "code": "import hashlib\nimport math\n\nclass BloomFilter:\n    def __init__(self, m, k):\n        self.m, self.k, self.bits = m, k, 0\n    def _positions(self, item):\n        for i in range(self.k):\n            digest = hashlib.sha256(f\"{i}:{item}\".encode()).digest()\n            yield int.from_bytes(digest[:8], \"big\") % self.m\n    def add(self, item):\n        for pos in self._positions(item):\n            self.bits |= 1 << pos\n    def might_contain(self, item):\n        return all(self.bits >> pos & 1 for pos in self._positions(item))\n\nn = 2000\nm = 10 * n                                              # 10 bits per item\nk = round(m / n * math.log(2))                          # the best k is (m/n) ln 2\nbf = BloomFilter(m, k)\nfor i in range(n):\n    bf.add(f\"item-{i}\")\nassert all(bf.might_contain(f\"item-{i}\") for i in range(n))          # never a false negative\nfalse_hits = sum(bf.might_contain(f\"other-{i}\") for i in range(5000))\nrate = false_hits / 5000\nexpected = (1 - math.exp(-k * n / m)) ** k\nassert k == 7\nassert rate < 0.03 and abs(rate - expected) < 0.01"
+      },
+      {
+        "title": "How many bits do you need?",
+        "lang": "py",
+        "code": "import math\n\ndef bits_per_item(error):\n    return -math.log(error) / (math.log(2) ** 2)\n\ndef best_k(bits_each):\n    return max(1, round(bits_each * math.log(2)))\n\nassert 9.5 < bits_per_item(0.01) < 9.7                 # about 9.6 bits per item for 1 percent errors\nassert 14 < bits_per_item(0.001) < 15\nassert best_k(bits_per_item(0.01)) == 7\nn = 1_000_000\nassert 1.1e6 < n * bits_per_item(0.01) / 8 < 1.3e6     # about 1.2 million bytes for a million items"
+      }
+    ],
+    "django": {},
+    "exercise": "Write a BloomFilter with add and might_contain, and test that every added item is found. Measure the false positive rate for 5, 10 and 15 bits per item and compare it with the formula. Then explain, in two sentences, why a counting Bloom filter, which keeps a small counter per position instead of a bit, can support deletion.",
+    "pitfalls": [
+      "Treating a possibly-yes answer as certain. Always confirm with the real data when it matters.",
+      "Trying to delete by clearing bits, which creates false negatives for other items.",
+      "Using hash functions that are not independent or not uniform, which raises the false positive rate.",
+      "Picking the size after the fact. Decide the item count and the error rate first, then compute m and k.",
+      "Adding many more items than you planned for. The false positive rate climbs quickly as the bits fill up."
+    ],
+    "interview": [
+      {
+        "q": "What is a Bloom filter and what errors can it make?",
+        "a": "A space-efficient bit array with k hash functions that answers whether an item is possibly in a set or definitely not. It can give false positives but never false negatives."
+      },
+      {
+        "q": "Why can't you remove an item from a Bloom filter?",
+        "a": "The item's bits may also belong to other items. Clearing them could make other items look absent, which would create false negatives. A counting Bloom filter can support deletion."
+      },
+      {
+        "q": "How do you choose the size of a Bloom filter?",
+        "a": "From the number of items n and the error rate you accept. About 9.6 bits per item give a 1 percent false positive rate, and the best number of hash functions is (m/n) ln 2."
+      },
+      {
+        "q": "When would you use a Bloom filter?",
+        "a": "To skip expensive lookups. Check the filter first. If it says definitely not, you are done. If it says possibly, do the real lookup. It is used in caches, databases and crawlers."
+      }
+    ],
+    "references": [
+      {
+        "title": "Bloom filter (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Bloom_filter",
+        "kind": "Reference"
+      },
+      {
+        "title": "Hash function (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hash_function",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: the Bloom filter is the standard answer to testing membership in huge sets with little memory, and a frequent design-round topic. The definition, the two answers, the structure, the false-positive formula, the optimal k, the bits per item and the lack of deletion come from the Wikipedia Bloom filter article, which I read in part. The worked example and the code are my own illustration, and the code is checked by running it with deterministic hashing. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-bloom-filter",
+      "wikipedia-hash-function",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "bloom",
+        "title": "A Bloom filter, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "lookup or probe"
+          },
+          {
+            "kind": "write",
+            "label": "insert or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "collision or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The problem",
+            "at": 0
+          },
+          {
+            "text": "Add",
+            "at": 1
+          },
+          {
+            "text": "Definitely not",
+            "at": 3
+          },
+          {
+            "text": "False positive",
+            "at": 5
+          },
+          {
+            "text": "Sizing",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "q",
+            "kind": "cube",
+            "x": -1.6,
+            "y": -1.6,
+            "label": "cat",
+            "icon": "key",
+            "tone": "orange"
+          },
+          {
+            "id": "c0",
+            "kind": "cube",
+            "x": -2.975,
+            "y": 4.375,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c1",
+            "kind": "cube",
+            "x": -1.925,
+            "y": 3.325,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c2",
+            "kind": "cube",
+            "x": -0.875,
+            "y": 2.275,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c3",
+            "kind": "cube",
+            "x": 0.175,
+            "y": 1.225,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c4",
+            "kind": "cube",
+            "x": 1.225,
+            "y": 0.175,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c5",
+            "kind": "cube",
+            "x": 2.275,
+            "y": -0.875,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c6",
+            "kind": "cube",
+            "x": 3.325,
+            "y": -1.925,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "c7",
+            "kind": "cube",
+            "x": 4.375,
+            "y": -2.975,
+            "label": "0",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "The question: is this item in a huge set?",
+            "tag": "technique",
+            "body": [
+              "Imagine a set of millions of web addresses that is too big to keep in memory, and a check that is expensive. A Bloom filter gives a quick answer that is either definitely not in the set or possibly in the set.",
+              "It never stores the items. It stores a small array of bits, here 8, all zero to begin with."
+            ],
+            "short": "The problem",
+            "hud": [
+              {
+                "k": "Answer 1",
+                "v": "definitely not in the set"
+              },
+              {
+                "k": "Answer 2",
+                "v": "possibly in the set"
+              },
+              {
+                "k": "Stores",
+                "v": "bits only"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "item",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Add cat: three hash functions set three bits",
+            "tag": "solution",
+            "body": [
+              "Use k = 3 hash functions. Each maps cat to a bit position. Here they give positions 1, 4 and 6. Adding cat sets those three bits to 1.",
+              "That is all adding does. The item itself is thrown away."
+            ],
+            "short": "Add cat",
+            "hud": [
+              {
+                "k": "cat",
+                "v": "bits 1, 4, 6"
+              },
+              {
+                "k": "Bits set",
+                "v": "3 of 8"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c2": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c7": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "add cat",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q",
+                  "c1"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "q",
+                  "c4"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "q",
+                  "c6"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "for pos in hashes(item):",
+                "    bits[pos] = 1"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Add dog: bits 2, 4 and 7",
+            "tag": "solution",
+            "body": [
+              "dog hashes to positions 2, 4 and 7. Bit 4 was already 1, set by cat. The bits are shared, which is how the filter stays small.",
+              "Now the bits 1, 2, 4, 6 and 7 are set."
+            ],
+            "short": "Add dog",
+            "hud": [
+              {
+                "k": "dog",
+                "v": "bits 2, 4, 7"
+              },
+              {
+                "k": "Bits set",
+                "v": "5 of 8"
+              },
+              {
+                "k": "Shared",
+                "v": "bit 4"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "q": {
+                "label": "add dog",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q",
+                  "c2"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "q",
+                  "c4"
+                ],
+                "kind": "write",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "q",
+                  "c7"
+                ],
+                "kind": "write",
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "Query pig: a zero bit means definitely not",
+            "tag": "solution",
+            "body": [
+              "pig hashes to positions 0, 3 and 5. Bit 0 is still 0. If an item had been added, bit 0 would have been set. So pig is definitely not in the set.",
+              "A single zero bit is proof. This answer is always right."
+            ],
+            "short": "Query pig",
+            "hud": [
+              {
+                "k": "pig",
+                "v": "bits 0, 3, 5"
+              },
+              {
+                "k": "Bit 0",
+                "v": "is 0",
+                "tone": "good"
+              },
+              {
+                "k": "Answer",
+                "v": "definitely not",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "red",
+                "pill": {
+                  "text": "0: definitely not",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": "live"
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "query pig",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q",
+                  "c0"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "q",
+                  "c3"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "q",
+                  "c5"
+                ],
+                "kind": "request",
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "Query cat: all bits set means possibly yes",
+            "tag": "solution",
+            "body": [
+              "cat hashes to 1, 4 and 6, and all three bits are 1. The answer is possibly in the set. Here it is correct, because we did add cat.",
+              "All bits set only suggests membership. The bits might have been set by other items."
+            ],
+            "short": "Query cat",
+            "hud": [
+              {
+                "k": "cat",
+                "v": "bits 1, 4, 6 all set"
+              },
+              {
+                "k": "Answer",
+                "v": "possibly in the set",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "all three set",
+                  "tone": "orange",
+                  "icon": "check"
+                },
+                "status": "live"
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "orange",
+                "pill": null,
+                "status": "live"
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "query cat",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q",
+                  "c1"
+                ],
+                "kind": "request"
+              },
+              {
+                "path": [
+                  "q",
+                  "c4"
+                ],
+                "kind": "request",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "q",
+                  "c6"
+                ],
+                "kind": "request",
+                "delay": 0.6
+              }
+            ],
+            "predict": {
+              "question": "cow was never added. Its three hashes are 1, 2 and 6, and all three bits are 1. What does the filter say?",
+              "options": [
+                "Definitely not in the set",
+                "Possibly in the set: a false positive",
+                "It raises an error"
+              ],
+              "answer": 1,
+              "why": "All three bits were set by cat and dog. The filter cannot tell, so it says possibly. That is a false positive."
+            }
+          },
+          {
+            "title": "Query cow: a false positive",
+            "tag": "problem",
+            "body": [
+              "cow was never added, but its bits 1, 2 and 6 were all set by cat and dog. The filter says possibly in the set. This is a false positive.",
+              "The Wikipedia article says false positive matches are possible, but false negatives are not."
+            ],
+            "short": "False positive",
+            "hud": [
+              {
+                "k": "cow",
+                "v": "never added"
+              },
+              {
+                "k": "Answer",
+                "v": "possibly (wrong)",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": "hot"
+              },
+              "c2": {
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": "hot"
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "red",
+                "pill": {
+                  "text": "set by other items",
+                  "tone": "red",
+                  "icon": "alert"
+                },
+                "status": "hot"
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "query cow",
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "q",
+                  "c1"
+                ],
+                "kind": "fail"
+              },
+              {
+                "path": [
+                  "q",
+                  "c2"
+                ],
+                "kind": "fail",
+                "delay": 0.3
+              },
+              {
+                "path": [
+                  "q",
+                  "c6"
+                ],
+                "kind": "fail",
+                "delay": 0.6
+              }
+            ]
+          },
+          {
+            "title": "No false negatives, and no deletion",
+            "tag": "insight",
+            "body": [
+              "Every added item has all its bits set, so it can never be reported absent. That is why there are no false negatives.",
+              "But you cannot delete. Clearing a bit to remove cat would also clear bit 4 for dog. The article says removal is impossible in the simple filter, because you cannot tell which bits belong to which item."
+            ],
+            "short": "No deletion",
+            "hud": [
+              {
+                "k": "Added items",
+                "v": "always found",
+                "tone": "good"
+              },
+              {
+                "k": "Delete",
+                "v": "not possible",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "orange",
+                "pill": {
+                  "text": "shared by cat and dog",
+                  "tone": "orange",
+                  "icon": "alert"
+                },
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "cat",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Sizing: bits per item and number of hashes",
+            "tag": "technique",
+            "body": [
+              "With m bits, k hash functions and n items, the false positive chance is about (1 - e^(-kn/m)) to the power k. The best k is (m/n) times ln 2. About 9.6 bits per item gives a 1 percent false positive rate, whatever the number of items.",
+              "More bits per item means fewer false positives."
+            ],
+            "short": "Sizing",
+            "hud": [
+              {
+                "k": "Best k",
+                "v": "(m / n) x ln 2"
+              },
+              {
+                "k": "1% errors",
+                "v": "about 9.6 bits per item",
+                "tone": "good"
+              },
+              {
+                "k": "Add and query",
+                "v": "O(k)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "cat",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Where Bloom filters are used",
+            "tag": "insight",
+            "body": [
+              "They guard expensive checks. A cache, a database or a web crawler asks the filter first, and only does the slow lookup when the answer is possibly yes. Most lookups for absent items are skipped.",
+              "They save memory, because the items themselves are not stored."
+            ],
+            "short": "Uses",
+            "hud": [
+              {
+                "k": "Cache or database",
+                "v": "skip lookups for absent keys"
+              },
+              {
+                "k": "Crawler",
+                "v": "have I seen this URL?"
+              },
+              {
+                "k": "Memory",
+                "v": "no items stored",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "cat",
+                "pill": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A Bloom filter is a bit array plus k hash functions. Add sets k bits, and query checks them. A zero bit means definitely not. All ones means possibly. False positives happen, false negatives do not, and items cannot be removed.",
+              "Choose the size from the number of items and the error rate you can accept."
+            ],
+            "short": "Recap",
+            "set": {
+              "c0": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c1": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c2": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c3": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c4": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c5": {
+                "label": "0",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "c6": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "c7": {
+                "label": "1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q": {
+                "label": "cat",
+                "pill": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 add: set k bits",
+                "2 query: any 0 means definitely not",
+                "3 all 1 means possibly: false positives",
+                "4 no deletion"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A Bloom filter is a bouncer with a rough guest list who can only say you are definitely not on it, or you might be.",
+      "story": "Imagine a bouncer who does not keep the names of the guests. He only keeps a row of switches. When a guest arrives, he flips three switches chosen by the guest's name. Later, he checks three switches for a visitor. If one is off, the visitor is certainly not a guest. If all three are on, the visitor might be a guest, or other guests might just have flipped those same switches.",
+      "maps": [
+        [
+          "The row of switches",
+          "The bit array"
+        ],
+        [
+          "Flipping three switches",
+          "Adding an item with k hashes"
+        ],
+        [
+          "One switch off",
+          "Definitely not in the set"
+        ],
+        [
+          "All switches on",
+          "Possibly in the set"
+        ]
+      ],
+      "words": [
+        [
+          "Bloom filter",
+          "A small structure that says an item is possibly in a set or definitely not."
+        ],
+        [
+          "false positive",
+          "Saying an item is present when it was never added."
+        ],
+        [
+          "false negative",
+          "Saying an item is absent when it was added."
+        ],
+        [
+          "bit array",
+          "A row of cells that hold only 0 or 1."
+        ],
+        [
+          "probabilistic",
+          "Giving answers that are right with a known chance, not always."
+        ]
+      ]
+    }
   }
 ]
