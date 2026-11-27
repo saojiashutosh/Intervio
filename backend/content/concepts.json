@@ -166918,5 +166918,1329 @@
         ]
       ]
     }
+  },
+  {
+    "id": "when-greedy-fails",
+    "n": 204,
+    "level": 14,
+    "week": "Core",
+    "title": "When Greedy Fails: Counterexamples and Proofs",
+    "tagline": "Learn to test a greedy idea, find a counterexample such as the coin change case, and know when to switch to dynamic programming.",
+    "viz": "stage",
+    "hours": 3,
+    "priority": 3,
+    "explain": [
+      "A greedy algorithm is fast and simple, but it is not always right. The Wikipedia article on greedy algorithms says that a greedy strategy does not in general produce an optimal solution, though it may give locally optimal answers that approximate one. So the key skill is to tell which problems greedy solves and which it does not.",
+      "## A classic failure: coin change",
+      "You have coins of value 25, 10 and 1 and you want to make 40 with the fewest coins. The greedy rule takes the largest coin that fits. It takes 25, then 10, then five 1s: seven coins. But four 10s make 40 exactly, with four coins. The Wikipedia article on the change-making problem gives this same example. Taking 25 first looked best but ruled out the best answer.",
+      "## What makes a greedy rule safe",
+      "A greedy rule works when a locally best choice can always be extended to a best answer. This is often called the greedy-choice property. The usual way to prove it is an exchange argument: take any best answer and swap one of its choices for the greedy choice without making it worse. Interval scheduling and Huffman coding have such proofs. The coin problem with the coins 25, 10 and 1 does not.",
+      "## Coin systems where greedy works",
+      "For the common coin systems, such as 1, 5, 10, 25 and 100, the largest-first rule is correct. Such systems are called canonical. The article says greedy works for canonical systems but fails for others. With coins you do not know in advance, use dynamic programming: best(a) is 1 plus the smallest best(a - c) over the coins c. It is correct for any coins and costs O(amount times number of coins).",
+      "## More places greedy goes wrong",
+      "- The 0-1 knapsack problem: taking items with the best value per weight can leave space unused and lose to a different mix. The fractional version, where you can take parts of items, is solved by the greedy rule.\n- Shortest paths with negative edges: Dijkstra's algorithm is greedy, and it is only correct when no edge is negative. Bellman-Ford handles negative edges.\n- Travelling salesman: always going to the nearest unvisited city gives a poor tour on some inputs, and the problem is NP-hard.",
+      "## How to test a greedy idea",
+      "First write the rule down in one sentence. Then write a brute-force solver for small inputs, and compare the two on many random small cases. One mismatch is a counterexample, and the rule is wrong. If no mismatch appears, look for an exchange argument. A passing test is only evidence. A failing test is certain.",
+      "## What to use instead",
+      "If a greedy rule fails, the problem usually has overlapping subproblems and needs dynamic programming, or it needs backtracking and search with pruning. Many interview questions are written so that the obvious greedy rule fails, so be ready to say why.",
+      "## How to talk through it",
+      "State the greedy rule, give a counterexample or an exchange argument, and say which of the two you found. Then name the fallback, dynamic programming for coin change and knapsack, or Bellman-Ford for negative edges."
+    ],
+    "keyPoints": [
+      "Greedy is right only when the locally best choice can always be extended to a best answer.",
+      "Coin change with coins 25, 10, 1 and amount 40: greedy gives 7 coins, the best is 4.",
+      "Canonical coin systems (1, 5, 10, 25) work with greedy. Arbitrary coins need dynamic programming.",
+      "Test a rule against brute force on small inputs. One mismatch disproves it. An exchange argument proves it.",
+      "Knapsack, negative-edge shortest paths and travelling salesman are classic places greedy breaks."
+    ],
+    "sql": [
+      {
+        "title": "Greedy against dynamic programming for coin change",
+        "lang": "py",
+        "code": "def greedy_change(coins, amount):\n    count = 0\n    for c in sorted(coins, reverse=True):\n        count += amount // c\n        amount %= c\n    return count if amount == 0 else None\n\ndef best_change(coins, amount):\n    INF = float(\"inf\")\n    best = [0] + [INF] * amount\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a:\n                best[a] = min(best[a], best[a - c] + 1)\n    return best[amount] if best[amount] != INF else None\n\nassert greedy_change([25, 10, 1], 40) == 7\nassert best_change([25, 10, 1], 40) == 4                      # greedy is wrong for these coins\nassert greedy_change([25, 10, 5, 1], 63) == best_change([25, 10, 5, 1], 63) == 6    # fine for ordinary coins\nassert best_change([5, 3], 7) is None                         # impossible amounts"
+      },
+      {
+        "title": "Find counterexamples automatically",
+        "lang": "py",
+        "code": "import itertools\n\ndef greedy_change(coins, amount):\n    count = 0\n    for c in sorted(coins, reverse=True):\n        count += amount // c\n        amount %= c\n    return count\n\ndef best_change(coins, amount):\n    best = [0] + [10 ** 9] * amount\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a:\n                best[a] = min(best[a], best[a - c] + 1)\n    return best[amount]\n\ndef first_counterexample(coins, limit=100):\n    for amount in range(1, limit + 1):\n        if greedy_change(coins, amount) != best_change(coins, amount):\n            return amount\n    return None\n\nassert first_counterexample([25, 10, 1]) == 30                # 25 + 5 x 1 = 6 coins, but 3 x 10 = 3\nassert first_counterexample([1, 5, 10, 25, 100]) is None      # a canonical system has none\nassert first_counterexample([1, 3, 4]) == 6                   # 4 + 1 + 1 against 3 + 3\nall_bad = [c for c in itertools.combinations(range(2, 12), 2) if first_counterexample((1,) + c) is not None]\nassert len(all_bad) > 0                                       # many small systems break the rule"
+      },
+      {
+        "title": "0-1 knapsack: value per weight is not safe",
+        "lang": "py",
+        "code": "def greedy_knapsack(items, capacity):\n    total = 0\n    for value, weight in sorted(items, key=lambda it: it[0] / it[1], reverse=True):\n        if weight <= capacity:\n            capacity -= weight\n            total += value\n    return total\n\ndef best_knapsack(items, capacity):\n    best = [0] * (capacity + 1)\n    for value, weight in items:\n        for w in range(capacity, weight - 1, -1):\n            best[w] = max(best[w], best[w - weight] + value)\n    return best[capacity]\n\nitems = [(60, 10), (100, 20), (120, 30)]                       # (value, weight)\nassert greedy_knapsack(items, 50) == 160                       # takes 60 and 100, then 30 does not fit\nassert best_knapsack(items, 50) == 220                         # the best is 100 and 120\n\ndef fractional_knapsack(items, capacity):\n    total = 0.0\n    for value, weight in sorted(items, key=lambda it: it[0] / it[1], reverse=True):\n        take = min(weight, capacity)\n        total += value * take / weight                        # parts of an item are allowed\n        capacity -= take\n    return total\n\nassert fractional_knapsack(items, 50) == 240.0                 # for the fractional version greedy is optimal"
+      }
+    ],
+    "django": {},
+    "exercise": "Write greedy and dynamic programming versions of coin change and find the smallest amount where greedy fails for coins 25, 10, 1 and for 1, 3, 4. Then show that the 0-1 knapsack greedy by value per weight is wrong on the items (60, 10), (100, 20), (120, 30) with capacity 50, and that the fractional version is right. Finally, write a loop that searches small coin systems for counterexamples.",
+    "pitfalls": [
+      "Trusting a greedy rule because it works on the examples you tried.",
+      "Using the biggest-coin rule with unusual coin values.",
+      "Applying Dijkstra to a graph with negative edges.",
+      "Treating 0-1 knapsack like the fractional version.",
+      "Not writing a brute-force check for small inputs."
+    ],
+    "interview": [
+      {
+        "q": "Does greedy always work for coin change?",
+        "a": "No. It works for canonical coin systems like 1, 5, 10, 25 and 100. For coins 25, 10 and 1, the amount 40 gives 7 coins greedily, but 4 coins is best. For general coins use dynamic programming."
+      },
+      {
+        "q": "How do you know a greedy algorithm is correct?",
+        "a": "Prove it with an exchange argument: show that any best answer can be changed to start with the greedy choice without getting worse. Testing against brute force on small inputs can disprove a rule but cannot prove it."
+      },
+      {
+        "q": "Why does greedy fail for the 0-1 knapsack problem?",
+        "a": "Taking items with the best value per weight can leave capacity unused, and a different mix of items can be worth more. The fractional knapsack, where you may take part of an item, is solved greedily."
+      },
+      {
+        "q": "Why does Dijkstra's algorithm need non-negative edges?",
+        "a": "It finalises the closest unfinished vertex, which assumes no later path can be shorter. A negative edge can make a later path shorter, so the greedy choice is no longer safe."
+      }
+    ],
+    "references": [
+      {
+        "title": "Greedy algorithm (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Greedy_algorithm",
+        "kind": "Reference"
+      },
+      {
+        "title": "Change-making problem (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Change-making_problem",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: interviewers often use coin change and knapsack to see whether you can tell a greedy problem from a dynamic programming one. That a greedy strategy need not be optimal, and that no single formal definition says when it works, come from the Wikipedia greedy algorithm article, which I read in part. The coin example with 25, 10 and 1 giving 7 coins greedily against 4 optimally, and the point that greedy works for canonical systems, come from the Wikipedia change-making problem article, which I read in part. The knapsack and Dijkstra remarks, the testing method and the code are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-greedy-algorithm",
+      "wikipedia-change-making",
+      "wikipedia-knapsack",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "greedyfails",
+        "title": "When greedy fails, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "compare or scan"
+          },
+          {
+            "kind": "write",
+            "label": "pick or merge"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "When greedy fails",
+            "at": 0
+          },
+          {
+            "text": "Greedy answer",
+            "at": 1
+          },
+          {
+            "text": "Best answer",
+            "at": 2
+          },
+          {
+            "text": "No safe choice",
+            "at": 3
+          },
+          {
+            "text": "The fix",
+            "at": 5
+          },
+          {
+            "text": "Testing a rule",
+            "at": 7
+          }
+        ],
+        "nodes": [
+          {
+            "id": "target",
+            "kind": "cube",
+            "x": -4.1,
+            "y": 1.9,
+            "label": "40",
+            "icon": "cell",
+            "tone": "orange"
+          },
+          {
+            "id": "g1",
+            "kind": "cube",
+            "x": 0.0,
+            "y": 2.4,
+            "label": "25",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "g2",
+            "kind": "cube",
+            "x": 1.2,
+            "y": 1.2,
+            "label": "10",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "g3",
+            "kind": "cube",
+            "x": 2.4,
+            "y": 0.0,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "gx0",
+            "kind": "cube",
+            "x": -0.4,
+            "y": 5.6,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "gx1",
+            "kind": "cube",
+            "x": 0.4,
+            "y": 4.8,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "gx2",
+            "kind": "cube",
+            "x": 1.2,
+            "y": 4.0,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "gx3",
+            "kind": "cube",
+            "x": 2.0,
+            "y": 3.2,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "gx4",
+            "kind": "cube",
+            "x": 2.8,
+            "y": 2.4,
+            "label": "1",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o0",
+            "kind": "cube",
+            "x": 0.5,
+            "y": -2.7,
+            "label": "10",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o1",
+            "kind": "cube",
+            "x": 1.6,
+            "y": -3.8,
+            "label": "10",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o2",
+            "kind": "cube",
+            "x": 2.7,
+            "y": -4.9,
+            "label": "10",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "o3",
+            "kind": "cube",
+            "x": 3.8,
+            "y": -6.0,
+            "label": "10",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "A rule that is right sometimes",
+            "tag": "technique",
+            "body": [
+              "Greedy algorithms are fast and simple, but each one is correct only for problems where the best-looking choice is also safe. For some problems, a locally best choice leads you into a bad answer. Here is a famous case: making change.",
+              "Coins are 25, 10 and 1. We want 40 using as few coins as possible."
+            ],
+            "short": "When greedy fails",
+            "hud": [
+              {
+                "k": "Coins",
+                "v": "25, 10, 1"
+              },
+              {
+                "k": "Amount",
+                "v": "40"
+              },
+              {
+                "k": "Goal",
+                "v": "fewest coins"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Greedy: take the biggest coin that fits",
+            "tag": "problem",
+            "body": [
+              "Take the biggest coin that is not more than what is left. 25 fits, leaving 15. The next biggest is 10, leaving 5. Now 10 does not fit, so take five 1 coins.",
+              "Total: 25, 10 and five 1s, which is 7 coins."
+            ],
+            "short": "Greedy answer",
+            "hud": [
+              {
+                "k": "Greedy",
+                "v": "25 + 10 + 5 x 1 = 7 coins",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "red",
+                "pill": {
+                  "text": "taken",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "red",
+                "pill": {
+                  "text": "taken",
+                  "tone": "red",
+                  "icon": "x"
+                },
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": false,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": false,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": false,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": false,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": false,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Coins are 25, 10 and 1, and the amount is 40. Does the biggest-first rule give the fewest coins?",
+              "options": [
+                "Yes, always",
+                "No: four 10s use fewer coins",
+                "Only for even amounts"
+              ],
+              "answer": 1,
+              "why": "Greedy takes 25 first and ends with 7 coins. Four 10-coins make 40 with only 4."
+            }
+          },
+          {
+            "title": "The best answer: four 10s",
+            "tag": "solution",
+            "body": [
+              "Four 10-coins make exactly 40. That is 4 coins, fewer than the 7 from greedy. Taking the 25 first was the mistake: it looked best now but could not be undone.",
+              "The Wikipedia article gives the same example, with 7 coins against 4."
+            ],
+            "short": "Best answer",
+            "hud": [
+              {
+                "k": "Best",
+                "v": "4 x 10 = 4 coins",
+                "tone": "good"
+              },
+              {
+                "k": "Greedy",
+                "v": "7 coins",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "green",
+                "pill": {
+                  "text": "used",
+                  "tone": "green",
+                  "icon": "check"
+                },
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why greedy fails here",
+            "tag": "insight",
+            "body": [
+              "A greedy rule is safe only if a locally best choice can always be extended to a best answer, which is what an exchange argument shows. Here the choice 25 cannot: after taking 25, the remaining 15 can only be made with a 10 and five 1s.",
+              "The problem has no greedy-choice property for these coins."
+            ],
+            "short": "No safe choice",
+            "hud": [
+              {
+                "k": "Greedy choice",
+                "v": "must extend to a best answer"
+              },
+              {
+                "k": "Here",
+                "v": "25 does not",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Coin systems where greedy works",
+            "tag": "insight",
+            "body": [
+              "For the coins we use in real life, 1, 5, 10, 25, 100, the biggest-first rule is correct. These are called canonical coin systems. The Wikipedia article says greedy works for canonical systems, but there is no simple test that is cheap for every system.",
+              "So with unknown coins, use dynamic programming instead."
+            ],
+            "short": "Canonical coins",
+            "hud": [
+              {
+                "k": "Real coins",
+                "v": "greedy works",
+                "tone": "good"
+              },
+              {
+                "k": "Arbitrary coins",
+                "v": "use dynamic programming",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The fix: dynamic programming",
+            "tag": "technique",
+            "body": [
+              "Dynamic programming tries every coin as the last coin and reuses the best answers for smaller amounts: best(a) = 1 + the least of best(a - c) over coins c. It is correct for any coins and takes O(amount times coins).",
+              "We will build it in a later lesson."
+            ],
+            "short": "The fix",
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "best = [0] + [inf] * amount",
+                "for a in range(1, amount + 1):",
+                "    for c in coins:",
+                "        if c <= a: best[a] = min(best[a], best[a - c] + 1)"
+              ],
+              "hl": [
+                3
+              ]
+            }
+          },
+          {
+            "title": "Another trap: the shortest path with negative edges",
+            "tag": "problem",
+            "body": [
+              "Dijkstra's algorithm is greedy too: it finalises the closest unfinished vertex. That is safe only when edges are not negative, since a later negative edge could make a finalised path shorter. With negative edges you need Bellman-Ford.",
+              "The same warning applies each time: check the assumption that makes the greedy choice safe."
+            ],
+            "short": "Another trap",
+            "hud": [
+              {
+                "k": "Dijkstra",
+                "v": "greedy, needs edges >= 0",
+                "tone": "warn"
+              },
+              {
+                "k": "Negative edges",
+                "v": "use Bellman-Ford",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "How to test a greedy idea",
+            "tag": "technique",
+            "body": [
+              "First look for a counterexample on small inputs. Compare the greedy answer with brute force on all small inputs: one mismatch kills the rule. If none appears, try to prove it with an exchange argument.",
+              "A passing random test is evidence, not proof, but a failing one is a certain answer."
+            ],
+            "short": "Testing a rule",
+            "hud": [
+              {
+                "k": "Step 1",
+                "v": "small counterexamples"
+              },
+              {
+                "k": "Step 2",
+                "v": "brute-force comparison"
+              },
+              {
+                "k": "Step 3",
+                "v": "exchange argument",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": true,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "Greedy takes the locally best choice and never undoes it. It is right when the choice is provably safe, as in interval scheduling, Huffman coding, Dijkstra and Kruskal. It fails for coin change with odd coins, and for the knapsack problem. Then use dynamic programming or search.",
+              "Always try to break your own greedy rule."
+            ],
+            "short": "Recap",
+            "set": {
+              "target": {
+                "label": "40",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "g1": {
+                "label": "25",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g2": {
+                "label": "10",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "g3": {
+                "label": "1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "gx0": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx1": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx2": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx3": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "gx4": {
+                "hidden": true,
+                "label": "1",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "o0": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o1": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o2": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "o3": {
+                "hidden": false,
+                "label": "10",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 state the greedy rule",
+                "2 try to break it on small inputs",
+                "3 prove it with an exchange argument",
+                "4 if it breaks, use dynamic programming"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A greedy rule is like always grabbing the biggest snack from the plate and later finding it left no room for two better ones.",
+      "story": "You have a small bag and a table of snacks. You grab the biggest one first because it looks best. Then you find the bag is nearly full, and two medium snacks that you could have fitted together would have been worth more. Choosing what looks best right now is quick. But it only works when the best-looking choice can never cost you something later. When it can, you must look at the whole table first.",
+      "maps": [
+        [
+          "The biggest snack first",
+          "The greedy choice"
+        ],
+        [
+          "A full bag",
+          "A choice that cannot be undone"
+        ],
+        [
+          "Two better snacks",
+          "The best answer greedy missed"
+        ],
+        [
+          "Looking at the whole table",
+          "Dynamic programming"
+        ]
+      ],
+      "words": [
+        [
+          "counterexample",
+          "One input that shows a rule gives a wrong answer."
+        ],
+        [
+          "canonical",
+          "A coin system where biggest-first is always right."
+        ],
+        [
+          "greedy-choice property",
+          "The best-looking choice can always be extended to a best answer."
+        ],
+        [
+          "brute force",
+          "Trying every possibility."
+        ],
+        [
+          "dynamic programming",
+          "Solving a problem by combining answers to smaller problems."
+        ]
+      ]
+    }
   }
 ]
