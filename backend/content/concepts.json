@@ -172290,5 +172290,2477 @@
         ]
       ]
     }
+  },
+  {
+    "id": "n-queens",
+    "n": 207,
+    "level": 14,
+    "week": "Core",
+    "title": "N-Queens: Backtracking with Pruning",
+    "tagline": "Place n queens on a board so none attack each other, and see how rejecting bad partial answers early makes the search fast.",
+    "viz": "stage",
+    "hours": 5,
+    "priority": 2,
+    "explain": [
+      "The eight queens puzzle asks for 8 chess queens on an 8 by 8 board so that no two attack each other. A queen attacks along its row, its column and both diagonals. The Wikipedia article says the puzzle has 92 solutions, or 12 if you count rotations and reflections as the same, and that solutions exist for every board size n except 2 and 3. It is the standard example of backtracking.",
+      "## Why brute force is too slow",
+      "The article counts the ways to place 8 queens on 64 squares without any rule as 4,426,165,368. Allowing only one queen per column cuts that to 8^8, and using permutations of the columns cuts it to 8!, which is 40,320. Backtracking does better than all of these, because it stops as soon as a partial placement already breaks the rules.",
+      "## The algorithm",
+      "Place queens one row at a time. Since two queens in a row would attack each other, each row has exactly one queen. For the current row, try each column from left to right. If the square is attacked by a queen already placed, skip it. Otherwise place a queen, recurse on the next row, and take the queen off if that fails. When all rows are filled, you have a solution. If no column works in a row, return, and the row above tries its next column. That return is the backtrack.",
+      "> A worked example: 4 queens. Row 0, column 0 is safe. Row 1: columns 0 and 1 are attacked, so put a queen at column 2. Row 2: every column is attacked. Backtrack: move the row 1 queen to column 3. Row 2: column 1 is safe. Row 3: no column is safe. Backtrack again, and the search eventually removes the first queen and starts with column 1 in row 0. It then finds the solution in columns 1, 3, 0 and 2.",
+      "## Checking an attack quickly",
+      "A queen at row r and column c attacks the square (r2, c2) if c equals c2, or if the row difference equals the column difference. Scanning all placed queens takes O(n). A faster way keeps three sets: columns used, diagonals used (row minus column is constant along one diagonal), and anti-diagonals used (row plus column is constant along the other). Then the check is O(1), and you add and remove the keys as you place and remove queens.",
+      "## Counting solutions",
+      "To count, do not stop at the first solution. For n = 1 to 8, the number of solutions is 1, 0, 0, 2, 10, 4, 40 and 92. The count for n = 8 matches the article. The search tree is still exponential in n, but pruning keeps it small enough that n = 8 takes a blink and n = 12 takes a few seconds.",
+      "## The template again",
+      "The structure matches subsets and permutations: choose a column, explore the next row, undo. The new part is the reject test before exploring. In the Wikipedia description, a reject test discards a partial candidate that cannot be completed, and an accept test recognises a full solution. Every backtracking problem has these two tests.",
+      "## Other problems with the same shape",
+      "Sudoku, crossword filling, word search, graph colouring, and solving a puzzle with rules are all backtracking: choose a value for the next cell, reject conflicts, recurse, and undo. SAT solvers such as DPLL are also backtracking searches.",
+      "## How to talk through it",
+      "Say one queen per row, try columns, reject attacked squares, recurse, undo. Say how you check attacks in O(1) with three sets, and say why it is faster than brute force."
+    ],
+    "keyPoints": [
+      "Queens attack along rows, columns and diagonals. Place one queen per row and try each column.",
+      "Reject a square that is attacked. If a row has no safe square, go back and move the queen in the row above.",
+      "Three sets (columns, row-col, row+col) give O(1) attack checks.",
+      "Solutions exist for every n except 2 and 3. n = 8 has 92 solutions.",
+      "Reject test plus accept test is the shape of every backtracking problem: Sudoku, colouring, word search."
+    ],
+    "sql": [
+      {
+        "title": "Solve N-Queens with sets",
+        "lang": "py",
+        "code": "def solve_queens(n):\n    cols, d1, d2, placed, found = set(), set(), set(), [], []\n    def go(r):\n        if r == n:\n            found.append(list(placed))                       # accept: every row has a queen\n            return\n        for c in range(n):\n            if c in cols or r - c in d1 or r + c in d2:       # reject: attacked\n                continue\n            cols.add(c); d1.add(r - c); d2.add(r + c)         # choose\n            placed.append(c)\n            go(r + 1)                                         # explore\n            placed.pop()                                      # undo\n            cols.remove(c); d1.remove(r - c); d2.remove(r + c)\n    go(0)\n    return found\n\nassert solve_queens(4) == [[1, 3, 0, 2], [2, 0, 3, 1]]\nassert [len(solve_queens(n)) for n in range(1, 9)] == [1, 0, 0, 2, 10, 4, 40, 92]\nassert solve_queens(2) == [] and solve_queens(3) == []"
+      },
+      {
+        "title": "Check against brute force, and draw a board",
+        "lang": "py",
+        "code": "import itertools\n\ndef solve_queens(n):\n    cols, d1, d2, placed, found = set(), set(), set(), [], []\n    def go(r):\n        if r == n:\n            found.append(list(placed))\n            return\n        for c in range(n):\n            if c in cols or r - c in d1 or r + c in d2:\n                continue\n            cols.add(c); d1.add(r - c); d2.add(r + c); placed.append(c)\n            go(r + 1)\n            placed.pop(); cols.remove(c); d1.remove(r - c); d2.remove(r + c)\n    go(0)\n    return found\n\ndef by_brute_force(n):\n    good = []\n    for perm in itertools.permutations(range(n)):             # one queen per row and column already\n        if len({r - c for r, c in enumerate(perm)}) == n and len({r + c for r, c in enumerate(perm)}) == n:\n            good.append(list(perm))\n    return good\n\nfor n in range(1, 8):\n    assert sorted(solve_queens(n)) == sorted(by_brute_force(n))\n\ndef draw(solution):\n    n = len(solution)\n    return [\"\".join(\"Q\" if c == col else \".\" for c in range(n)) for col in solution]\n\nassert draw([1, 3, 0, 2]) == [\".Q..\", \"...Q\", \"Q...\", \"..Q.\"]"
+      },
+      {
+        "title": "Count the work: with pruning and without",
+        "lang": "py",
+        "code": "def count_nodes(n, prune):\n    nodes, placed = [0], []\n    def attacked(r, c):\n        return any(c == cc or abs(r - rr) == abs(c - cc) for rr, cc in enumerate(placed))\n    def go(r):\n        nodes[0] += 1\n        if r == n:\n            return\n        for c in range(n):\n            if prune and attacked(r, c):\n                continue\n            placed.append(c)\n            go(r + 1)\n            placed.pop()\n    go(0)\n    return nodes[0]\n\npruned = count_nodes(6, True)\nunpruned = count_nodes(6, False)\nassert unpruned == sum(6 ** k for k in range(7))              # every placement of one queen per row\nassert pruned < unpruned / 20                                 # pruning cuts away most of the tree"
+      }
+    ],
+    "django": {},
+    "exercise": "Write solve_queens with three sets and check that the counts for n = 1 to 8 are 1, 0, 0, 2, 10, 4, 40 and 92. Compare against a brute-force version with itertools.permutations for n up to 7. Write a draw function that prints a solution as a board. Finally, count the nodes visited with and without the attack check.",
+    "pitfalls": [
+      "Checking only columns and forgetting the diagonals.",
+      "Forgetting to remove the keys from the sets when you undo a queen.",
+      "Copying the placed list incorrectly, so solutions change afterwards.",
+      "Looping over every square instead of using one queen per row.",
+      "Expecting a solution for n = 2 or n = 3. There is none."
+    ],
+    "interview": [
+      {
+        "q": "How do you solve the N-Queens problem?",
+        "a": "Place one queen per row. For each row try each column and skip squares attacked by an earlier queen. Recurse to the next row, and remove the queen when it leads nowhere. When all rows are filled, save the solution."
+      },
+      {
+        "q": "How do you check if a square is attacked quickly?",
+        "a": "Keep sets of used columns, used diagonals (row minus column) and used anti-diagonals (row plus column). A square is attacked if its column or either diagonal key is already in a set, which is O(1)."
+      },
+      {
+        "q": "Why is backtracking better than brute force here?",
+        "a": "Brute force tries every arrangement, even those that already break the rules after two queens. Backtracking rejects a partial board as soon as it breaks a rule, and that cuts the whole branch below it."
+      },
+      {
+        "q": "How many solutions are there for 8 queens?",
+        "a": "92, or 12 if you treat rotations and reflections as the same. Solutions exist for every n except 2 and 3."
+      }
+    ],
+    "references": [
+      {
+        "title": "Eight queens puzzle (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Eight_queens_puzzle",
+        "kind": "Reference"
+      },
+      {
+        "title": "Backtracking (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Backtracking",
+        "kind": "Reference"
+      }
+    ],
+    "basis": "Why it is here: N-Queens is the best-known backtracking problem and shows pruning clearly. The 92 solutions for n = 8 (12 up to symmetry), the fact that solutions exist for every n except 2 and 3, and the brute-force counts 4,426,165,368, 8^8 and 8! come from the Wikipedia eight queens puzzle article, which I read in part. The reject and accept tests and the search-tree view come from the Wikipedia backtracking article, which I read in part. The 4-queens trace and the code are my own illustration and judgment, and the code is checked by running it, including a brute-force comparison. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-eight-queens",
+      "wikipedia-backtracking",
+      "amazon-topics",
+      "meta-swe-prep"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "nqueens",
+        "title": "N-Queens, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "try or look"
+          },
+          {
+            "kind": "write",
+            "label": "choose"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "dead end"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The puzzle",
+            "at": 0
+          },
+          {
+            "text": "Safe squares",
+            "at": 1
+          },
+          {
+            "text": "Placing",
+            "at": 2
+          },
+          {
+            "text": "The solution",
+            "at": 14
+          },
+          {
+            "text": "Pruning wins",
+            "at": 15
+          }
+        ],
+        "nodes": [
+          {
+            "id": "q00",
+            "kind": "cube",
+            "x": -3.1500000000000004,
+            "y": -3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q01",
+            "kind": "cube",
+            "x": -1.05,
+            "y": -3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q02",
+            "kind": "cube",
+            "x": 1.05,
+            "y": -3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q03",
+            "kind": "cube",
+            "x": 3.1500000000000004,
+            "y": -3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q10",
+            "kind": "cube",
+            "x": -3.1500000000000004,
+            "y": -1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q11",
+            "kind": "cube",
+            "x": -1.05,
+            "y": -1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q12",
+            "kind": "cube",
+            "x": 1.05,
+            "y": -1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q13",
+            "kind": "cube",
+            "x": 3.1500000000000004,
+            "y": -1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q20",
+            "kind": "cube",
+            "x": -3.1500000000000004,
+            "y": 1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q21",
+            "kind": "cube",
+            "x": -1.05,
+            "y": 1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q22",
+            "kind": "cube",
+            "x": 1.05,
+            "y": 1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q23",
+            "kind": "cube",
+            "x": 3.1500000000000004,
+            "y": 1.05,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q30",
+            "kind": "cube",
+            "x": -3.1500000000000004,
+            "y": 3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q31",
+            "kind": "cube",
+            "x": -1.05,
+            "y": 3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          },
+          {
+            "id": "q32",
+            "kind": "cube",
+            "x": 1.05,
+            "y": 3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "q33",
+            "kind": "cube",
+            "x": 3.1500000000000004,
+            "y": 3.1500000000000004,
+            "label": "",
+            "icon": "cell",
+            "tone": "blue"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Four queens on a four by four board",
+            "tag": "technique",
+            "body": [
+              "A queen attacks along its row, its column and both diagonals. Can we place 4 queens on a 4 by 4 board so that none attacks another? Each row must hold exactly one queen, so we place one queen row by row.",
+              "For each row, we try the columns from left to right."
+            ],
+            "short": "The puzzle",
+            "hud": [
+              {
+                "k": "Board",
+                "v": "4 x 4"
+              },
+              {
+                "k": "Queens",
+                "v": "4, none attacking"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Check a square before placing",
+            "tag": "technique",
+            "body": [
+              "A square is safe if no queen already placed is in the same column, or on the same diagonal. Two squares share a diagonal when the row difference equals the column difference.",
+              "Checking the placed queens only is enough, because we place one queen per row."
+            ],
+            "short": "Safe squares",
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "def safe(r, c, cols):",
+                "    return all(c != cc and abs(r - rr) != abs(c - cc)",
+                "               for rr, cc in enumerate(cols))"
+              ],
+              "hl": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "title": "Step 1: place a queen at row 0, column 0",
+            "tag": "solution",
+            "body": [
+              "Row 0, column 0 is safe, so put a queen there.",
+              "1 queen on the board."
+            ],
+            "short": "Step 1",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "1"
+              },
+              {
+                "k": "Row",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 2: place a queen at row 1, column 2",
+            "tag": "solution",
+            "body": [
+              "Row 1, column 2 is safe, so put a queen there. Columns 0, 1 of row 1 were attacked, so they were skipped.",
+              "2 queens on the board."
+            ],
+            "short": "Step 2",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "2"
+              },
+              {
+                "k": "Row",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q11": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q12": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 3: dead end, take the queen at row 1, column 2 off",
+            "tag": "problem",
+            "body": [
+              "Every column in row 2 is attacked, or every later try failed, so the queen at row 1, column 2 must move. Take it off and try the next column in row 1.",
+              "This step back is the backtrack."
+            ],
+            "short": "Step 3",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "1"
+              },
+              {
+                "k": "Backtrack",
+                "v": "row 1, column 2",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "predict": {
+              "question": "Row 2 has no safe square. What does the search do?",
+              "options": [
+                "Give up completely",
+                "Move the queen in row 1 to its next column",
+                "Put two queens in one row"
+              ],
+              "answer": 1,
+              "why": "It goes back to the row above and tries the next column there."
+            }
+          },
+          {
+            "title": "Step 4: place a queen at row 1, column 3",
+            "tag": "solution",
+            "body": [
+              "Row 1, column 3 is safe, so put a queen there.",
+              "2 queens on the board."
+            ],
+            "short": "Step 4",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "2"
+              },
+              {
+                "k": "Row",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 5: place a queen at row 2, column 1",
+            "tag": "solution",
+            "body": [
+              "Row 2, column 1 is safe, so put a queen there. Columns 0 of row 2 were attacked, so they were skipped.",
+              "3 queens on the board."
+            ],
+            "short": "Step 5",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "3"
+              },
+              {
+                "k": "Row",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q21": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 6: dead end, take the queen at row 2, column 1 off",
+            "tag": "problem",
+            "body": [
+              "Every column in row 3 is attacked, or every later try failed, so the queen at row 2, column 1 must move. Take it off and try the next column in row 2.",
+              "This step back is the backtrack."
+            ],
+            "short": "Step 6",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "2"
+              },
+              {
+                "k": "Backtrack",
+                "v": "row 2, column 1",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 7: dead end, take the queen at row 1, column 3 off",
+            "tag": "problem",
+            "body": [
+              "Every column in row 2 is attacked, or every later try failed, so the queen at row 1, column 3 must move. Take it off and try the next column in row 1.",
+              "This step back is the backtrack."
+            ],
+            "short": "Step 7",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "1"
+              },
+              {
+                "k": "Backtrack",
+                "v": "row 1, column 3",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 8: dead end, take the queen at row 0, column 0 off",
+            "tag": "problem",
+            "body": [
+              "Every column in row 1 is attacked, or every later try failed, so the queen at row 0, column 0 must move. Take it off and try the next column in row 0.",
+              "This step back is the backtrack."
+            ],
+            "short": "Step 8",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "0"
+              },
+              {
+                "k": "Backtrack",
+                "v": "row 0, column 0",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "x",
+                "tone": "red",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 9: place a queen at row 0, column 1",
+            "tag": "solution",
+            "body": [
+              "Row 0, column 1 is safe, so put a queen there.",
+              "1 queen on the board."
+            ],
+            "short": "Step 9",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "1"
+              },
+              {
+                "k": "Row",
+                "v": "0"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 10: place a queen at row 1, column 3",
+            "tag": "solution",
+            "body": [
+              "Row 1, column 3 is safe, so put a queen there. Columns 0, 1, 2 of row 1 were attacked, so they were skipped.",
+              "2 queens on the board."
+            ],
+            "short": "Step 10",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "2"
+              },
+              {
+                "k": "Row",
+                "v": "1"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q11": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q12": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 11: place a queen at row 2, column 0",
+            "tag": "solution",
+            "body": [
+              "Row 2, column 0 is safe, so put a queen there.",
+              "3 queens on the board."
+            ],
+            "short": "Step 11",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "3"
+              },
+              {
+                "k": "Row",
+                "v": "2"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Step 12: place a queen at row 3, column 2",
+            "tag": "solution",
+            "body": [
+              "Row 3, column 2 is safe, so put a queen there. Columns 0, 1 of row 3 were attacked, so they were skipped.",
+              "4 queens on the board."
+            ],
+            "short": "Step 12",
+            "hud": [
+              {
+                "k": "Queens",
+                "v": "4"
+              },
+              {
+                "k": "Row",
+                "v": "3"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q31": {
+                "label": "x",
+                "tone": "grey",
+                "pill": null,
+                "status": "dim"
+              },
+              "q32": {
+                "label": "Q",
+                "tone": "orange",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "The solution",
+            "tag": "solution",
+            "body": [
+              "All four rows hold a queen: columns 1, 3, 0, 2. No two queens share a row, a column or a diagonal.",
+              "The Wikipedia article says solutions exist for every n except 2 and 3. For 4 there are 2, a board and its mirror image."
+            ],
+            "short": "Solution",
+            "hud": [
+              {
+                "k": "Solution",
+                "v": "1 3 0 2",
+                "tone": "good"
+              },
+              {
+                "k": "n = 4",
+                "v": "2 solutions"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Why backtracking beats brute force",
+            "tag": "insight",
+            "body": [
+              "The Wikipedia article says that trying every way to put 8 queens on 64 squares is 4,426,165,368 arrangements, one queen per column cuts that to 8^8, and using permutations cuts it to 8!. Backtracking cuts the search more, because a dead end stops the whole branch.",
+              "The 8 queens puzzle has 92 solutions, found by backtracking at once."
+            ],
+            "short": "Pruning wins",
+            "hud": [
+              {
+                "k": "All placements",
+                "v": "4,426,165,368",
+                "tone": "bad"
+              },
+              {
+                "k": "One per row",
+                "v": "8^8"
+              },
+              {
+                "k": "Permutations",
+                "v": "8! = 40,320"
+              },
+              {
+                "k": "Backtracking",
+                "v": "far fewer",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Faster safety checks",
+            "tag": "technique",
+            "body": [
+              "Instead of scanning the queens, keep three sets: used columns, used diagonals (row minus column) and used anti-diagonals (row plus column). A square is safe if none of its three keys is in a set. Each check takes O(1).",
+              "Add the keys when you place a queen and remove them when you take it off."
+            ],
+            "short": "Sets",
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Python",
+              "lines": [
+                "if c in cols or r - c in d1 or r + c in d2: continue",
+                "cols.add(c); d1.add(r - c); d2.add(r + c)"
+              ],
+              "hl": [
+                0
+              ]
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "N-Queens: place one queen per row, try each column, skip attacked squares, and go back when a row has no safe square. Use sets for O(1) checks. It shows how pruning turns an impossible search into a fast one.",
+              "Same template again: choose, explore, undo."
+            ],
+            "short": "Recap",
+            "set": {
+              "q00": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q01": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q02": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q03": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q10": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q11": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q12": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q13": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q20": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q21": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q22": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q23": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q30": {
+                "label": "",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "q31": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "q32": {
+                "label": "Q",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "q33": {
+                "label": "",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 one queen per row",
+                "2 try each column, skip attacked squares",
+                "3 no safe square: back up",
+                "4 sets give O(1) checks"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "N-Queens is like seating guests who dislike each other: if a seat clashes, you move the last guest and try again.",
+      "story": "You are seating four guests, one in each row of a four by four grid of seats, and some guests must not be in line with each other. You seat the first guest, then the second where she does not clash, and so on. When you reach a row where every seat clashes with someone, you do not start again from nothing. You only move the guest in the row just above, and then try again. That is backtracking: stepping back as little as needed.",
+      "maps": [
+        [
+          "A seat that clashes",
+          "An attacked square"
+        ],
+        [
+          "Moving the guest in the row above",
+          "Backtracking"
+        ],
+        [
+          "Seating one guest per row",
+          "One queen per row"
+        ],
+        [
+          "A full seating with no clash",
+          "A solution"
+        ]
+      ],
+      "words": [
+        [
+          "queen",
+          "A chess piece that attacks along rows, columns and diagonals."
+        ],
+        [
+          "diagonal",
+          "A line of squares going corner to corner."
+        ],
+        [
+          "reject test",
+          "A check that discards a partial answer that cannot work."
+        ],
+        [
+          "accept test",
+          "A check that a complete answer is valid."
+        ],
+        [
+          "backtrack",
+          "Go back to an earlier choice and try another."
+        ]
+      ]
+    }
   }
 ]
