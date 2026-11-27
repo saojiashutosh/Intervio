@@ -2645,6 +2645,42 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "The number of 1 bits, or population count; x AND (x - 1) clears the lowest set bit, so repeating it counts bits in as many steps as there are 1s; Hamming distance is the weight of A XOR B; Python offers int.bit_count."
+    },
+    {
+      "key": "wikipedia-p-vs-np",
+      "title": "P versus NP problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/P_versus_NP_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "P is solvable in polynomial time and NP is verifiable in polynomial time; whether they are equal is an open Millennium Prize problem; most experts believe P is not equal to NP; SAT is NP-complete by the Cook-Levin theorem."
+    },
+    {
+      "key": "wikipedia-np-completeness",
+      "title": "NP-completeness (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/NP-completeness",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A problem is NP-complete if it is in NP and every problem in NP reduces to it in polynomial time; prove it by showing membership in NP and reducing a known NP-complete problem to it; practical approaches are approximation, restricted inputs and heuristics."
+    },
+    {
+      "key": "wikipedia-tsp",
+      "title": "Travelling salesman problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Travelling_salesman_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Find the shortest tour that visits each city once and returns; NP-hard, with an NP-complete decision version; brute force tries all permutations; Christofides-Serdyukov gives a 1.5 approximation for metric instances."
+    },
+    {
+      "key": "wikipedia-sat",
+      "title": "Boolean satisfiability problem (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Boolean_satisfiability_problem",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "SAT asks whether some assignment makes a Boolean formula true; the first NP-complete problem; 3-SAT is NP-complete but 2-SAT is solvable in polynomial time; DPLL is a backtracking solver."
     }
   ],
   "levels": [
