@@ -2402,6 +2402,87 @@
       "kind": "reference",
       "checked": "read",
       "used_for": "Sort edges by weight and add each edge that joins two different trees, checked with a disjoint-set structure; O(E log E) with the sort dominating; first published by Kruskal in 1956."
+    },
+    {
+      "key": "wikipedia-binary-search",
+      "title": "Binary search (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Binary_search_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Binary search needs a sorted array; worst case O(log n) with floor(log2 n + 1) iterations and O(1) space; midpoint L + floor((R - L) / 2); leftmost and rightmost match variants; absent targets give a rank; hash tables are faster for exact lookups."
+    },
+    {
+      "key": "wikipedia-insertion-sort",
+      "title": "Insertion sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Insertion_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Worst and average O(n squared), best O(n) on sorted input; stable, in place and adaptive; efficient for small or nearly sorted data and used inside faster sorts below a small threshold; writes O(n squared) versus selection sort's O(n)."
+    },
+    {
+      "key": "wikipedia-selection-sort",
+      "title": "Selection sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Selection_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Repeatedly moves the minimum of the unsorted part to the front; always n(n - 1)/2 comparisons and at most n - 1 swaps; in place; the usual swap version is not stable; useful when writes are costly; heapsort is selection sort with a heap."
+    },
+    {
+      "key": "wikipedia-bubble-sort",
+      "title": "Bubble sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Bubble_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Swaps adjacent out-of-order pairs until a pass makes no swap; O(n squared) worst and average, O(n) best with the early exit; stable and in place; rarely used because insertion sort is usually faster."
+    },
+    {
+      "key": "wikipedia-quicksort",
+      "title": "Quicksort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Quicksort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Divide and conquer around a pivot; average O(n log n), worst case O(n squared); in place and not stable; Lomuto and Hoare partition schemes; first or last pivot degrades on sorted input; random or median-of-three pivots help."
+    },
+    {
+      "key": "wikipedia-quickselect",
+      "title": "Quickselect (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Quickselect",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Finds the k-th smallest element by partitioning and recursing into one side; average O(n), worst case O(n squared); in place; the shown code assumes Lomuto partitioning; random pivot makes bad cases very unlikely; median of medians gives linear worst case."
+    },
+    {
+      "key": "wikipedia-counting-sort",
+      "title": "Counting sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Counting_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Counts how many times each integer key occurs, takes prefix sums, then places items stably from the end; O(n + k) time and space; not a comparison sort; practical only when the key range is not much larger than n."
+    },
+    {
+      "key": "wikipedia-radix-sort",
+      "title": "Radix sort (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Radix_sort",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "Sorts digit by digit with a stable sort for each digit; least-significant-digit radix sort runs in Theta(d(n + k)); most-significant-digit variants are not necessarily stable; non-comparative."
+    },
+    {
+      "key": "wikipedia-sorting-algorithm",
+      "title": "Sorting algorithm (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Sorting_algorithm",
+      "publisher": "Wikipedia",
+      "kind": "reference",
+      "checked": "read",
+      "used_for": "A sort is stable when equal keys keep their input order; comparison sorts cannot beat O(n log n) on average; table of common sorts with best, average and worst cases, memory and stability."
     }
   ],
   "levels": [
