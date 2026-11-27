@@ -118692,5 +118692,990 @@
         ]
       ]
     }
+  },
+  {
+    "id": "hash-tables",
+    "n": 162,
+    "level": 14,
+    "week": "Core",
+    "title": "Hash Tables: Buckets, Hash Functions and O(1) Lookup",
+    "tagline": "See how a key becomes an array index, why lookup is O(1) on average, and what a good hash function and hashable key mean.",
+    "viz": "stage",
+    "hours": 4,
+    "priority": 2,
+    "explain": [
+      "A hash table, also called a hash map or dictionary, stores key and value pairs. Instead of searching for a key, it computes where the key lives. The Wikipedia article says a hash table implements an associative array and uses a hash function to compute an index, also called a hash code, into an array of buckets or slots. Python's dict and set are hash tables.",
+      "## The hash function",
+      "A hash function maps data of arbitrary size to a fixed-size number. The article gives the properties that matter. It must be deterministic, so the same input always gives the same output. It should be fast to compute. And it should map the expected inputs as evenly as possible over its output range, to minimize collisions. A function that scrambles the key bits so that results are uniformly spread is a good one. Uniform does not mean random: it only requires an even spread.",
+      "## From key to bucket",
+      "The bucket index is the hash of the key modulo the number of buckets, written h(K) % n. Insert hashes the key, finds the bucket and stores the pair there. Lookup hashes the key again, goes to the same bucket and compares the stored key with the one you are looking for. Delete does the same and removes the pair. Each step touches one bucket, so on average each takes O(1) time.",
+      "## Collisions and the load factor",
+      "Two different keys can hash to the same bucket. This is a collision, and with more keys than buckets it must happen. The load factor is the number of stored pairs n divided by the number of buckets m. The higher it is, the more collisions occur. The article gives the cost of search, insert and delete as Theta(1) on average and O(n) in the worst case, when too many keys collide into one bucket.",
+      "> A worked example: a table with 6 buckets and the toy hash that adds letter positions. cat gives 24, and 24 mod 6 = 0. dog gives 26, so bucket 2. fox gives 45, so bucket 3. owl gives 50, so bucket 2 again: it collides with dog. Looking up dog means one hash, one mod and one comparison in bucket 2.",
+      "## What can be a key",
+      "The Python glossary says an object is hashable if it has a hash value that never changes in its lifetime, and it can be compared to other objects. Hashable objects that compare equal must have the same hash value. Lists, dicts and sets are mutable, so they are not hashable, and a tuple is hashable only if all its items are. This is why you can use a tuple of numbers as a key, but not a list. Keys that compare equal, such as 1 and 1.0, index the same entry.",
+      "## In your own classes",
+      "If you write a class and use its objects as keys, define __eq__ and __hash__ together from the same fields, and do not change those fields while the object is in a dict or a set. If equal objects had different hashes, lookups would silently miss.",
+      "## How to talk through it",
+      "Say hash, mod, bucket. State the average and the worst case, and say what causes the worst case. Mention that Python dict lookups are O(1) on average, and that mutating a key's hash breaks things."
+    ],
+    "keyPoints": [
+      "A hash table computes the bucket index from the key: hash(key) % number of buckets.",
+      "Search, insert and delete are O(1) on average and O(n) in the worst case.",
+      "A good hash is deterministic, fast and spreads keys evenly. Collisions are normal.",
+      "Load factor = stored pairs / buckets. A higher load factor means more collisions.",
+      "Keys must be hashable: a stable hash, and equal keys must have equal hashes. Lists and dicts are not hashable."
+    ],
+    "sql": [
+      {
+        "title": "A tiny hash table",
+        "lang": "py",
+        "code": "class TinyHashTable:\n    def __init__(self, buckets=6):\n        self.buckets = [[] for _ in range(buckets)]\n        self.size = 0\n\n    def _bucket(self, key):\n        return self.buckets[hash(key) % len(self.buckets)]\n\n    def put(self, key, value):\n        bucket = self._bucket(key)\n        for i, (k, _) in enumerate(bucket):\n            if k == key:\n                bucket[i] = (key, value)           # update an existing key\n                return\n        bucket.append((key, value))\n        self.size += 1\n\n    def get(self, key, default=None):\n        for k, v in self._bucket(key):\n            if k == key:\n                return v\n        return default\n\n    def load_factor(self):\n        return self.size / len(self.buckets)\n\nt = TinyHashTable()\nfor k, v in ((\"cat\", 1), (\"dog\", 2), (\"fox\", 3)):\n    t.put(k, v)\nassert t.get(\"dog\") == 2 and t.get(\"owl\") is None\nt.put(\"dog\", 20)\nassert t.get(\"dog\") == 20 and t.size == 3\nassert t.load_factor() == 0.5"
+      },
+      {
+        "title": "What can be a key",
+        "lang": "py",
+        "code": "d = {}\nd[(1, 2)] = \"a tuple works\"\nd[1] = \"one\"\nd[1.0] = \"same entry as 1\"                       # 1 == 1.0, so the hashes agree\nassert d[1] == \"same entry as 1\" and len(d) == 2\n\nfor bad in ([1, 2], {\"a\": 1}, {1, 2}):\n    try:\n        d[bad] = \"nope\"\n    except TypeError:\n        pass\n    else:\n        raise AssertionError(\"mutable containers are not hashable\")\n\ntry:\n    hash(([1], 2))                                # a tuple holding a list is not hashable\nexcept TypeError:\n    pass\nelse:\n    raise AssertionError(\"expected TypeError\")\nassert hash((1, 2)) == hash((1, 2))               # deterministic within a run"
+      },
+      {
+        "title": "A key class: __eq__ and __hash__ together",
+        "lang": "py",
+        "code": "class Point:\n    def __init__(self, x, y):\n        self.x, self.y = x, y\n\n    def __eq__(self, other):\n        return isinstance(other, Point) and (self.x, self.y) == (other.x, other.y)\n\n    def __hash__(self):\n        return hash((self.x, self.y))             # the same fields as __eq__\n\nseen = {Point(1, 2): \"first\"}\nassert seen[Point(1, 2)] == \"first\"               # an equal point finds the entry\nassert Point(1, 2) in seen and Point(2, 1) not in seen\nassert len({Point(1, 2), Point(1, 2), Point(3, 4)}) == 2\n\nclass Bad:                                        # no __eq__ or __hash__: identity is used\n    pass\nassert Bad() != Bad()"
+      }
+    ],
+    "django": {},
+    "exercise": "Write TinyHashTable with put, get, delete and a load factor. Print how many keys land in each bucket for 1,000 random strings and for 1,000 keys that all end in the same letters. Then explain why the Point class must define __hash__ whenever it defines __eq__, and test what happens if you mutate x while the point is in a set.",
+    "pitfalls": [
+      "Using a mutable object as a key, or mutating a key's fields after it was inserted. The lookup will miss.",
+      "Defining __eq__ without __hash__. Python then makes the class unhashable.",
+      "Assuming dict iteration or lookup order depends on the hash. A dict keeps insertion order. A set has no order.",
+      "Saying lookup is always O(1). It is O(1) on average, and O(n) in the worst case.",
+      "Relying on hash() values staying the same between runs. String hashes can change from one run to the next."
+    ],
+    "interview": [
+      {
+        "q": "How does a hash table work?",
+        "a": "It applies a hash function to the key to get a number, takes it modulo the number of buckets, and stores or finds the pair in that bucket. A collision handling scheme deals with keys that share a bucket. Lookup, insert and delete are O(1) on average."
+      },
+      {
+        "q": "What is a good hash function?",
+        "a": "It is deterministic, fast to compute and spreads the expected keys evenly over the buckets, so few collisions happen. It must give equal outputs for equal keys."
+      },
+      {
+        "q": "Why can't a list be a dict key in Python?",
+        "a": "Keys must be hashable: the hash must never change while the object is alive. A list is mutable, so its contents and any hash from them could change, and Python refuses to hash it."
+      },
+      {
+        "q": "What is the worst case of a hash table lookup?",
+        "a": "O(n), when many keys collide into the same bucket so the table behaves like a list. Good hash functions and resizing make it very rare."
+      }
+    ],
+    "references": [
+      {
+        "title": "Hash table (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hash_table",
+        "kind": "Reference"
+      },
+      {
+        "title": "Hash function (Wikipedia)",
+        "url": "https://en.wikipedia.org/wiki/Hash_function",
+        "kind": "Reference"
+      },
+      {
+        "title": "Glossary: hashable (Python docs)",
+        "url": "https://docs.python.org/3/glossary.html#term-hashable",
+        "kind": "Python docs"
+      }
+    ],
+    "basis": "Why it is here: hash tables are the most used structure in coding rounds, and the Python dict and set are built on them. The definition, the load factor and the average and worst-case costs come from the Wikipedia hash table article, which I read in part. The qualities of a good hash function come from the Wikipedia hash function article, which I read in part, and the hashable rules from the Python glossary, which I read. The toy hash and the class examples are my own illustration and judgment, and the code is checked by running it. Priorities and hours are my own judgment, not a published standard. The animation values are illustrative, chosen for clarity, not measurements.",
+    "sources": [
+      "wikipedia-hash-table",
+      "wikipedia-hash-function",
+      "py-glossary-hashable",
+      "amazon-topics"
+    ],
+    "scenes": [
+      {
+        "kind": "stage",
+        "id": "hashtable",
+        "title": "Hash tables, step by step",
+        "legend": [
+          {
+            "kind": "request",
+            "label": "lookup or probe"
+          },
+          {
+            "kind": "write",
+            "label": "insert or move"
+          },
+          {
+            "kind": "response",
+            "label": "result"
+          },
+          {
+            "kind": "fail",
+            "label": "collision or problem"
+          }
+        ],
+        "learn": [
+          {
+            "text": "The idea",
+            "at": 0
+          },
+          {
+            "text": "Hash and index",
+            "at": 1
+          },
+          {
+            "text": "Lookup",
+            "at": 4
+          },
+          {
+            "text": "Collisions",
+            "at": 5
+          },
+          {
+            "text": "Hashable keys",
+            "at": 8
+          }
+        ],
+        "nodes": [
+          {
+            "id": "key",
+            "kind": "cube",
+            "x": -1.7,
+            "y": -1.7,
+            "label": "cat",
+            "icon": "key",
+            "tone": "orange"
+          },
+          {
+            "id": "hf",
+            "kind": "cube",
+            "x": -0.45,
+            "y": -0.45,
+            "label": "hash",
+            "icon": "gear",
+            "tone": "teal"
+          },
+          {
+            "id": "b0",
+            "kind": "cube",
+            "x": -2.0,
+            "y": 4.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b1",
+            "kind": "cube",
+            "x": -0.8,
+            "y": 2.8,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b2",
+            "kind": "cube",
+            "x": 0.4,
+            "y": 1.6,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b3",
+            "kind": "cube",
+            "x": 1.6,
+            "y": 0.4,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b4",
+            "kind": "cube",
+            "x": 2.8,
+            "y": -0.8,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          },
+          {
+            "id": "b5",
+            "kind": "cube",
+            "x": 4.0,
+            "y": -2.0,
+            "label": "·",
+            "icon": "cell",
+            "tone": "grey"
+          }
+        ],
+        "links": [],
+        "steps": [
+          {
+            "title": "Find things by computing where they are",
+            "tag": "technique",
+            "body": [
+              "A hash table stores key and value pairs in an array of buckets. To find a key, it does not search. It computes which bucket the key belongs to, and goes straight there.",
+              "The Wikipedia article says a hash table uses a hash function to compute an index into an array of buckets or slots."
+            ],
+            "short": "The idea",
+            "hud": [
+              {
+                "k": "Lookup",
+                "v": "compute, then jump"
+              },
+              {
+                "k": "Average cost",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "key"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf",
+                  "b2"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "The hash function turns a key into a number",
+            "tag": "technique",
+            "body": [
+              "A hash function maps data of any size to a fixed-size number. Here a toy version adds up the letter positions: c is 3, a is 1, t is 20, so cat gives 24.",
+              "A real hash function is fast, always gives the same output for the same input, and spreads different keys evenly. This one is only for the picture."
+            ],
+            "short": "Hash",
+            "hud": [
+              {
+                "k": "hash('cat')",
+                "v": "24"
+              },
+              {
+                "k": "Must be",
+                "v": "deterministic and fast"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "cat",
+                "pill": {
+                  "text": "3 + 1 + 20 = 24",
+                  "tone": "orange",
+                  "icon": "key"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf"
+                ],
+                "kind": "request"
+              }
+            ]
+          },
+          {
+            "title": "Index = hash mod number of buckets",
+            "tag": "solution",
+            "body": [
+              "There are 6 buckets, so the bucket index is 24 mod 6 = 0. The pair cat and 1 is stored in bucket 0.",
+              "The key is stored with its value, so that later you can check that the bucket really holds your key."
+            ],
+            "short": "Index",
+            "hud": [
+              {
+                "k": "Bucket",
+                "v": "0"
+              },
+              {
+                "k": "Stored",
+                "v": "cat:1"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "pill": null
+              },
+              "hf": {
+                "pill": {
+                  "text": "24 mod 6 = 0",
+                  "tone": "teal",
+                  "icon": "gauge"
+                }
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf",
+                  "b0"
+                ],
+                "kind": "write"
+              }
+            ],
+            "card": {
+              "title": "Python",
+              "lines": [
+                "index = hash(key) % len(buckets)",
+                "buckets[index] = (key, value)"
+              ],
+              "hl": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "title": "Insert dog and fox",
+            "tag": "solution",
+            "body": [
+              "dog gives 26, and 26 mod 6 = 2. fox gives 45, and 45 mod 6 = 3. Each goes straight into its own bucket.",
+              "Each insert is one hash, one mod and one write, so it takes O(1) time however many items are stored."
+            ],
+            "short": "More inserts",
+            "hud": [
+              {
+                "k": "Stored",
+                "v": "3 pairs"
+              },
+              {
+                "k": "Insert",
+                "v": "O(1)",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "dog:2",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "green",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "dog / fox"
+              },
+              "hf": {
+                "pill": null
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf",
+                  "b2"
+                ],
+                "kind": "write"
+              },
+              {
+                "path": [
+                  "hf",
+                  "b3"
+                ],
+                "kind": "write",
+                "delay": 0.5
+              }
+            ]
+          },
+          {
+            "title": "Lookup: hash again, then jump",
+            "tag": "solution",
+            "body": [
+              "To find dog, compute the same hash: 26 mod 6 = 2. Go to bucket 2 and compare the stored key with dog. They match, so return 2.",
+              "No other bucket was looked at. That is why lookup is O(1) on average, however large the table is."
+            ],
+            "short": "Lookup",
+            "hud": [
+              {
+                "k": "Buckets checked",
+                "v": "1",
+                "tone": "good"
+              },
+              {
+                "k": "Lookup",
+                "v": "O(1) average",
+                "tone": "good"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "status": "live",
+                "pill": {
+                  "text": "found: 2",
+                  "tone": "orange",
+                  "icon": "check"
+                }
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "dog"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf",
+                  "b2"
+                ],
+                "kind": "request"
+              }
+            ],
+            "predict": {
+              "question": "The table has 6 buckets and holds 3 pairs. About how many buckets does a lookup of dog look at?",
+              "options": [
+                "About 1",
+                "About 3",
+                "All 6"
+              ],
+              "answer": 0,
+              "why": "The hash tells you the bucket. You check just that bucket, not the others."
+            }
+          },
+          {
+            "title": "Collisions: two keys, one bucket",
+            "tag": "problem",
+            "body": [
+              "owl gives 50, and 50 mod 6 = 2, the same bucket as dog. Two different keys landing in the same bucket is a collision. With more keys than buckets this must happen sometimes.",
+              "Every hash table needs a plan for collisions. The next lesson shows the two main plans."
+            ],
+            "short": "Collision",
+            "hud": [
+              {
+                "k": "owl",
+                "v": "50 mod 6 = 2",
+                "tone": "bad"
+              },
+              {
+                "k": "Bucket 2",
+                "v": "occupied by dog",
+                "tone": "bad"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "status": "hot",
+                "pill": {
+                  "text": "dog is already here",
+                  "tone": "red",
+                  "icon": "alert"
+                }
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "owl"
+              }
+            },
+            "flows": [
+              {
+                "path": [
+                  "key",
+                  "hf",
+                  "b2"
+                ],
+                "kind": "fail"
+              }
+            ]
+          },
+          {
+            "title": "The load factor measures how full the table is",
+            "tag": "insight",
+            "body": [
+              "The load factor is the number of pairs divided by the number of buckets. Here it is 3 pairs over 6 buckets, which is 0.5. The higher it climbs, the more collisions you get.",
+              "Tables are resized when the load factor passes a limit, which a later lesson covers."
+            ],
+            "short": "Load factor",
+            "hud": [
+              {
+                "k": "Load factor",
+                "v": "n / m = 3 / 6 = 0.5"
+              },
+              {
+                "k": "Higher",
+                "v": "more collisions",
+                "tone": "warn"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "status": null,
+                "pill": null
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "key": {
+                "label": "load"
+              }
+            }
+          },
+          {
+            "title": "Average O(1), worst case O(n)",
+            "tag": "insight",
+            "body": [
+              "With a good hash function and a low load factor, search, insert and delete take constant time on average. The Wikipedia table gives Theta(1) average and O(n) worst case.",
+              "The worst case happens when many keys collide into one bucket, so the table degenerates into a list."
+            ],
+            "short": "Cost",
+            "hud": [
+              {
+                "k": "Average",
+                "v": "O(1)",
+                "tone": "good"
+              },
+              {
+                "k": "Worst case",
+                "v": "O(n)",
+                "tone": "bad"
+              },
+              {
+                "k": "Space",
+                "v": "O(n)"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "dog:2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Which keys can you use?",
+            "tag": "technique",
+            "body": [
+              "A key must be hashable: its hash never changes, and equal keys must have equal hashes. The Python glossary says so, and that is why lists and dicts cannot be keys, but strings, numbers and tuples of them can.",
+              "If you define your own class as a key, define __eq__ and __hash__ together, from the same fields."
+            ],
+            "short": "Hashable keys",
+            "hud": [
+              {
+                "k": "OK as keys",
+                "v": "str, int, tuple of them",
+                "tone": "good"
+              },
+              {
+                "k": "Not allowed",
+                "v": "list, dict, set",
+                "tone": "bad"
+              },
+              {
+                "k": "Rule",
+                "v": "equal means same hash"
+              }
+            ],
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "dog:2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            }
+          },
+          {
+            "title": "Recap",
+            "tag": "insight",
+            "body": [
+              "A hash table turns a key into an array index with a hash function, so lookups skip the searching. It costs O(1) on average, needs a plan for collisions and a resize policy, and needs hashable keys.",
+              "In Python, dict and set are hash tables."
+            ],
+            "short": "Recap",
+            "set": {
+              "b0": {
+                "label": "cat:1",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b1": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b2": {
+                "label": "dog:2",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b3": {
+                "label": "fox:3",
+                "tone": "blue",
+                "pill": null,
+                "status": null
+              },
+              "b4": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              },
+              "b5": {
+                "label": "·",
+                "tone": "grey",
+                "pill": null,
+                "status": null
+              }
+            },
+            "card": {
+              "title": "Checklist",
+              "lines": [
+                "1 hash(key) % buckets = index",
+                "2 collisions are normal: plan for them",
+                "3 load factor = n / m",
+                "4 keys must be hashable"
+              ],
+              "hl": []
+            }
+          }
+        ]
+      }
+    ],
+    "everyday": {
+      "plain": "A hash table is like a library where a formula tells you which shelf a book is on.",
+      "story": "In a huge library, you do not search every shelf. A rule turns the book's title into a shelf number, and you walk straight to that shelf. To put a book away, you use the same rule. Sometimes two titles give the same shelf number, and then you need a plan for sharing the shelf.",
+      "maps": [
+        [
+          "The shelf number rule",
+          "The hash function"
+        ],
+        [
+          "A shelf",
+          "A bucket"
+        ],
+        [
+          "Two titles on one shelf",
+          "A collision"
+        ],
+        [
+          "How crowded the shelves are",
+          "The load factor"
+        ]
+      ],
+      "words": [
+        [
+          "hash table",
+          "A structure that finds items by computing where they are stored."
+        ],
+        [
+          "hash function",
+          "A rule that turns a key into a number."
+        ],
+        [
+          "bucket",
+          "One slot in the array where pairs are stored."
+        ],
+        [
+          "collision",
+          "Two keys that go to the same bucket."
+        ],
+        [
+          "load factor",
+          "The number of stored pairs divided by the number of buckets."
+        ]
+      ]
+    }
   }
 ]
